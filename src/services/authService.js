@@ -4,7 +4,7 @@ import api from './api';
 // Discord OAuth constants
 const DISCORD_CLIENT_ID = process.env.REACT_APP_DISCORD_CLIENT_ID;
 const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || `${window.location.origin}/auth/discord/callback`;
-const DISCORD_AUTH_URL = `https://discord.com/oauth2/authorize?client_id=1368998293098598401&response_type=code&redirect_uri=https%3A%2F%2Fhammerhead-app-w2flz.ondigitalocean.app.%2Fauth%2Fdiscord%2Fcallback&scope=identify+email`;
+const DISCORD_AUTH_URL = `https://discord.com/oauth2/authorize?client_id=1368998293098598401&response_type=code&redirect_uri=https%3A%2F%2Fhammerhead-app-w2flz.ondigitalocean.app.%2Fwebsitebackendmain%2Fauth%2Fdiscord%2Fcallback&scope=identify+email`;
 
 const authService = {
     // Redirect to Discord OAuth
