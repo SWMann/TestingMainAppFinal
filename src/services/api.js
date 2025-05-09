@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create an Axios instance with configuration
 const api = axios.create({
-    baseURL: '/api', // This will use the proxy configuration in package.json during development
+    baseURL: '/websitebackendmain/api', // This will use the proxy configuration in package.json during development
     headers: {
         'Content-Type': 'application/json',
     },
