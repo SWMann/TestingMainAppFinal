@@ -1,25 +1,43 @@
 import logo from './logo.svg';
 import './App.css';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useRoutes } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { loadUser } from './redux/actions/authActions';
 
-function App() {
+// Components
+import Header from './components/layout/Header/Header';
+import Footer from './components/layout/Footer/Footer';
+
+// Routes configuration
+import routes from './routes';
+
+
+// AppRoutes component to use the useRoutes hook
+const AppRoutes = () => {
+  const { isAuthenticated } = useSelector(state => state.auth);
+  return useRoutes(routes(isAuthenticated));
+};
+
+const App = () => {
+  const dispatch = useDispatch();
+
+  // Load user on initial render if authenticated
+  useEffect(() => {
+    dispatch(loadUser());
+  }, [dispatch]);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+      <Router>
+        <div className="app-container">
+          <Header />
+          <main className="main-content">
+            <AppRoutes />
+          </main>
+          <Footer />
+        </div>
+      </Router>
   );
-}
+};
 
 export default App;
