@@ -1,108 +1,612 @@
+/* Import the required fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Electrolize&display=swap');
 
-.home-container {
+/* Root variables for the Frontier Interface theme */
+:root {
+    /* Primary colors */
+    --deep-space: #0C1C2C;
+    --nebula-purple: #382C54;
+
+    /* Secondary colors */
+    --hologram-blue: #4FCBF8;
+    --warning-orange: #FF6B35;
+
+    /* Accent color */
+    --quantum-green: #39FF14;
+
+    /* Branch colors */
+    --terrain-green: #4B5D46;
+    --starship-blue: #1F4287;
+    --strike-red: #CF1020;
+    --command-gold: #E4D00A;
+
+    /* Glow colors */
+    --blue-glow: 0 0 10px rgba(79, 203, 248, 0.7), 0 0 20px rgba(79, 203, 248, 0.4);
+    --green-glow: 0 0 10px rgba(57, 255, 20, 0.7), 0 0 20px rgba(57, 255, 20, 0.4);
+    --orange-glow: 0 0 10px rgba(255, 107, 53, 0.7), 0 0 20px rgba(255, 107, 53, 0.4);
+
+    /* Fonts */
+    --font-heading: 'Orbitron', sans-serif;
+    --font-body: 'Titillium Web', sans-serif;
+    --font-display: 'Electrolize', sans-serif;
+}
+
+/* Base styles */
+.frontier-home {
+    position: relative;
+    min-height: 100vh;
+    background-color: var(--deep-space);
+    color: white;
+    font-family: var(--font-body);
+    overflow-x: hidden;
+}
+
+.frontier-container {
+    position: relative;
+    z-index: 2;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 2rem 1rem;
 }
 
-.hero-section {
-    text-align: center;
-    margin-bottom: 4rem;
-    padding: 3rem;
-    background-color: #f8f9fa;
+/* Particle background */
+.particles-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Starfield background */
+.starfield-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('/stars-bg.png') repeat;
+    background-size: 400px;
+    opacity: 0.3;
+    z-index: 0;
+    animation: parallaxStars 150s linear infinite;
+}
+
+@keyframes parallaxStars {
+    from { background-position: 0 0; }
+    to { background-position: 1000px 1000px; }
+}
+
+/* Command Console */
+.command-console {
+    background: linear-gradient(to bottom, var(--deep-space), var(--nebula-purple));
+    border: 1px solid var(--hologram-blue);
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--blue-glow);
+    margin-bottom: 3rem;
+    clip-path: polygon(
+            0% 0%,
+            100% 0%,
+            100% 85%,
+            95% 100%,
+            5% 100%,
+            0% 85%
+    );
+    overflow: hidden;
 }
 
-.hero-section h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: #333;
-}
-
-.hero-section p {
-    font-size: 1.2rem;
-    color: #666;
-    margin-bottom: 2rem;
-}
-
-.auth-section {
-    margin-top: 2rem;
-}
-
-.discord-button {
-    background-color: #5865F2;
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    display: inline-flex;
+.console-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    transition: background-color 0.3s;
+    padding: 1rem 2rem;
+    background-color: rgba(12, 28, 44, 0.8);
+    border-bottom: 1px solid var(--hologram-blue);
 }
 
-.discord-button:hover {
-    background-color: #4752c4;
+.system-status {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
 }
 
-.discord-icon {
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
     margin-right: 8px;
-    font-size: 1.2rem;
 }
 
-.user-welcome {
-    margin-top: 2rem;
+.status-indicator.online {
+    background-color: var(--quantum-green);
+    box-shadow: 0 0 5px var(--quantum-green);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.status-text {
+    margin-right: 10px;
+    color: var(--quantum-green);
+}
+
+.timestamp {
+    color: var(--hologram-blue);
+}
+
+.console-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.8rem;
     text-align: center;
+    letter-spacing: 2px;
+    background: linear-gradient(to right, var(--hologram-blue), var(--quantum-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 5px rgba(79, 203, 248, 0.7);
 }
 
-.user-info {
+.system-info {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+}
+
+.info-item {
+    color: var(--hologram-blue);
+}
+
+.separator {
+    margin: 0 8px;
+    color: var(--hologram-blue);
+}
+
+/* Main Display */
+.main-display {
+    padding: 2rem;
+    min-height: 400px;
+}
+
+/* Loading Sequence */
+.loading-sequence {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
-}
-
-.user-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin-bottom: 1rem;
-    border: 3px solid #5865F2;
-}
-
-.logout-button {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 1rem;
-    transition: background-color 0.3s;
-}
-
-.logout-button:hover {
-    background-color: #c82333;
+    justify-content: center;
+    height: 100%;
 }
 
 .loading-spinner {
-    margin: 2rem auto;
+    width: 60px;
+    height: 60px;
+    border: 3px solid rgba(79, 203, 248, 0.3);
+    border-radius: 50%;
+    border-top: 3px solid var(--hologram-blue);
+    animation: spin 1s linear infinite;
+    margin-bottom: 1.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-family: var(--font-heading);
     font-size: 1.2rem;
-    color: #666;
+    color: var(--hologram-blue);
+    margin-bottom: 1.5rem;
 }
 
-.features-section {
-    margin-top: 3rem;
+.loading-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.features-section h2 {
-    text-align: center;
+.status-item {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    color: var(--quantum-green);
+    margin-bottom: 0.5rem;
+    position: relative;
+    padding-left: 20px;
+}
+
+.status-item::before {
+    content: ">";
+    position: absolute;
+    left: 0;
+    color: var(--quantum-green);
+}
+
+/* User Console */
+.user-console {
+    padding: 1.5rem;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
     margin-bottom: 2rem;
+}
+
+.user-avatar-container {
+    position: relative;
+    margin-right: 2rem;
+}
+
+.avatar-hexagon {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background-color: var(--hologram-blue);
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-glow {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: transparent;
+    border: 2px solid var(--hologram-blue);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    z-index: -1;
+    box-shadow: var(--blue-glow);
+    animation: glowPulse 3s infinite;
+}
+
+@keyframes glowPulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-greeting {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--quantum-green);
+}
+
+.user-id {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--hologram-blue);
+    margin-bottom: 1rem;
+    position: relative;
+    padding-left: 20px;
+}
+
+.user-id::before {
+    content: "ID:";
+    position: absolute;
+    left: 0;
+    color: rgba(79, 203, 248, 0.7);
+}
+
+.user-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.status-badge {
+    background-color: rgba(79, 203, 248, 0.2);
+    border: 1px solid var(--hologram-blue);
+    color: var(--hologram-blue);
+    padding: 0.3rem 0.8rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    border-radius: 4px;
+}
+
+/* Console Display */
+.console-display {
+    background-color: rgba(12, 28, 44, 0.7);
+    border: 1px solid var(--hologram-blue);
+    border-radius: 6px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.display-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.7rem 1rem;
+    background-color: rgba(79, 203, 248, 0.2);
+    border-bottom: 1px solid var(--hologram-blue);
+}
+
+.display-header h3 {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--hologram-blue);
+    margin: 0;
+}
+
+.display-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.control-button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+.control-button.minimize {
+    background-color: var(--warning-orange);
+}
+
+.control-button.expand {
+    background-color: var(--quantum-green);
+}
+
+.control-button.close {
+    background-color: var(--strike-red);
+}
+
+.display-content {
+    padding: 1.5rem;
+}
+
+.display-content p {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    color: #d0d0d0;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.status-cell {
+    padding: 1rem;
+    background-color: rgba(56, 44, 84, 0.5);
+    border: 1px solid rgba(79, 203, 248, 0.3);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.status-label {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--hologram-blue);
+    margin-bottom: 0.5rem;
+}
+
+.status-value {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: white;
+}
+
+.status-value .unit {
+    font-size: 0.8rem;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.status-value.status-low {
+    color: var(--quantum-green);
+}
+
+.logout-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    padding: 0.7rem 1.5rem;
+    background-color: rgba(207, 16, 32, 0.2);
+    border: 1px solid var(--strike-red);
+    border-radius: 4px;
+    color: var(--warning-orange);
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: rgba(207, 16, 32, 0.4);
+    box-shadow: 0 0 10px rgba(207, 16, 32, 0.5);
+}
+
+.button-icon {
+    margin-right: 8px;
+}
+
+/* Auth Console */
+.auth-console {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+}
+
+.welcome-message {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.welcome-message h2 {
+    font-family: var(--font-heading);
     font-size: 2rem;
-    color: #333;
+    margin-bottom: 1.5rem;
+    color: var(--hologram-blue);
+    letter-spacing: 2px;
+}
+
+.access-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--font-display);
+}
+
+.message-line {
+    margin-bottom: 0.5rem;
+    color: #d0d0d0;
+}
+
+.message-line.blink {
+    color: var(--quantum-green);
+    animation: blink 1.5s step-start infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+.access-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+.access-instructions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.instruction-step {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    background-color: rgba(79, 203, 248, 0.1);
+    border-left: 3px solid var(--hologram-blue);
+    border-radius: 0 4px 4px 0;
+}
+
+.step-number {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--hologram-blue);
+    margin-right: 1rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.step-text {
+    font-family: var(--font-display);
+    color: white;
+}
+
+.discord-login-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 2rem;
+    background-color: rgba(88, 101, 242, 0.2);
+    border: none;
+    color: white;
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    cursor: pointer;
+    overflow: hidden;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: all 0.3s ease;
+}
+
+.discord-login-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid var(--hologram-blue);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    z-index: -1;
+}
+
+.discord-login-button:hover {
+    background-color: rgba(88, 101, 242, 0.4);
+}
+
+.button-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    box-shadow: var(--blue-glow);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.discord-login-button:hover .button-glow {
+    opacity: 1;
+}
+
+.discord-icon {
+    margin-right: 10px;
+    font-size: 1.2rem;
+}
+
+/* Features Section */
+.features-section {
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    color: var(--hologram-blue);
+    letter-spacing: 2px;
+    position: relative;
+    padding-bottom: 1rem;
+}
+
+.section-title::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(to right, transparent, var(--hologram-blue), transparent);
 }
 
 .features-grid {
@@ -111,41 +615,175 @@
     gap: 2rem;
 }
 
-.feature-card {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s, box-shadow 0.3s;
+.feature-hexagon {
+    position: relative;
+    padding: 2rem;
+    background-color: rgba(12, 28, 44, 0.7);
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    text-align: center;
+    transition: transform 0.3s ease;
 }
 
-.feature-card:hover {
+.feature-hexagon::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    z-index: -1;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.feature-hexagon.army::before {
+    background: var(--terrain-green);
+    box-shadow: 0 0 15px rgba(75, 93, 70, 0.7);
+}
+
+.feature-hexagon.navy::before {
+    background: var(--starship-blue);
+    box-shadow: 0 0 15px rgba(31, 66, 135, 0.7);
+}
+
+.feature-hexagon.marines::before {
+    background: var(--strike-red);
+    box-shadow: 0 0 15px rgba(207, 16, 32, 0.7);
+}
+
+.feature-hexagon.combined::before {
+    background: var(--command-gold);
+    box-shadow: 0 0 15px rgba(228, 208, 10, 0.7);
+}
+
+.feature-hexagon:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
-.feature-card h3 {
+.feature-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.feature-hexagon h3 {
+    font-family: var(--font-heading);
     font-size: 1.2rem;
-    margin-bottom: 0.8rem;
-    color: #333;
+    margin-bottom: 1rem;
+    color: white;
 }
 
-.feature-card p {
-    color: #666;
+.feature-hexagon p {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: #d0d0d0;
     line-height: 1.5;
+}
+
+/* System Status Panel */
+.system-status-panel {
+    background-color: rgba(12, 28, 44, 0.7);
+    border: 1px solid var(--hologram-blue);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.status-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: rgba(79, 203, 248, 0.1);
+    border-bottom: 1px solid var(--hologram-blue);
+}
+
+.status-panel-header h3 {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--hologram-blue);
+    margin: 0;
+}
+
+.refresh-button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(79, 203, 248, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.refresh-button:hover {
+    background-color: rgba(79, 203, 248, 0.4);
+}
+
+.refresh-icon {
+    color: var(--hologram-blue);
+}
+
+.status-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background-color: rgba(79, 203, 248, 0.2);
+}
+
+.status-module {
+    padding: 1rem;
+    background-color: rgba(12, 28, 44, 0.9);
+    text-align: center;
+}
+
+.module-name {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--hologram-blue);
+    margin-bottom: 0.5rem;
+}
+
+.module-value {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: white;
+}
+
+.module-value.online {
+    color: var(--quantum-green);
+}
+
+.module-value .unit {
+    font-size: 0.7rem;
+    margin-left: 2px;
+    opacity: 0.7;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .hero-section {
-        padding: 2rem 1rem;
+    .console-header {
+        flex-direction: column;
+        padding: 1rem;
     }
 
-    .hero-section h1 {
-        font-size: 2rem;
+    .system-status, .system-info {
+        margin-bottom: 0.5rem;
     }
 
-    .features-grid {
+    .user-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .user-avatar-container {
+        margin-right: 0;
+        margin-bottom: 1.5rem;
+    }
+
+    .status-grid, .features-grid {
         grid-template-columns: 1fr;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
     }
 }
