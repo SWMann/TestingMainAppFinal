@@ -21,7 +21,7 @@
 .starfield-overlay {
     position: absolute;
     inset: 0;
-    background-image: url('/stars-background.png');
+    background-image: url('/stars-background.jpg');
     background-repeat: repeat;
     opacity: 0.4;
 }
