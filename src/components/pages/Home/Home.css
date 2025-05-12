@@ -21,10 +21,14 @@
 .starfield-overlay {
     position: absolute;
     inset: 0;
-    background-image: url('public/stars-background.jpg');
-    height:1000px;
-    width:700px;
-    background-repeat: repeat;
+    /* Background is now set in the JS with inline styles when using an image */
+    /* Fallback background for when no image is provided */
+    background-color: #0C1C2C;
+    background-image:
+            radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 2px),
+            radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 1px);
+    background-size: 50px 50px, 30px 30px;
+    background-position: 0 0, 25px 25px;
     opacity: 0.4;
 }
 
