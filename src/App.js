@@ -30,11 +30,9 @@ const App = () => {
   return (
       <Router>
         <div className="app-container">
-          <Header />
           <main className="main-content">
             <AppRoutes />
           </main>
-          <Footer />
         </div>
       </Router>
   );
