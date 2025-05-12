@@ -18,11 +18,10 @@
     z-index: 0;
 }
 
+
 .starfield-overlay {
     position: absolute;
     inset: 0;
-    /* Background is now set in the JS with inline styles when using an image */
-    /* Fallback background for when no image is provided */
     background-color: #0C1C2C;
     background-image:
             radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 2px),

@@ -15,7 +15,6 @@ import {
     Users
 } from 'lucide-react';
 import './Home.css';
-import starfieldBackground from '../../../../images/starfield-background.jpg';
 
 // Mock data for demonstration
 const mockAnnouncements = [
@@ -86,14 +85,7 @@ const Home = () => {
 
             {/* Starfield Background */}
             <div className="starfield-container">
-                <div
-                    className="starfield-overlay"
-                    style={starfieldBackground ? {
-                        backgroundImage: `url(${starfieldBackground})`,
-                        backgroundRepeat: 'repeat',
-                        backgroundColor: 'transparent'
-                    } : {}}
-                ></div>
+                <div className="starfield-overlay"></div>
                 <div className="starfield-gradient"></div>
             </div>
 
