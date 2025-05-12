@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { loginWithDiscord, logout } from '../../../redux/actions/authActions';
+import axios from 'axios';
 import {
     ArrowUpRight,
     Calendar,
@@ -12,42 +13,28 @@ import {
     FileText,
     Award,
     AlertTriangle,
-    Users
+    Users,
+    Rocket,
+    Map,
+    Ship,
+    Target,
+    ChevronRight,
+    Star,
+    Zap
 } from 'lucide-react';
 import './Home.css';
-
-// Mock data for demonstration
-const mockAnnouncements = [
-    { id: 1, title: "New Mission Briefing", content: "Operation Starlight begins tomorrow at 0800 hours.", date: "2025-05-08", isPinned: true },
-    { id: 2, title: "Updated Combat Protocol", content: "All personnel must review the updated rules of engagement.", date: "2025-05-07" },
-    { id: 3, title: "System Maintenance", content: "Comms will be down for scheduled maintenance.", date: "2025-05-06" },
-];
-
-const mockEvents = [
-    { id: 1, title: "Squad Training Exercise", date: "2025-05-10", time: "0900", location: "Training Deck B" },
-    { id: 2, title: "Strategic Briefing", date: "2025-05-11", time: "1400", location: "Command Center" },
-    { id: 3, title: "Equipment Inspection", date: "2025-05-12", time: "1000", location: "Armory" },
-];
-
-const mockStats = [
-    { id: 1, title: "Missions Completed", value: 24, trend: "up" },
-    { id: 2, title: "Team Readiness", value: "92%", trend: "up" },
-    { id: 3, title: "New Messages", value: 7, trend: "neutral" },
-    { id: 4, title: "Next Deployment", value: "6d", trend: "down" },
-];
-
-const quickLinks = [
-    { id: 1, title: "Forums", icon: <MessageSquare size={18} />, color: "#4FCBF8" },
-    { id: 2, title: "Calendar", icon: <Calendar size={18} />, color: "#39FF14" },
-    { id: 3, title: "Resources", icon: <FileText size={18} />, color: "#FF6B35" },
-    { id: 4, title: "Achievements", icon: <Award size={18} />, color: "#E4D00A" },
-];
 
 const Home = () => {
     const dispatch = useDispatch();
     const { isAuthenticated, user, isLoading } = useSelector(state => state.auth);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [announcements, setAnnouncements] = useState([]);
+    const [upcomingEvents, setUpcomingEvents] = useState([]);
+    const [userCertificates, setUserCertificates] = useState([]);
+    const [userStats, setUserStats] = useState([]);
+    const [branches, setBranches] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // Update time every second for the digital clock
     useEffect(() => {
@@ -57,6 +44,121 @@ const Home = () => {
 
         return () => clearInterval(timer);
     }, []);
+
+    // Fetch data when authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchUserData();
+            fetchAnnouncements();
+            fetchUpcomingEvents();
+        } else {
+            // Fetch public data for non-authenticated users
+            fetchPublicData();
+        }
+    }, [isAuthenticated]);
+
+    const fetchUserData = async () => {
+        try {
+            setLoading(true);
+
+            // Get user profile data
+            const profileResponse = await axios.get('/api/users/me/');
+
+            // Get user certificates
+            const certificatesResponse = await axios.get(`/api/users/${profileResponse.data.id}/certificates/`);
+            setUserCertificates(certificatesResponse.data);
+
+            // Get user events
+            const eventsResponse = await axios.get(`/api/users/${profileResponse.data.id}/events/`);
+
+            // Calculate user stats
+            const stats = [
+                {
+                    id: 1,
+                    title: "Events Attended",
+                    value: eventsResponse.data.filter(e =>
+                        e.event_attendance && e.event_attendance.status === "Attending" &&
+                        new Date(e.end_time) < new Date()
+                    ).length,
+                    trend: "up"
+                },
+                {
+                    id: 2,
+                    title: "Certifications",
+                    value: certificatesResponse.data.length,
+                    trend: "neutral"
+                },
+                {
+                    id: 3,
+                    title: "Position",
+                    value: profileResponse.data.primary_unit_id ? "Active" : "Unassigned",
+                    trend: profileResponse.data.primary_unit_id ? "up" : "down"
+                },
+                {
+                    id: 4,
+                    title: "Next Event",
+                    value: calculateNextEvent(eventsResponse.data),
+                    trend: "neutral"
+                }
+            ];
+
+            setUserStats(stats);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            setLoading(false);
+        }
+    };
+
+    const fetchAnnouncements = async () => {
+        try {
+            const response = await axios.get('/api/announcements/');
+            setAnnouncements(response.data);
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+        }
+    };
+
+    const fetchUpcomingEvents = async () => {
+        try {
+            const response = await axios.get('/api/events/upcoming/');
+            setUpcomingEvents(response.data);
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
+    };
+
+    const fetchPublicData = async () => {
+        try {
+            setLoading(true);
+
+            // Fetch branches for public display
+            const branchesResponse = await axios.get('/api/branches/');
+            setBranches(branchesResponse.data);
+
+            // Fetch public announcements
+            const announcementsResponse = await axios.get('/api/announcements/');
+            setAnnouncements(announcementsResponse.data.filter(a => a.is_public));
+
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching public data:', error);
+            setLoading(false);
+        }
+    };
+
+    const calculateNextEvent = (events) => {
+        const futureEvents = events
+            .filter(e => new Date(e.start_time) > new Date())
+            .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+
+        if (futureEvents.length === 0) return "None";
+
+        const nextEvent = futureEvents[0];
+        const days = Math.ceil((new Date(nextEvent.start_time) - new Date()) / (1000 * 60 * 60 * 24));
+
+        return days <= 0 ? "Today" : `${days}d`;
+    };
 
     const handleDiscordLogin = () => {
         dispatch(loginWithDiscord());
@@ -75,16 +177,28 @@ const Home = () => {
         }).format(date);
     };
 
-    const formatTime = (time) => {
-        // Military time formatter
-        return time.padStart(4, '0').replace(/(\d{2})(\d{2})/, '$1:$2');
+    const formatTime = (timeString) => {
+        if (!timeString) return "";
+
+        const date = new Date(timeString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     };
+
+    // Quick links based on actual site structure
+    const quickLinks = [
+        { id: 1, title: "Forums", icon: <MessageSquare size={18} />, color: "#4FCBF8", url: "/forums" },
+        { id: 2, title: "Calendar", icon: <Calendar size={18} />, color: "#39FF14", url: "/events/calendar" },
+        { id: 3, title: "Standards", icon: <FileText size={18} />, color: "#FF6B35", url: "/sops/groups" },
+        { id: 4, title: "Achievements", icon: <Award size={18} />, color: "#E4D00A", url: "/achievements" },
+    ];
 
     return (
         <div className="home-container">
-
-            {/* Starfield Background */}
+            {/* Starfield Background with Parallax Effect */}
             <div className="starfield-container">
+                <div className="starfield-layer starfield-layer-1"></div>
+                <div className="starfield-layer starfield-layer-2"></div>
+                <div className="starfield-layer starfield-layer-3"></div>
                 <div className="starfield-overlay"></div>
                 <div className="starfield-gradient"></div>
             </div>
@@ -98,7 +212,7 @@ const Home = () => {
                                 <div className="logo-icon">
                                     <Shield size={18} className="logo-icon-inner" />
                                 </div>
-                                <h1 className="logo-text">FRONTIER COMMAND</h1>
+                                <h1 className="logo-text">5TH EXPEDITIONARY</h1>
                             </div>
                         </div>
 
@@ -116,10 +230,10 @@ const Home = () => {
                         <nav className="desktop-nav">
                             {isAuthenticated && (
                                 <>
-                                    <a href="#" className="nav-link">Dashboard</a>
-                                    <a href="#" className="nav-link">Events</a>
-                                    <a href="#" className="nav-link">Units</a>
-                                    <a href="#" className="nav-link">Forums</a>
+                                    <a href="/dashboard" className="nav-link">Dashboard</a>
+                                    <a href="/events" className="nav-link">Events</a>
+                                    <a href="/units" className="nav-link">Units</a>
+                                    <a href="/forums" className="nav-link">Forums</a>
                                 </>
                             )}
 
@@ -157,10 +271,10 @@ const Home = () => {
                     <div className="mobile-nav-items">
                         {isAuthenticated && (
                             <>
-                                <a href="#" className="mobile-nav-link">Dashboard</a>
-                                <a href="#" className="mobile-nav-link">Events</a>
-                                <a href="#" className="mobile-nav-link">Units</a>
-                                <a href="#" className="mobile-nav-link">Forums</a>
+                                <a href="/dashboard" className="mobile-nav-link">Dashboard</a>
+                                <a href="/events" className="mobile-nav-link">Events</a>
+                                <a href="/units" className="mobile-nav-link">Units</a>
+                                <a href="/forums" className="mobile-nav-link">Forums</a>
                             </>
                         )}
 
@@ -195,31 +309,38 @@ const Home = () => {
 
             {/* Main Content */}
             <main className="main-content">
-                {isLoading ? (
+                {isLoading || loading ? (
                     <div className="loading-container">
                         <div className="loading-spinner">
-                            <div className="spinner-circle"></div>
-                            <p className="loading-text">SYSTEM INITIALIZING...</p>
+                            <div className="spinner-hexagon"></div>
+                            <div className="spinner-hexagon"></div>
+                            <div className="spinner-hexagon"></div>
+                            <p className="loading-text">SYSTEM INITIALIZING<span className="dot-1">.</span><span className="dot-2">.</span><span className="dot-3">.</span></p>
                         </div>
                     </div>
                 ) : isAuthenticated ? (
+                    /* AUTHENTICATED USER DASHBOARD */
                     <div className="dashboard">
-                        {/* Dashboard Header */}
+                        {/* Dashboard Header with holographic elements */}
                         <div className="dashboard-header">
-                            <div>
-                                <h2 className="dashboard-title">MISSION CONTROL</h2>
-                                <p className="dashboard-time">
-                                    {currentTime.toLocaleDateString()} | {currentTime.toLocaleTimeString([], {hour12: false})}
-                                </p>
+                            <div className="dashboard-header-left">
+                                <h2 className="dashboard-title">COMMAND INTERFACE</h2>
+                                <div className="dashboard-time-container">
+                                    <div className="dashboard-date">{currentTime.toLocaleDateString()}</div>
+                                    <div className="dashboard-time">{currentTime.toLocaleTimeString([], {hour12: false})}</div>
+                                </div>
                             </div>
-                            <div className="status-display">
-                                <p className="status-text">OPERATOR STATUS: <span className="status-active">ACTIVE</span></p>
+                            <div className="dashboard-header-right">
+                                <div className="status-display">
+                                    <div className="status-indicator"></div>
+                                    <p className="status-text">OPERATOR STATUS: <span className="status-active">ACTIVE</span></p>
+                                </div>
                             </div>
                         </div>
 
                         {/* Quick Stats */}
                         <div className="stats-grid">
-                            {mockStats.map(stat => (
+                            {userStats.map(stat => (
                                 <div
                                     key={stat.id}
                                     className="stat-card"
@@ -241,27 +362,27 @@ const Home = () => {
                             <div className="announcements-section">
                                 <div className="panel">
                                     <div className="panel-header">
-                                        <h3 className="panel-title">ANNOUNCEMENTS</h3>
-                                        <a href="#" className="view-all-link">
+                                        <h3 className="panel-title">PRIORITY TRANSMISSIONS</h3>
+                                        <a href="/announcements" className="view-all-link">
                                             View All <ArrowUpRight size={14} className="arrow-icon" />
                                         </a>
                                     </div>
 
                                     <div className="announcements-list">
-                                        {mockAnnouncements.map(announcement => (
+                                        {announcements.slice(0, 3).map(announcement => (
                                             <div
                                                 key={announcement.id}
-                                                className={`announcement-card ${announcement.isPinned ? 'pinned' : ''}`}
+                                                className={`announcement-card ${announcement.is_pinned ? 'pinned' : ''}`}
                                             >
                                                 <div className="announcement-header">
                                                     <h4 className="announcement-title">
-                                                        {announcement.isPinned && (
+                                                        {announcement.is_pinned && (
                                                             <AlertTriangle size={14} className="alert-icon" />
                                                         )}
                                                         {announcement.title}
                                                     </h4>
                                                     <span className="announcement-date">
-                            {formatDate(announcement.date)}
+                            {formatDate(announcement.created_at)}
                           </span>
                                                 </div>
                                                 <p className="announcement-content">{announcement.content}</p>
@@ -280,7 +401,7 @@ const Home = () => {
                                         {quickLinks.map(link => (
                                             <a
                                                 key={link.id}
-                                                href="#"
+                                                href={link.url}
                                                 className="quick-link"
                                                 style={{borderLeft: `3px solid ${link.color}`}}
                                             >
@@ -294,24 +415,29 @@ const Home = () => {
                                 {/* Upcoming Events */}
                                 <div className="events-panel panel">
                                     <div className="panel-header">
-                                        <h3 className="panel-title">UPCOMING EVENTS</h3>
-                                        <a href="#" className="view-calendar-link">
+                                        <h3 className="panel-title">UPCOMING OPERATIONS</h3>
+                                        <a href="/events/calendar" className="view-calendar-link">
                                             Calendar <ArrowUpRight size={14} className="arrow-icon" />
                                         </a>
                                     </div>
 
                                     <div className="events-list">
-                                        {mockEvents.map(event => (
+                                        {upcomingEvents.slice(0, 3).map(event => (
                                             <div key={event.id} className="event-card">
                                                 <div className="event-header">
                                                     <h4 className="event-title">{event.title}</h4>
                                                     <span className="event-time">
-                            {formatTime(event.time)}
+                            {formatTime(event.start_time)}
                           </span>
                                                 </div>
                                                 <div className="event-details">
-                                                    <span className="event-date">{formatDate(event.date)}</span>
+                                                    <span className="event-date">{formatDate(event.start_time)}</span>
                                                     <span className="event-location">{event.location}</span>
+                                                    <div className="event-rsvp">
+                                                        <a href={`/events/${event.id}`} className="event-rsvp-button">
+                                                            RSVP <ChevronRight size={14} />
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -321,46 +447,178 @@ const Home = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="hero-section">
-                        <div className="hero-content">
-                            <h1 className="hero-title">FRONTIER COMMAND NETWORK</h1>
-                            <p className="hero-subtitle">Connect, organize, and engage with your unit across the galaxy</p>
+                    /* NON-AUTHENTICATED LANDING PAGE */
+                    <div className="landing-page">
+                        {/* Hero Section with Animated Elements */}
+                        <div className="hero-section">
+                            <div className="hero-content">
+                                <div className="hero-title-container">
+                                    <div className="hero-badge">
+                                        <div className="hero-badge-inner"></div>
+                                    </div>
+                                    <h1 className="hero-title">5TH EXPEDITIONARY FORCE</h1>
+                                </div>
+                                <h2 className="hero-subtitle">BRAVE THE FRONTIER. FORGE YOUR LEGACY.</h2>
+                                <p className="hero-description">
+                                    Join an elite interstellar unit dedicated to exploration, security, and scientific advancement at the edge of known space.
+                                </p>
 
-                            <div className="login-container">
-                                <p className="login-message">Secure access required. Authenticate with Discord credentials to proceed.</p>
-                                <button
-                                    onClick={handleDiscordLogin}
-                                    className="discord-login-button"
-                                >
-                                    <span className="discord-icon">🎮</span> Login with Discord
-                                </button>
+                                <div className="hero-cta">
+                                    <button onClick={handleDiscordLogin} className="hero-login-button">
+                                        <div className="button-glow"></div>
+                                        <span className="button-text">LOGIN WITH DISCORD</span>
+                                    </button>
+                                    <a href="/applications" className="hero-apply-button">
+                                        <div className="button-glow"></div>
+                                        <span className="button-text">APPLY NOW</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Animated ship or emblem */}
+                            <div className="hero-emblem">
+                                <div className="emblem-glow"></div>
+                                <div className="emblem-inner"></div>
                             </div>
                         </div>
 
-                        {/* Features */}
+                        {/* Branch Showcase */}
+                        <div className="branches-section">
+                            <h2 className="section-title">BRANCHES OF SERVICE</h2>
+                            <div className="branches-grid">
+                                {branches.map(branch => (
+                                    <div
+                                        key={branch.id}
+                                        className="branch-card"
+                                        style={{
+                                            borderColor: branch.name === "Army" ? "#4B5D46" :
+                                                branch.name === "Navy" ? "#1F4287" :
+                                                    branch.name === "Marines" ? "#CF1020" : "#E4D00A"
+                                        }}
+                                    >
+                                        <div className="branch-icon">
+                                            <img src={branch.logo_url} alt={`${branch.name} emblem`} />
+                                        </div>
+                                        <h3 className="branch-name">{branch.name}</h3>
+                                        <p className="branch-description">{branch.description}</p>
+                                        <a href={`/branches/${branch.id}`} className="branch-link">Learn More</a>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Features with Icon Grid */}
                         <div className="features-section">
-                            <h2 className="features-title">COMMAND SYSTEM CAPABILITIES</h2>
+                            <h2 className="section-title">EXPEDITIONARY CAPABILITIES</h2>
                             <div className="features-grid">
                                 <div className="feature-card">
-                                    <Calendar size={32} className="feature-icon" />
-                                    <h3 className="feature-title">Mission Planning</h3>
-                                    <p className="feature-description">Schedule and coordinate operations with real-time updates and notifications.</p>
+                                    <div className="feature-icon-container">
+                                        <Rocket size={32} className="feature-icon" />
+                                    </div>
+                                    <h3 className="feature-title">DEEP SPACE OPERATIONS</h3>
+                                    <p className="feature-description">Conduct missions beyond established territories, pushing the boundaries of human presence.</p>
                                 </div>
+
                                 <div className="feature-card">
-                                    <Users size={32} className="feature-icon" />
-                                    <h3 className="feature-title">Unit Management</h3>
-                                    <p className="feature-description">Organize your forces into structured units with defined command hierarchies.</p>
+                                    <div className="feature-icon-container">
+                                        <Map size={32} className="feature-icon" />
+                                    </div>
+                                    <h3 className="feature-title">PLANETARY EXPLORATION</h3>
+                                    <p className="feature-description">Map uncharted worlds and establish forward operating bases in hostile environments.</p>
                                 </div>
+
                                 <div className="feature-card">
-                                    <MessageSquare size={32} className="feature-icon" />
-                                    <h3 className="feature-title">Secure Comms</h3>
-                                    <p className="feature-description">Encrypted communication channels for sensitive operational discussions.</p>
+                                    <div className="feature-icon-container">
+                                        <Shield size={32} className="feature-icon" />
+                                    </div>
+                                    <h3 className="feature-title">FRONTIER SECURITY</h3>
+                                    <p className="feature-description">Protect vulnerable outposts and settlements from external threats.</p>
                                 </div>
+
                                 <div className="feature-card">
-                                    <FileText size={32} className="feature-icon" />
-                                    <h3 className="feature-title">Intelligence Archive</h3>
-                                    <p className="feature-description">Access and share mission-critical resources and documentation.</p>
+                                    <div className="feature-icon-container">
+                                        <Ship size={32} className="feature-icon" />
+                                    </div>
+                                    <h3 className="feature-title">FLEET OPERATIONS</h3>
+                                    <p className="feature-description">Coordinate small and large-scale naval assets across multiple star systems.</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Testimonials or Recent Operations */}
+                        <div className="operations-section">
+                            <h2 className="section-title">RECENT OPERATIONS</h2>
+                            <div className="operations-grid">
+                                <div className="operation-card">
+                                    <div className="operation-image">
+                                        <div className="operation-image-overlay"></div>
+                                    </div>
+                                    <div className="operation-content">
+                                        <h3 className="operation-title">OPERATION STARFALL</h3>
+                                        <p className="operation-description">Deep space rescue mission to recover a scientific expedition lost in the outer rim.</p>
+                                        <div className="operation-stats">
+                                            <div className="stat">
+                                                <Star size={16} />
+                                                <span>Success</span>
+                                            </div>
+                                            <div className="stat">
+                                                <Users size={16} />
+                                                <span>24 Operatives</span>
+                                            </div>
+                                            <div className="stat">
+                                                <Calendar size={16} />
+                                                <span>3 Months</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="operation-card">
+                                    <div className="operation-image">
+                                        <div className="operation-image-overlay"></div>
+                                    </div>
+                                    <div className="operation-content">
+                                        <h3 className="operation-title">OPERATION NOVA SHIELD</h3>
+                                        <p className="operation-description">Defensive action to protect the Proxima Colony from hostile incursion.</p>
+                                        <div className="operation-stats">
+                                            <div className="stat">
+                                                <Star size={16} />
+                                                <span>Success</span>
+                                            </div>
+                                            <div className="stat">
+                                                <Users size={16} />
+                                                <span>42 Operatives</span>
+                                            </div>
+                                            <div className="stat">
+                                                <Calendar size={16} />
+                                                <span>2 Weeks</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Call To Action */}
+                        <div className="cta-section">
+                            <div className="cta-content">
+                                <h2 className="cta-title">JOIN THE 5TH EXPEDITIONARY TODAY</h2>
+                                <p className="cta-description">
+                                    The frontier needs skilled operators ready to face the unknown. Your journey begins here.
+                                </p>
+                                <div className="cta-buttons">
+                                    <a href="/applications" className="cta-button primary">
+                                        <Zap size={18} className="button-icon" />
+                                        <span>APPLY NOW</span>
+                                    </a>
+                                    <a href="/faq" className="cta-button secondary">
+                                        <span>LEARN MORE</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div className="cta-background">
+                                <div className="cta-stars"></div>
+                                <div className="cta-glow"></div>
                             </div>
                         </div>
                     </div>
@@ -371,14 +629,19 @@ const Home = () => {
             <footer className="main-footer">
                 <div className="container">
                     <div className="footer-content">
-                        <div className="footer-copyright">
-                            <p className="copyright-text">© 2025 Frontier Command Network</p>
+                        <div className="footer-logo">
+                            <Shield size={24} className="footer-logo-icon" />
+                            <span className="footer-logo-text">5TH EXPEDITIONARY</span>
                         </div>
                         <div className="footer-links">
-                            <a href="#" className="footer-link">Terms of Service</a>
-                            <a href="#" className="footer-link">Privacy Policy</a>
-                            <a href="#" className="footer-link">Support</a>
+                            <a href="/terms" className="footer-link">Terms of Service</a>
+                            <a href="/privacy" className="footer-link">Privacy Policy</a>
+                            <a href="/support" className="footer-link">Support</a>
+                            <a href="/contact" className="footer-link">Contact</a>
                         </div>
+                    </div>
+                    <div className="footer-bottom">
+                        <p className="copyright-text">© 2025 5th Expeditionary Force | All Rights Reserved</p>
                     </div>
                 </div>
             </footer>
