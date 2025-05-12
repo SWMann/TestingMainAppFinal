@@ -15,7 +15,7 @@ import {
     Users
 } from 'lucide-react';
 import './Home.css';
-import starfieldBackground from '../images/starfield-background.jpg';
+import starfieldBackground from '../../../images/starfield-background.jpg';
 
 // Mock data for demonstration
 const mockAnnouncements = [
