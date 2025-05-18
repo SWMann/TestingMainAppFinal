@@ -1,3 +1,4 @@
+
 .admin-dashboard {
     min-height: 100vh;
     display: flex;
@@ -635,28 +636,89 @@
     color: #475569;
 }
 
-/* Table actions */
-.table-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+/* Admin action bar - replaces table-actions */
+.admin-action-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    margin-bottom: 20px;
     width: 100%;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 15px;
 }
 
-.table-filters {
+.search-section {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex: 1;
 }
 
-.table-buttons {
-    display: flex;
+.search-box {
+    position: relative;
+    width: 300px;
+    margin-right: 10px;
+}
+
+.search-field {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.filter-btn {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    padding: 8px 16px;
+    background-color: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.action-section {
+    display: flex;
     justify-content: flex-end;
-    flex-wrap: nowrap;
+    gap: 10px;
+}
+
+.delete-btn, .assign-btn, .create-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    color: white;
+}
+
+.assign-btn {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.create-btn {
+    background-color: #3b82f6;
+    color: white;
 }.admin-table {
      width: 100%;
      border-collapse: collapse;

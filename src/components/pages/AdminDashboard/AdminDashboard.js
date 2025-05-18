@@ -1313,31 +1313,31 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="table-actions">
-                    <div className="table-filters">
-                        <div className="search-container">
+                <div className="admin-action-bar">
+                    <div className="search-section">
+                        <div className="search-box">
                             <input
                                 type="text"
                                 placeholder="Search users..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-input"
+                                className="search-field"
                             />
                             <Search className="search-icon" size={16} />
                         </div>
 
                         <button
-                            className="button filter-button"
+                            className="filter-btn"
                             onClick={() => {}}
                         >
                             <Filter size={16} /> Filters
                         </button>
                     </div>
 
-                    <div className="table-buttons">
+                    <div className="action-section">
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="button danger"
+                                className="delete-btn"
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1347,14 +1347,14 @@ const AdminDashboard = () => {
                         {canPerformAction('write') && (
                             <>
                                 <button
-                                    className="button secondary"
+                                    className="assign-btn"
                                     onClick={() => handleOpenLinkModal('users_unit')}
                                 >
                                     <Link size={16} /> Assign to Unit
                                 </button>
 
                                 <button
-                                    className="button primary"
+                                    className="create-btn"
                                     onClick={() => handleOpenCreateModal('users')}
                                 >
                                     <Plus size={16} /> New User
@@ -1534,31 +1534,31 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="table-actions">
-                    <div className="table-filters">
-                        <div className="search-container">
+                <div className="admin-action-bar">
+                    <div className="search-section">
+                        <div className="search-box">
                             <input
                                 type="text"
                                 placeholder="Search ranks..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-input"
+                                className="search-field"
                             />
                             <Search className="search-icon" size={16} />
                         </div>
 
                         <button
-                            className="button filter-button"
+                            className="filter-btn"
                             onClick={() => {}}
                         >
                             <Filter size={16} /> Filters
                         </button>
                     </div>
 
-                    <div className="table-buttons">
+                    <div className="action-section">
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="button danger"
+                                className="delete-btn"
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1567,7 +1567,7 @@ const AdminDashboard = () => {
 
                         {canPerformAction('write') && (
                             <button
-                                className="button primary"
+                                className="create-btn"
                                 onClick={() => handleOpenCreateModal('ranks')}
                             >
                                 <Plus size={16} /> New Rank
@@ -1699,24 +1699,24 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="table-actions">
-                    <div className="table-filters">
-                        <div className="search-container">
+                <div className="admin-action-bar">
+                    <div className="search-section">
+                        <div className="search-box">
                             <input
                                 type="text"
                                 placeholder="Search branches..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-input"
+                                className="search-field"
                             />
                             <Search className="search-icon" size={16} />
                         </div>
                     </div>
 
-                    <div className="table-buttons">
+                    <div className="action-section">
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="button danger"
+                                className="delete-btn"
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1725,7 +1725,7 @@ const AdminDashboard = () => {
 
                         {canPerformAction('write') && (
                             <button
-                                className="button primary"
+                                className="create-btn"
                                 onClick={() => handleOpenCreateModal('branches')}
                             >
                                 <Plus size={16} /> New Branch
@@ -1845,31 +1845,31 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="table-actions">
-                    <div className="table-filters">
-                        <div className="search-container">
+                <div className="admin-action-bar">
+                    <div className="search-section">
+                        <div className="search-box">
                             <input
                                 type="text"
                                 placeholder="Search units..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-input"
+                                className="search-field"
                             />
                             <Search className="search-icon" size={16} />
                         </div>
 
                         <button
-                            className="button filter-button"
+                            className="filter-btn"
                             onClick={() => {}}
                         >
                             <Filter size={16} /> Filters
                         </button>
                     </div>
 
-                    <div className="table-buttons">
+                    <div className="action-section">
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="button danger"
+                                className="delete-btn"
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1879,14 +1879,14 @@ const AdminDashboard = () => {
                         {canPerformAction('write') && (
                             <>
                                 <button
-                                    className="button secondary"
+                                    className="assign-btn"
                                     onClick={() => handleOpenLinkModal('users_unit')}
                                 >
                                     <UserPlus size={16} /> Add Members
                                 </button>
 
                                 <button
-                                    className="button primary"
+                                    className="create-btn"
                                     onClick={() => handleOpenCreateModal('units')}
                                 >
                                     <Plus size={16} /> New Unit
