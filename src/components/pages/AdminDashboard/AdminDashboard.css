@@ -902,6 +902,37 @@
     }
 }
 
+.access-denied-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 10rem);
+    margin: 2rem auto;
+    max-width: 40rem;
+}
+
+.access-denied-content {
+    background-color: var(--gray-800);
+    border: 1px solid var(--blue-900);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.access-denied-content h2 {
+    color: white;
+    font-size: 1.5rem;
+    margin: 1rem 0;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.access-denied-content p {
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 8px;

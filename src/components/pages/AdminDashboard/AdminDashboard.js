@@ -38,64 +38,103 @@ const AdminDashboard = () => {
         fetchData(activeTab);
     }, [activeTab]);
 
+    // Check user permissions and redirect if not an admin
+    useEffect(() => {
+        if (user && !user.is_admin && !user.is_staff) {
+            setError('This page requires administrator privileges.');
+        }
+    }, [user]);
+
+    // Function to check if user can perform an action
+    const canPerformAction = (action) => {
+        if (!user) return false;
+
+        switch(action) {
+            case 'read':
+                // Staff and admins can read
+                return user.is_admin || user.is_staff;
+            case 'write':
+                // Only admins can create/edit
+                return user.is_admin;
+            case 'delete':
+                // Only admins can delete
+                return user.is_admin;
+            default:
+                return false;
+        }
+    };
+
+    // Function to handle API requests with error handling
+    const handleRequest = async (method, endpoint, data = null) => {
+        try {
+            let response;
+
+            switch(method) {
+                case 'GET':
+                    response = await api.get(endpoint);
+                    break;
+                case 'POST':
+                    response = await api.post(endpoint, data);
+                    break;
+                case 'PUT':
+                    response = await api.put(endpoint, data);
+                    break;
+                case 'DELETE':
+                    response = await api.delete(endpoint);
+                    return null; // Successful delete returns null
+                default:
+                    throw new Error(`Unsupported method: ${method}`);
+            }
+
+            return response.data;
+        } catch (err) {
+            if (err.response) {
+                // Handle different error statuses
+                if (err.response.status === 401) {
+                    setError('Authentication required. Please log in again.');
+                    return null;
+                } else if (err.response.status === 403) {
+                    setError('You do not have permission to perform this action.');
+                    return null;
+                } else {
+                    setError(`Error: ${err.response.data.message || 'Something went wrong'}`);
+                }
+            } else if (err.request) {
+                setError('Network error. Please check your connection and try again.');
+            } else {
+                setError(`Error: ${err.message}`);
+            }
+
+            return undefined;
+        }
+    };
+
     // Function to fetch data based on active tab
     const fetchData = async (tabName) => {
         setIsLoading(true);
         setError(null);
 
         try {
-            let response;
+            const data = await handleRequest('GET', `/${tabName}/`);
+
+            if (!data) return; // handleRequest already set the error
+
+            // Handle paginated response format or direct array response
+            const results = data.results && Array.isArray(data.results) ? data.results :
+                Array.isArray(data) ? data : [];
 
             switch(tabName) {
                 case 'users':
-                    response = await api.get('/users/');
-                    // Handle paginated response format (count, next, previous, results)
-                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
-                        setUsers(response.data.results);
-                    } else if (response.data && Array.isArray(response.data)) {
-                        // Handle direct array response
-                        setUsers(response.data);
-                    } else {
-                        setUsers([]);
-                        console.error('API returned unexpected data format for users:', response.data);
-                        setError('Invalid data format received from server');
-                    }
+                    setUsers(results);
                     break;
                 case 'ranks':
-                    response = await api.get('/ranks/');
-                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
-                        setRanks(response.data.results);
-                    } else if (response.data && Array.isArray(response.data)) {
-                        setRanks(response.data);
-                    } else {
-                        setRanks([]);
-                        console.error('API returned unexpected data format for ranks:', response.data);
-                        setError('Invalid data format received from server');
-                    }
+                    setRanks(results);
                     break;
                 case 'branches':
-                    response = await api.get('/branches/');
-                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
-                        setBranches(response.data.results);
-                    } else if (response.data && Array.isArray(response.data)) {
-                        setBranches(response.data);
-                    } else {
-                        setBranches([]);
-                        console.error('API returned unexpected data format for branches:', response.data);
-                        setError('Invalid data format received from server');
-                    }
+                    setBranches(results);
                     break;
                 case 'units':
-                    response = await api.get('/units/');
-                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
-                        setUnits(response.data.results);
-                    } else if (response.data && Array.isArray(response.data)) {
-                        setUnits(response.data);
-                    } else {
-                        setUnits([]);
-                        console.error('API returned unexpected data format for units:', response.data);
-                        setError('Invalid data format received from server');
-                    }
+                    setUnits(results);
                     break;
                 default:
                     break;
@@ -500,71 +539,54 @@ const AdminDashboard = () => {
         setIsLoading(true);
 
         try {
-            let response;
+            let responseData = null;
 
             // Handle various form submissions based on modalType
             if (modalType.startsWith('create_')) {
                 const entityType = modalType.split('_')[1];
-                response = await api.post(`/${entityType}/`, modalData);
+                responseData = await handleRequest('POST', `/${entityType}/`, modalData);
 
-                // Extract data from the response based on format
-                const responseData = response.data && response.data.results ? response.data.results : response.data;
-
-                // Update local state
-                if (entityType === 'users') setUsers([...users, responseData]);
-                if (entityType === 'ranks') setRanks([...ranks, responseData]);
-                if (entityType === 'branches') setBranches([...branches, responseData]);
-                if (entityType === 'units') setUnits([...units, responseData]);
+                if (responseData) {
+                    // Update local state
+                    if (entityType === 'users') setUsers([...users, responseData]);
+                    if (entityType === 'ranks') setRanks([...ranks, responseData]);
+                    if (entityType === 'branches') setBranches([...branches, responseData]);
+                    if (entityType === 'units') setUnits([...units, responseData]);
+                    handleCloseModal();
+                }
             }
             else if (modalType.startsWith('edit_')) {
                 const entityType = modalType.split('_')[1];
-                response = await api.put(`/${entityType}/${modalData.id}/`, modalData);
+                responseData = await handleRequest('PUT', `/${entityType}/${modalData.id}/`, modalData);
 
-                // Extract data from the response based on format
-                const responseData = response.data && response.data.results ? response.data.results : response.data;
-
-                // Update local state
-                if (entityType === 'users') setUsers(users.map(item => item.id === modalData.id ? responseData : item));
-                if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? responseData : item));
-                if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? responseData : item));
-                if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? responseData : item));
+                if (responseData) {
+                    // Update local state
+                    if (entityType === 'users') setUsers(users.map(item => item.id === modalData.id ? responseData : item));
+                    if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? responseData : item));
+                    if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? responseData : item));
+                    if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? responseData : item));
+                    handleCloseModal();
+                }
             }
             else if (modalType.startsWith('link_')) {
                 // Handle linking logic here
                 const [_, entityType, linkType] = modalType.split('_');
 
                 if (entityType === 'users' && linkType === 'unit') {
-                    response = await api.post(`/units/${modalData.unitId}/members/`, {
+                    responseData = await handleRequest('POST', `/units/${modalData.unitId}/members/`, {
                         user_id: modalData.userId
                     });
 
-                    // Refresh users data
-                    fetchData('users');
+                    if (responseData) {
+                        // Refresh users data
+                        fetchData('users');
+                        handleCloseModal();
+                    }
                 }
             }
-
-            handleCloseModal();
         } catch (err) {
             console.error('Error submitting form:', err);
-            setError('Failed to save data. Please try again.');
-
-            // For development, update local state to simulate successful API call
-            const entityType = modalType.split('_')[1];
-            if (modalType.startsWith('create_')) {
-                const newItem = { ...modalData, id: `${entityType}-${Date.now()}` };
-                if (entityType === 'users') setUsers([...users, newItem]);
-                if (entityType === 'ranks') setRanks([...ranks, newItem]);
-                if (entityType === 'branches') setBranches([...branches, newItem]);
-                if (entityType === 'units') setUnits([...units, newItem]);
-            }
-            else if (modalType.startsWith('edit_')) {
-                if (entityType === 'users') setUsers(users.map(item => item.id === modalData.id ? modalData : item));
-                if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? modalData : item));
-                if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? modalData : item));
-                if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? modalData : item));
-            }
-
-            handleCloseModal();
+            // Error is already set by handleRequest function
         } finally {
             setIsLoading(false);
         }
@@ -579,10 +601,14 @@ const AdminDashboard = () => {
         try {
             for (const itemId of selectedItems) {
                 // Delete each selected item
-                await api.delete(`/${activeTab}/${itemId}/`);
+                const result = await handleRequest('DELETE', `/${activeTab}/${itemId}/`);
+                if (!result && result !== null) {
+                    // If handleRequest returns undefined but not null, the request failed but without a 401/403
+                    throw new Error(`Failed to delete item ${itemId}`);
+                }
             }
 
-            // Update local state
+            // Update local state only if all deletes were successful
             if (activeTab === 'users') setUsers(users.filter(item => !selectedItems.includes(item.id)));
             if (activeTab === 'ranks') setRanks(ranks.filter(item => !selectedItems.includes(item.id)));
             if (activeTab === 'branches') setBranches(branches.filter(item => !selectedItems.includes(item.id)));
@@ -592,16 +618,7 @@ const AdminDashboard = () => {
             setSelectedItems([]);
         } catch (err) {
             console.error('Error deleting items:', err);
-            setError('Failed to delete items. Please try again.');
-
-            // For development, update local state to simulate successful API call
-            if (activeTab === 'users') setUsers(users.filter(item => !selectedItems.includes(item.id)));
-            if (activeTab === 'ranks') setRanks(ranks.filter(item => !selectedItems.includes(item.id)));
-            if (activeTab === 'branches') setBranches(branches.filter(item => !selectedItems.includes(item.id)));
-            if (activeTab === 'units') setUnits(units.filter(item => !selectedItems.includes(item.id)));
-
-            // Clear selected items
-            setSelectedItems([]);
+            setError(`Failed to delete one or more items. ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -1136,7 +1153,7 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="table-buttons">
-                        {selectedItems.length > 0 && (
+                        {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
                                 className="button danger"
                                 onClick={handleDeleteItems}
@@ -1145,19 +1162,23 @@ const AdminDashboard = () => {
                             </button>
                         )}
 
-                        <button
-                            className="button secondary"
-                            onClick={() => handleOpenLinkModal('users_unit')}
-                        >
-                            <Link size={16} /> Assign to Unit
-                        </button>
+                        {canPerformAction('write') && (
+                            <>
+                                <button
+                                    className="button secondary"
+                                    onClick={() => handleOpenLinkModal('users_unit')}
+                                >
+                                    <Link size={16} /> Assign to Unit
+                                </button>
 
-                        <button
-                            className="button primary"
-                            onClick={() => handleOpenCreateModal('users')}
-                        >
-                            <Plus size={16} /> New User
-                        </button>
+                                <button
+                                    className="button primary"
+                                    onClick={() => handleOpenCreateModal('users')}
+                                >
+                                    <Plus size={16} /> New User
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -1260,20 +1281,24 @@ const AdminDashboard = () => {
                                     </td>
                                     <td className="actions-cell">
                                         <div className="action-buttons">
-                                            <button
-                                                className="icon-button"
-                                                onClick={() => handleOpenEditModal('users', user)}
-                                                title="Edit User"
-                                            >
-                                                <Edit size={16} />
-                                            </button>
-                                            <button
-                                                className="icon-button"
-                                                onClick={() => handleOpenLinkModal('users_unit', { userId: user.id })}
-                                                title="Assign to Unit"
-                                            >
-                                                <Link size={16} />
-                                            </button>
+                                            {canPerformAction('write') && (
+                                                <>
+                                                    <button
+                                                        className="icon-button"
+                                                        onClick={() => handleOpenEditModal('users', user)}
+                                                        title="Edit User"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="icon-button"
+                                                        onClick={() => handleOpenLinkModal('users_unit', { userId: user.id })}
+                                                        title="Assign to Unit"
+                                                    >
+                                                        <Link size={16} />
+                                                    </button>
+                                                </>
+                                            )}
                                             <button
                                                 className="icon-button view-button"
                                                 onClick={() => {}}
@@ -1333,7 +1358,7 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="table-buttons">
-                        {selectedItems.length > 0 && (
+                        {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
                                 className="button danger"
                                 onClick={handleDeleteItems}
@@ -1342,12 +1367,14 @@ const AdminDashboard = () => {
                             </button>
                         )}
 
-                        <button
-                            className="button primary"
-                            onClick={() => handleOpenCreateModal('ranks')}
-                        >
-                            <Plus size={16} /> New Rank
-                        </button>
+                        {canPerformAction('write') && (
+                            <button
+                                className="button primary"
+                                onClick={() => handleOpenCreateModal('ranks')}
+                            >
+                                <Plus size={16} /> New Rank
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1435,13 +1462,15 @@ const AdminDashboard = () => {
                                     </td>
                                     <td className="actions-cell">
                                         <div className="action-buttons">
-                                            <button
-                                                className="icon-button"
-                                                onClick={() => handleOpenEditModal('ranks', rank)}
-                                                title="Edit Rank"
-                                            >
-                                                <Edit size={16} />
-                                            </button>
+                                            {canPerformAction('write') && (
+                                                <button
+                                                    className="icon-button"
+                                                    onClick={() => handleOpenEditModal('ranks', rank)}
+                                                    title="Edit Rank"
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -1487,7 +1516,7 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="table-buttons">
-                        {selectedItems.length > 0 && (
+                        {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
                                 className="button danger"
                                 onClick={handleDeleteItems}
@@ -1496,12 +1525,14 @@ const AdminDashboard = () => {
                             </button>
                         )}
 
-                        <button
-                            className="button primary"
-                            onClick={() => handleOpenCreateModal('branches')}
-                        >
-                            <Plus size={16} /> New Branch
-                        </button>
+                        {canPerformAction('write') && (
+                            <button
+                                className="button primary"
+                                onClick={() => handleOpenCreateModal('branches')}
+                            >
+                                <Plus size={16} /> New Branch
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1577,13 +1608,15 @@ const AdminDashboard = () => {
                                     <td className="description-cell">{branch.description}</td>
                                     <td className="actions-cell">
                                         <div className="action-buttons">
-                                            <button
-                                                className="icon-button"
-                                                onClick={() => handleOpenEditModal('branches', branch)}
-                                                title="Edit Branch"
-                                            >
-                                                <Edit size={16} />
-                                            </button>
+                                            {canPerformAction('write') && (
+                                                <button
+                                                    className="icon-button"
+                                                    onClick={() => handleOpenEditModal('branches', branch)}
+                                                    title="Edit Branch"
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -1636,7 +1669,7 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="table-buttons">
-                        {selectedItems.length > 0 && (
+                        {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
                                 className="button danger"
                                 onClick={handleDeleteItems}
@@ -1645,19 +1678,23 @@ const AdminDashboard = () => {
                             </button>
                         )}
 
-                        <button
-                            className="button secondary"
-                            onClick={() => handleOpenLinkModal('users_unit')}
-                        >
-                            <UserPlus size={16} /> Add Members
-                        </button>
+                        {canPerformAction('write') && (
+                            <>
+                                <button
+                                    className="button secondary"
+                                    onClick={() => handleOpenLinkModal('users_unit')}
+                                >
+                                    <UserPlus size={16} /> Add Members
+                                </button>
 
-                        <button
-                            className="button primary"
-                            onClick={() => handleOpenCreateModal('units')}
-                        >
-                            <Plus size={16} /> New Unit
-                        </button>
+                                <button
+                                    className="button primary"
+                                    onClick={() => handleOpenCreateModal('units')}
+                                >
+                                    <Plus size={16} /> New Unit
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -1756,20 +1793,24 @@ const AdminDashboard = () => {
                                     </td>
                                     <td className="actions-cell">
                                         <div className="action-buttons">
-                                            <button
-                                                className="icon-button"
-                                                onClick={() => handleOpenEditModal('units', unit)}
-                                                title="Edit Unit"
-                                            >
-                                                <Edit size={16} />
-                                            </button>
-                                            <button
-                                                className="icon-button"
-                                                onClick={() => handleOpenLinkModal('users_unit', { unitId: unit.id })}
-                                                title="Add Members"
-                                            >
-                                                <UserPlus size={16} />
-                                            </button>
+                                            {canPerformAction('write') && (
+                                                <>
+                                                    <button
+                                                        className="icon-button"
+                                                        onClick={() => handleOpenEditModal('units', unit)}
+                                                        title="Edit Unit"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="icon-button"
+                                                        onClick={() => handleOpenLinkModal('users_unit', { unitId: unit.id })}
+                                                        title="Add Members"
+                                                    >
+                                                        <UserPlus size={16} />
+                                                    </button>
+                                                </>
+                                            )}
                                             <button
                                                 className="icon-button view-button"
                                                 onClick={() => {}}
