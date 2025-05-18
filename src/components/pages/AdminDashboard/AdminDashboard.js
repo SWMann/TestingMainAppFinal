@@ -443,13 +443,20 @@ const AdminDashboard = () => {
         if (!sortConfig.field || !Array.isArray(data)) return data || [];
 
         return [...data].sort((a, b) => {
-            // Handle nested properties like rank.name
-            const aValue = sortConfig.field.includes('.')
-                ? sortConfig.field.split('.').reduce((obj, key) => obj?.[key], a)
-                : a[sortConfig.field];
-            const bValue = sortConfig.field.includes('.')
-                ? sortConfig.field.split('.').reduce((obj, key) => obj?.[key], b)
-                : b[sortConfig.field];
+            // Handle nested properties like rank.name or current_rank.name
+            let aValue, bValue;
+
+            // Special handling for rank fields which might be in either rank or current_rank
+            if (sortConfig.field === 'rank.name' || sortConfig.field === 'current_rank.name') {
+                aValue = a.current_rank?.name || a.rank?.name;
+                bValue = b.current_rank?.name || b.rank?.name;
+            } else if (sortConfig.field.includes('.')) {
+                aValue = sortConfig.field.split('.').reduce((obj, key) => obj?.[key], a);
+                bValue = sortConfig.field.split('.').reduce((obj, key) => obj?.[key], b);
+            } else {
+                aValue = a[sortConfig.field];
+                bValue = b[sortConfig.field];
+            }
 
             // Handle different data types
             if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -488,7 +495,7 @@ const AdminDashboard = () => {
                     return item[key].toLowerCase().includes(searchTerm.toLowerCase());
                 }
 
-                // Handle nested objects like rank.name
+                // Handle nested objects like rank.name or current_rank.name
                 if (typeof item[key] === 'object' && item[key] !== null) {
                     return Object.keys(item[key]).some(nestedKey => {
                         if (typeof item[key][nestedKey] === 'string') {
@@ -1306,8 +1313,11 @@ const AdminDashboard = () => {
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('rank.name')} className="sortable-column">
+                            <th onClick={() => handleSort('current_rank.name')} className="sortable-column">
                                 Rank
+                                {sortConfig.field === 'current_rank.name' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                                )}
                                 {sortConfig.field === 'rank.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
@@ -1365,7 +1375,11 @@ const AdminDashboard = () => {
                                     </td>
                                     <td>{user.username}</td>
                                     <td>
-                                        {user.rank ? (
+                                        {user.current_rank ? (
+                                            <div className="badge" style={{ backgroundColor: user.branch?.color_code || '#1F4287' }}>
+                                                {user.current_rank.abbreviation}
+                                            </div>
+                                        ) : user.rank ? (
                                             <div className="badge" style={{ backgroundColor: user.rank.branch?.color_code || '#1F4287' }}>
                                                 {user.rank.abbreviation}
                                             </div>
