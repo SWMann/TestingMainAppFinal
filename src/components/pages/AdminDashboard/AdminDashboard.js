@@ -133,7 +133,14 @@ const AdminDashboard = () => {
         setError(null);
 
         try {
-            const data = await handleRequest('GET', `/${tabName}/`);
+            let data;
+
+            // For users, we need to use a different endpoint to get the full objects with joined data
+            if (tabName === 'users') {
+                data = await handleRequest('GET', `/users/?expand=rank,branch,unit`);
+            } else {
+                data = await handleRequest('GET', `/${tabName}/`);
+            }
 
             if (!data) return; // handleRequest already set the error
 
@@ -141,9 +148,43 @@ const AdminDashboard = () => {
             const results = data.results && Array.isArray(data.results) ? data.results :
                 Array.isArray(data) ? data : [];
 
+            console.log(`Fetched ${tabName} data:`, results); // Log data to inspect structure
+
             switch(tabName) {
                 case 'users':
-                    setUsers(results);
+                    // Process users data to ensure linked objects are properly structured
+                    const processedUsers = results.map(user => {
+                        // Process the user data to ensure we have nested objects properly formatted
+                        const processed = { ...user };
+
+                        // Add rank object if it doesn't exist but current_rank does
+                        if (!processed.rank && processed.current_rank) {
+                            const rankObj = ranks.find(r => r.id === processed.current_rank);
+                            if (rankObj) {
+                                processed.rank = rankObj;
+                            }
+                        }
+
+                        // Add branch object if it doesn't exist but branch_id does
+                        if (!processed.branch && processed.branch_id) {
+                            const branchObj = branches.find(b => b.id === processed.branch_id);
+                            if (branchObj) {
+                                processed.branch = branchObj;
+                            }
+                        }
+
+                        // Add primary_unit object if it doesn't exist but primary_unit_id does
+                        if (!processed.primary_unit && processed.primary_unit_id) {
+                            const unitObj = units.find(u => u.id === processed.primary_unit_id);
+                            if (unitObj) {
+                                processed.primary_unit = unitObj;
+                            }
+                        }
+
+                        return processed;
+                    });
+
+                    setUsers(processedUsers);
                     break;
                 case 'ranks':
                     setRanks(results);
@@ -537,10 +578,33 @@ const AdminDashboard = () => {
         setIsModalOpen(true);
     };
 
-    // Function to open modal for editing item
+    // Function to handle opening edit modal with proper data mapping
     const handleOpenEditModal = (type, item) => {
+        // Create a clone of the item to avoid modifying the original
+        const itemData = { ...item };
+
+        // For users, map the nested objects to their IDs for form fields
+        if (type === 'users') {
+            // Map current_rank to current_rank_id if it's an object
+            if (itemData.current_rank && typeof itemData.current_rank === 'object') {
+                itemData.current_rank_id = itemData.current_rank.id;
+            } else if (typeof itemData.current_rank === 'string') {
+                itemData.current_rank_id = itemData.current_rank;
+            }
+
+            // Map branch to branch_id if it's an object
+            if (itemData.branch && typeof itemData.branch === 'object') {
+                itemData.branch_id = itemData.branch.id;
+            }
+
+            // Map primary_unit to primary_unit_id if it's an object
+            if (itemData.primary_unit && typeof itemData.primary_unit === 'object') {
+                itemData.primary_unit_id = itemData.primary_unit.id;
+            }
+        }
+
         setModalType(`edit_${type}`);
-        setModalData(item);
+        setModalData(itemData);
         setIsModalOpen(true);
     };
 
@@ -590,28 +654,30 @@ const AdminDashboard = () => {
 
                     // Check for changes to sensitive fields
                     const sensitiveFieldsChanged =
-                        originalUser.current_rank !== modalData.current_rank ||
-                        originalUser.primary_unit_id !== modalData.primary_unit_id ||
-                        originalUser.branch_id !== modalData.branch_id;
+                        (originalUser.current_rank?.id || originalUser.current_rank) !== modalData.current_rank_id ||
+                        (originalUser.branch?.id || originalUser.branch_id) !== modalData.branch_id ||
+                        (originalUser.primary_unit?.id || originalUser.primary_unit_id) !== modalData.primary_unit_id;
 
                     // Split the payload for regular fields and sensitive fields
                     const regularFieldsData = { ...modalData };
                     const sensitiveFieldsData = {};
 
                     // Move sensitive fields to a separate object
-                    if (modalData.current_rank !== undefined) {
-                        sensitiveFieldsData.current_rank = modalData.current_rank;
+                    if (modalData.current_rank_id !== undefined) {
+                        sensitiveFieldsData.current_rank = modalData.current_rank_id;
                         delete regularFieldsData.current_rank;
+                        delete regularFieldsData.current_rank_id;
                     }
 
                     if (modalData.primary_unit_id !== undefined) {
                         sensitiveFieldsData.primary_unit = modalData.primary_unit_id;
+                        delete regularFieldsData.primary_unit;
                         delete regularFieldsData.primary_unit_id;
                     }
 
                     if (modalData.branch_id !== undefined) {
                         sensitiveFieldsData.branch = modalData.branch_id;
-                        delete regularFieldsData.branch_id;
+                        delete regularFieldsData.branch;
                     }
 
                     if (modalData.commission_stage !== undefined) {
@@ -623,6 +689,9 @@ const AdminDashboard = () => {
                         sensitiveFieldsData.recruit_status = modalData.recruit_status;
                         delete regularFieldsData.recruit_status;
                     }
+
+                    console.log('Regular fields:', regularFieldsData);
+                    console.log('Sensitive fields:', sensitiveFieldsData);
 
                     // Regular user update for non-sensitive fields
                     responseData = await handleRequest('PUT', `/users/${modalData.id}/`, regularFieldsData);
@@ -783,11 +852,11 @@ const AdminDashboard = () => {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="current_rank">Rank</label>
+                            <label htmlFor="current_rank_id">Rank</label>
                             <select
-                                id="current_rank"
-                                value={modalData.current_rank || ''}
-                                onChange={e => setModalData({...modalData, current_rank: e.target.value})}
+                                id="current_rank_id"
+                                value={modalData.current_rank_id || ''}
+                                onChange={e => setModalData({...modalData, current_rank_id: e.target.value})}
                                 disabled={modalType === 'edit_users' && !canPerformAction('admin')}
                                 title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Rank changes require admin privileges' : ''}
                             >
@@ -1375,24 +1444,33 @@ const AdminDashboard = () => {
                                     </td>
                                     <td>{user.username}</td>
                                     <td>
-                                        {user.current_rank ? (
-                                            <div className="badge" style={{ backgroundColor: user.branch?.color_code || '#1F4287' }}>
+                                        {(user.current_rank && typeof user.current_rank === 'object') ? (
+                                            <div className="badge" style={{ backgroundColor: (user.branch && typeof user.branch === 'object') ? user.branch.color_code : '#1F4287' }}>
                                                 {user.current_rank.abbreviation}
                                             </div>
-                                        ) : user.rank ? (
-                                            <div className="badge" style={{ backgroundColor: user.rank.branch?.color_code || '#1F4287' }}>
+                                        ) : (user.rank && typeof user.rank === 'object') ? (
+                                            <div className="badge" style={{ backgroundColor: (user.rank.branch && typeof user.rank.branch === 'object') ? user.rank.branch.color_code : '#1F4287' }}>
                                                 {user.rank.abbreviation}
+                                            </div>
+                                        ) : ranks.find(r => r.id === user.current_rank) ? (
+                                            <div className="badge" style={{ backgroundColor: '#1F4287' }}>
+                                                {ranks.find(r => r.id === user.current_rank).abbreviation}
                                             </div>
                                         ) : '-'}
                                     </td>
                                     <td>
-                                        {user.branch ? (
+                                        {(user.branch && typeof user.branch === 'object') ? (
                                             <div className="badge branch-badge" style={{ backgroundColor: user.branch.color_code || '#1F4287' }}>
                                                 {user.branch.abbreviation}
                                             </div>
+                                        ) : branches.find(b => b.id === user.branch_id) ? (
+                                            <div className="badge branch-badge" style={{ backgroundColor: branches.find(b => b.id === user.branch_id).color_code || '#1F4287' }}>
+                                                {branches.find(b => b.id === user.branch_id).abbreviation}
+                                            </div>
                                         ) : '-'}
                                     </td>
-                                    <td>{user.primary_unit?.name || '-'}</td>
+                                    <td>{(user.primary_unit && typeof user.primary_unit === 'object') ? user.primary_unit.name :
+                                        units.find(u => u.id === user.primary_unit_id) ? units.find(u => u.id === user.primary_unit_id).name : '-'}</td>
                                     <td>{user.service_number || '-'}</td>
                                     <td>
                                         <div className={`status-indicator ${user.is_active ? 'active' : 'inactive'}`}>
