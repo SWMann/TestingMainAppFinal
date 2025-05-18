@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Users, Award, Star, FileText, Calendar, Bell, Clock, Medal,
     BookOpen, Ship, ChevronRight, ChevronDown, Edit, LogOut,
     Menu, Search, AtSign, AlertTriangle, Info, User, Activity } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import api from "../../../services/api"
+import authService from '../../../services/authService';
 import './Home.css';
 
 const HomePage = () => {
+    const dispatch = useDispatch();
+    const { isAuthenticated, user } = useSelector(state => state.auth);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [announcements, setAnnouncements] = useState([]);
@@ -12,29 +17,7 @@ const HomePage = () => {
     const [recentOperations, setRecentOperations] = useState([]);
     const [featuredUnits, setFeaturedUnits] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Mock user data (in a real app this would come from authentication context)
-    const user = {
-        id: '8f7e6d5c-4b3a-2c1d-0e9f-8a7b6c5d4e3f',
-        discord_id: '123456789012345678',
-        username: 'Cmdr_Starhawk',
-        email: 'starhawk@ueenavy.org',
-        avatar_url: '/api/placeholder/128/128',
-        service_number: 'UEE-N-47291',
-        is_active: true,
-        is_staff: true,
-        is_admin: false,
-        rank: {
-            name: 'Lieutenant Commander',
-            abbreviation: 'Lt. Cmdr.',
-            insignia_image_url: '/api/placeholder/64/32',
-        },
-        branch: {
-            name: 'UEE Navy',
-            abbreviation: 'UEEN',
-            color_code: '#1F4287'
-        },
-    };
+    const [error, setError] = useState(null);
 
     // Format date function
     const formatDate = (dateString) => {
@@ -55,196 +38,218 @@ const HomePage = () => {
         });
     };
 
+    // Function to handle Discord login
+    const handleDiscordLogin = () => {
+        authService.loginWithDiscord();
+    };
+
+    // Function to handle logout
+    const handleLogout = async () => {
+        await authService.logout();
+        dispatch({ type: 'LOGOUT' });
+        setIsDropdownOpen(false);
+    };
+
     // Function to fetch data from API
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
+            setError(null);
 
             try {
-                // In a real application, these would be actual API calls
-                // For now, we'll simulate the API responses with mock data
-
                 // Fetch announcements
-                // GET /api/announcements
-                const announcementsResponse = [
-                    {
-                        id: 'ann-1',
-                        title: 'Operation Phoenix Dawn Briefing',
-                        content: 'All officers are required to attend the pre-operation briefing for Operation Phoenix Dawn. Critical mission parameters will be discussed.',
-                        author_id: 'user-123',
-                        author: {
-                            username: 'Admiral_Voss',
-                            rank: { abbreviation: 'Adm.' }
-                        },
-                        is_pinned: true,
-                        created_at: '2955-05-16T14:30:00Z',
-                    },
-                    {
-                        id: 'ann-2',
-                        title: 'Fleet Mobilization Order',
-                        content: 'By order of Fleet Command, all vessels are to prepare for Deployment Phase Delta. Maintenance inspections must be completed within 48 hours.',
-                        author_id: 'user-456',
-                        author: {
-                            username: 'Commander_Chen',
-                            rank: { abbreviation: 'Cmdr.' }
-                        },
-                        is_pinned: false,
-                        created_at: '2955-05-14T09:15:00Z',
-                    },
-                    {
-                        id: 'ann-3',
-                        title: 'New Combat Doctrine Published',
-                        content: 'The updated Fleet Combat Engagement Doctrine v5.3 has been published to the Standards Library. All officers must review by end of month.',
-                        author_id: 'user-789',
-                        author: {
-                            username: 'Capt_Reynolds',
-                            rank: { abbreviation: 'Capt.' }
-                        },
-                        is_pinned: false,
-                        created_at: '2955-05-10T11:45:00Z',
-                    }
-                ];
+                const announcementsResponse = await api.get('/announcements/');
+                setAnnouncements(announcementsResponse.data);
 
                 // Fetch upcoming events
-                // GET /api/events/upcoming
-                const eventsResponse = [
-                    {
-                        id: 'event-1',
-                        title: 'Operation Phoenix Dawn',
-                        description: 'Large-scale fleet operation targeting hostile activity in the Pyro system.',
-                        event_type: 'Combat Operation',
-                        start_time: '2955-05-19T18:00:00Z',
-                        end_time: '2955-05-19T21:30:00Z',
-                        location: 'Pyro System - Nav Point Alpha',
-                        host_unit_id: 'unit-1',
-                        host_unit: {
-                            name: '3rd Fleet, 2nd Squadron',
-                            abbreviation: '3F-2S'
-                        },
-                        is_mandatory: true,
-                        image_url: '/api/placeholder/400/200'
-                    },
-                    {
-                        id: 'event-2',
-                        title: 'Advanced Formation Training',
-                        description: 'Training exercise focused on multi-ship tactical formations and maneuvers.',
-                        event_type: 'Training Exercise',
-                        start_time: '2955-05-21T19:00:00Z',
-                        end_time: '2955-05-21T21:00:00Z',
-                        location: 'Stanton System - Training Area B',
-                        host_unit_id: 'unit-2',
-                        host_unit: {
-                            name: 'Fleet Training Command',
-                            abbreviation: 'FTC'
-                        },
-                        is_mandatory: false,
-                        image_url: '/api/placeholder/400/200'
-                    },
-                    {
-                        id: 'event-3',
-                        title: 'Quartermaster Supply Distribution',
-                        description: 'Distribution of standard issue gear and equipment to authorized personnel.',
-                        event_type: 'Logistics',
-                        start_time: '2955-05-22T16:00:00Z',
-                        end_time: '2955-05-22T18:00:00Z',
-                        location: 'Port Tressler - Deck 4',
-                        host_unit_id: 'unit-3',
-                        host_unit: {
-                            name: 'Logistics Division',
-                            abbreviation: 'LOG'
-                        },
-                        is_mandatory: false,
-                        image_url: '/api/placeholder/400/200'
-                    }
-                ];
+                const eventsResponse = await api.get('/events/upcoming/');
+                setUpcomingEvents(eventsResponse.data);
 
                 // Fetch recent operations
-                // GET /api/events/recent (custom endpoint)
-                const operationsResponse = [
-                    {
-                        id: 'op-1',
-                        title: 'Border Security Patrol',
-                        description: 'Routine patrol of system borders to deter unauthorized incursions.',
-                        event_type: 'Routine Operation',
-                        start_time: '2955-05-12T19:00:00Z',
-                        end_time: '2955-05-12T22:00:00Z',
-                        status: 'Completed',
-                        participants: 24,
-                        success_rating: 5
-                    },
-                    {
-                        id: 'op-2',
-                        title: 'Operation Starfall',
-                        description: 'Coordinated attack on pirate outpost in asteroid belt.',
-                        event_type: 'Combat Operation',
-                        start_time: '2955-05-08T20:00:00Z',
-                        end_time: '2955-05-08T23:30:00Z',
-                        status: 'Completed',
-                        participants: 32,
-                        success_rating: 4
-                    },
-                    {
-                        id: 'op-3',
-                        title: 'Search and Rescue Mission',
-                        description: 'Emergency rescue of stranded civilian transport.',
-                        event_type: 'Rescue Operation',
-                        start_time: '2955-05-05T15:30:00Z',
-                        end_time: '2955-05-05T18:45:00Z',
-                        status: 'Completed',
-                        participants: 16,
-                        success_rating: 5
-                    }
-                ];
+                const operationsResponse = await api.get('/events/recent/');
+                setRecentOperations(operationsResponse.data);
 
                 // Fetch featured units
-                // GET /api/units (with some filter parameters)
-                const unitsResponse = [
-                    {
-                        id: 'unit-1',
-                        name: '3rd Fleet, 2nd Squadron',
-                        abbreviation: '3F-2S',
-                        description: 'Naval combat squadron specializing in coordinated fleet actions',
-                        emblem_url: '/api/placeholder/64/64',
-                        banner_image_url: '/api/placeholder/300/150',
-                        motto: 'Swift Justice',
-                        member_count: 42,
-                        established_date: '2941-03-15'
-                    },
-                    {
-                        id: 'unit-2',
-                        name: 'Special Operations Group',
-                        abbreviation: 'SOG',
-                        description: 'Elite unit conducting covert and high-risk operations',
-                        emblem_url: '/api/placeholder/64/64',
-                        banner_image_url: '/api/placeholder/300/150',
-                        motto: 'Unseen, Unheard, Unstoppable',
-                        member_count: 24,
-                        established_date: '2947-09-22'
-                    },
-                    {
-                        id: 'unit-3',
-                        name: 'Fleet Intelligence Division',
-                        abbreviation: 'FID',
-                        description: 'Intelligence gathering and tactical analysis unit',
-                        emblem_url: '/api/placeholder/64/64',
-                        banner_image_url: '/api/placeholder/300/150',
-                        motto: 'Knowledge Is Power',
-                        member_count: 18,
-                        established_date: '2944-11-05'
-                    }
-                ];
+                const unitsResponse = await api.get('/units/');
+                setFeaturedUnits(unitsResponse.data);
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                setError('Failed to load data. Please try again later.');
 
-                // Update state with fetched data
-                setAnnouncements(announcementsResponse);
-                setUpcomingEvents(eventsResponse);
-                setRecentOperations(operationsResponse);
-                setFeaturedUnits(unitsResponse);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                // Handle errors appropriately
+                // Load fallback data if API calls fail
+                loadFallbackData();
             } finally {
                 setIsLoading(false);
             }
+        };
+
+        // Fallback data in case API calls fail during development
+        const loadFallbackData = () => {
+            // Announcements fallback data
+            setAnnouncements([
+                {
+                    id: 'ann-1',
+                    title: 'Operation Phoenix Dawn Briefing',
+                    content: 'All officers are required to attend the pre-operation briefing for Operation Phoenix Dawn. Critical mission parameters will be discussed.',
+                    author_id: 'user-123',
+                    author: {
+                        username: 'Admiral_Voss',
+                        rank: { abbreviation: 'Adm.' }
+                    },
+                    is_pinned: true,
+                    created_at: '2955-05-16T14:30:00Z',
+                },
+                {
+                    id: 'ann-2',
+                    title: 'Fleet Mobilization Order',
+                    content: 'By order of Fleet Command, all vessels are to prepare for Deployment Phase Delta. Maintenance inspections must be completed within 48 hours.',
+                    author_id: 'user-456',
+                    author: {
+                        username: 'Commander_Chen',
+                        rank: { abbreviation: 'Cmdr.' }
+                    },
+                    is_pinned: false,
+                    created_at: '2955-05-14T09:15:00Z',
+                },
+                {
+                    id: 'ann-3',
+                    title: 'New Combat Doctrine Published',
+                    content: 'The updated Fleet Combat Engagement Doctrine v5.3 has been published to the Standards Library. All officers must review by end of month.',
+                    author_id: 'user-789',
+                    author: {
+                        username: 'Capt_Reynolds',
+                        rank: { abbreviation: 'Capt.' }
+                    },
+                    is_pinned: false,
+                    created_at: '2955-05-10T11:45:00Z',
+                }
+            ]);
+
+            // Events fallback data
+            setUpcomingEvents([
+                {
+                    id: 'event-1',
+                    title: 'Operation Phoenix Dawn',
+                    description: 'Large-scale fleet operation targeting hostile activity in the Pyro system.',
+                    event_type: 'Combat Operation',
+                    start_time: '2955-05-19T18:00:00Z',
+                    end_time: '2955-05-19T21:30:00Z',
+                    location: 'Pyro System - Nav Point Alpha',
+                    host_unit_id: 'unit-1',
+                    host_unit: {
+                        name: '3rd Fleet, 2nd Squadron',
+                        abbreviation: '3F-2S'
+                    },
+                    is_mandatory: true,
+                    image_url: '/api/placeholder/400/200'
+                },
+                {
+                    id: 'event-2',
+                    title: 'Advanced Formation Training',
+                    description: 'Training exercise focused on multi-ship tactical formations and maneuvers.',
+                    event_type: 'Training Exercise',
+                    start_time: '2955-05-21T19:00:00Z',
+                    end_time: '2955-05-21T21:00:00Z',
+                    location: 'Stanton System - Training Area B',
+                    host_unit_id: 'unit-2',
+                    host_unit: {
+                        name: 'Fleet Training Command',
+                        abbreviation: 'FTC'
+                    },
+                    is_mandatory: false,
+                    image_url: '/api/placeholder/400/200'
+                },
+                {
+                    id: 'event-3',
+                    title: 'Quartermaster Supply Distribution',
+                    description: 'Distribution of standard issue gear and equipment to authorized personnel.',
+                    event_type: 'Logistics',
+                    start_time: '2955-05-22T16:00:00Z',
+                    end_time: '2955-05-22T18:00:00Z',
+                    location: 'Port Tressler - Deck 4',
+                    host_unit_id: 'unit-3',
+                    host_unit: {
+                        name: 'Logistics Division',
+                        abbreviation: 'LOG'
+                    },
+                    is_mandatory: false,
+                    image_url: '/api/placeholder/400/200'
+                }
+            ]);
+
+            // Operations fallback data
+            setRecentOperations([
+                {
+                    id: 'op-1',
+                    title: 'Border Security Patrol',
+                    description: 'Routine patrol of system borders to deter unauthorized incursions.',
+                    event_type: 'Routine Operation',
+                    start_time: '2955-05-12T19:00:00Z',
+                    end_time: '2955-05-12T22:00:00Z',
+                    status: 'Completed',
+                    participants: 24,
+                    success_rating: 5
+                },
+                {
+                    id: 'op-2',
+                    title: 'Operation Starfall',
+                    description: 'Coordinated attack on pirate outpost in asteroid belt.',
+                    event_type: 'Combat Operation',
+                    start_time: '2955-05-08T20:00:00Z',
+                    end_time: '2955-05-08T23:30:00Z',
+                    status: 'Completed',
+                    participants: 32,
+                    success_rating: 4
+                },
+                {
+                    id: 'op-3',
+                    title: 'Search and Rescue Mission',
+                    description: 'Emergency rescue of stranded civilian transport.',
+                    event_type: 'Rescue Operation',
+                    start_time: '2955-05-05T15:30:00Z',
+                    end_time: '2955-05-05T18:45:00Z',
+                    status: 'Completed',
+                    participants: 16,
+                    success_rating: 5
+                }
+            ]);
+
+            // Units fallback data
+            setFeaturedUnits([
+                {
+                    id: 'unit-1',
+                    name: '3rd Fleet, 2nd Squadron',
+                    abbreviation: '3F-2S',
+                    description: 'Naval combat squadron specializing in coordinated fleet actions',
+                    emblem_url: '/api/placeholder/64/64',
+                    banner_image_url: '/api/placeholder/300/150',
+                    motto: 'Swift Justice',
+                    member_count: 42,
+                    established_date: '2941-03-15'
+                },
+                {
+                    id: 'unit-2',
+                    name: 'Special Operations Group',
+                    abbreviation: 'SOG',
+                    description: 'Elite unit conducting covert and high-risk operations',
+                    emblem_url: '/api/placeholder/64/64',
+                    banner_image_url: '/api/placeholder/300/150',
+                    motto: 'Unseen, Unheard, Unstoppable',
+                    member_count: 24,
+                    established_date: '2947-09-22'
+                },
+                {
+                    id: 'unit-3',
+                    name: 'Fleet Intelligence Division',
+                    abbreviation: 'FID',
+                    description: 'Intelligence gathering and tactical analysis unit',
+                    emblem_url: '/api/placeholder/64/64',
+                    banner_image_url: '/api/placeholder/300/150',
+                    motto: 'Knowledge Is Power',
+                    member_count: 18,
+                    established_date: '2944-11-05'
+                }
+            ]);
         };
 
         fetchData();
@@ -253,11 +258,11 @@ const HomePage = () => {
     // Get the nearest upcoming event
     const nextEvent = upcomingEvents.length > 0 ? upcomingEvents[0] : null;
 
-    // Organization stats (would come from API in a real app)
+    // Get organization stats
     const orgStats = {
         memberCount: 248,
-        activeOperations: 3,
-        completedOperations: 143,
+        activeOperations: upcomingEvents.length || 0,
+        completedOperations: recentOperations.length || 0,
         fleetSize: 86
     };
 
@@ -300,20 +305,36 @@ const HomePage = () => {
 
                         {/* User dropdown */}
                         <div className="user-dropdown">
-                            <button
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="user-dropdown-button"
-                            >
-                                <img
-                                    src={user.avatar_url}
-                                    alt={user.username}
-                                    className="user-avatar"
-                                />
-                                <span className="user-name">{user.rank.abbreviation} {user.username}</span>
-                                <ChevronDown size={16} className="dropdown-chevron" />
-                            </button>
+                            {isAuthenticated ? (
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="user-dropdown-button"
+                                >
+                                    <img
+                                        src={user?.avatar_url || '/api/placeholder/128/128'}
+                                        alt={user?.username || 'User'}
+                                        className="user-avatar"
+                                    />
+                                    <span className="user-name">
+                    {user?.rank?.abbreviation || ''} {user?.username || 'User'}
+                  </span>
+                                    <ChevronDown size={16} className="dropdown-chevron" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleDiscordLogin}
+                                    className="discord-login-button"
+                                >
+                                    <div className="discord-icon">
+                                        <svg width="20" height="15" viewBox="0 0 20 15" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M16.9308 1.25C15.6721 0.680556 14.3183 0.256945 12.9058 0C12.7354 0.294445 12.5404 0.693056 12.4075 1.01389C10.9079 0.774306 9.42208 0.774306 7.95125 1.01389C7.81833 0.693056 7.61958 0.294445 7.44792 0C6.03167 0.256945 4.67792 0.680556 3.42042 1.25C0.49125 5.63889 -0.301666 9.91667 0.0945838 14.1458C1.82542 15.4722 3.49958 16.25 5.14667 16.7569C5.55458 16.1944 5.91833 15.5972 6.23333 14.9653C5.63542 14.7292 5.06625 14.4319 4.52958 14.0833C4.6625 13.9861 4.79292 13.8819 4.91958 13.7778C8.19458 15.2431 11.8279 15.2431 15.0683 13.7778C15.195 13.8819 15.3254 13.9861 15.4571 14.0833C14.9204 14.4319 14.3513 14.7292 13.7546 14.9653C14.0696 15.5972 14.4321 16.1944 14.8413 16.7569C16.4883 16.25 18.1625 15.4722 19.8933 14.1458C20.3596 9.30556 19.0908 5.06945 16.9308 1.25ZM6.66667 11.5694C5.67917 11.5694 4.86875 10.6736 4.86875 9.58333C4.86875 8.49306 5.6625 7.59722 6.66667 7.59722C7.67083 7.59722 8.48125 8.49306 8.465 9.58333C8.465 10.6736 7.67083 11.5694 6.66667 11.5694ZM13.3333 11.5694C12.3458 11.5694 11.5354 10.6736 11.5354 9.58333C11.5354 8.49306 12.3292 7.59722 13.3333 7.59722C14.3375 7.59722 15.1479 8.49306 15.1317 9.58333C15.1317 10.6736 14.3375 11.5694 13.3333 11.5694Z" />
+                                        </svg>
+                                    </div>
+                                    LOGIN WITH DISCORD
+                                </button>
+                            )}
 
-                            {isDropdownOpen && (
+                            {isDropdownOpen && isAuthenticated && (
                                 <div className="dropdown-menu">
                                     <ul className="dropdown-list">
                                         <li>
@@ -349,12 +370,12 @@ const HomePage = () => {
                                             </a>
                                         </li>
                                         <li className="dropdown-divider">
-                                            <a href="#" className="dropdown-item">
+                                            <button onClick={handleLogout} className="dropdown-item">
                                                 <div className="dropdown-item-content">
                                                     <LogOut size={16} className="dropdown-item-icon" />
                                                     <span>Logout</span>
                                                 </div>
-                                            </a>
+                                            </button>
                                         </li>
                                     </ul>
                                 </div>
@@ -590,34 +611,56 @@ const HomePage = () => {
                         {/* Right Column */}
                         <div className="sidebar-column">
                             {/* User Welcome */}
-                            <div className="panel">
-                                <div className="user-welcome">
-                                    <img
-                                        src={user.avatar_url}
-                                        alt={user.username}
-                                        className="welcome-avatar"
-                                    />
-                                    <div>
-                                        <h2 className="welcome-title">Welcome back,</h2>
-                                        <div className="welcome-name">{user.rank.abbreviation} {user.username}</div>
+                            {isAuthenticated ? (
+                                <div className="panel">
+                                    <div className="user-welcome">
+                                        <img
+                                            src={user?.avatar_url || '/api/placeholder/128/128'}
+                                            alt={user?.username || 'User'}
+                                            className="welcome-avatar"
+                                        />
+                                        <div>
+                                            <h2 className="welcome-title">Welcome back,</h2>
+                                            <div className="welcome-name">
+                                                {user?.rank?.abbreviation || ''} {user?.username || 'User'}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="stats-grid">
-                                    <div className="stat-box">
-                                        <div className="stat-value">3</div>
-                                        <div className="stat-label">Upcoming Events</div>
+                                    <div className="stats-grid">
+                                        <div className="stat-box">
+                                            <div className="stat-value">3</div>
+                                            <div className="stat-label">Upcoming Events</div>
+                                        </div>
+                                        <div className="stat-box">
+                                            <div className="stat-value">2</div>
+                                            <div className="stat-label">New Messages</div>
+                                        </div>
                                     </div>
-                                    <div className="stat-box">
-                                        <div className="stat-value">2</div>
-                                        <div className="stat-label">New Messages</div>
-                                    </div>
-                                </div>
 
-                                <a href="#" className="dashboard-button">
-                                    MY DASHBOARD
-                                </a>
-                            </div>
+                                    <a href="#" className="dashboard-button">
+                                        MY DASHBOARD
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="panel">
+                                    <h2 className="panel-title">
+                                        <Info size={20} className="panel-icon" />
+                                        Join Our Community
+                                    </h2>
+                                    <p className="join-text">
+                                        Sign in with Discord to access full features and participate in operations.
+                                    </p>
+                                    <button onClick={handleDiscordLogin} className="discord-login-button-large">
+                                        <div className="discord-icon">
+                                            <svg width="20" height="15" viewBox="0 0 20 15" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M16.9308 1.25C15.6721 0.680556 14.3183 0.256945 12.9058 0C12.7354 0.294445 12.5404 0.693056 12.4075 1.01389C10.9079 0.774306 9.42208 0.774306 7.95125 1.01389C7.81833 0.693056 7.61958 0.294445 7.44792 0C6.03167 0.256945 4.67792 0.680556 3.42042 1.25C0.49125 5.63889 -0.301666 9.91667 0.0945838 14.1458C1.82542 15.4722 3.49958 16.25 5.14667 16.7569C5.55458 16.1944 5.91833 15.5972 6.23333 14.9653C5.63542 14.7292 5.06625 14.4319 4.52958 14.0833C4.6625 13.9861 4.79292 13.8819 4.91958 13.7778C8.19458 15.2431 11.8279 15.2431 15.0683 13.7778C15.195 13.8819 15.3254 13.9861 15.4571 14.0833C14.9204 14.4319 14.3513 14.7292 13.7546 14.9653C14.0696 15.5972 14.4321 16.1944 14.8413 16.7569C16.4883 16.25 18.1625 15.4722 19.8933 14.1458C20.3596 9.30556 19.0908 5.06945 16.9308 1.25ZM6.66667 11.5694C5.67917 11.5694 4.86875 10.6736 4.86875 9.58333C4.86875 8.49306 5.6625 7.59722 6.66667 7.59722C7.67083 7.59722 8.48125 8.49306 8.465 9.58333C8.465 10.6736 7.67083 11.5694 6.66667 11.5694ZM13.3333 11.5694C12.3458 11.5694 11.5354 10.6736 11.5354 9.58333C11.5354 8.49306 12.3292 7.59722 13.3333 7.59722C14.3375 7.59722 15.1479 8.49306 15.1317 9.58333C15.1317 10.6736 14.3375 11.5694 13.3333 11.5694Z" />
+                                            </svg>
+                                        </div>
+                                        LOGIN WITH DISCORD
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Organization Stats */}
                             <div className="panel">
@@ -713,20 +756,22 @@ const HomePage = () => {
             </section>
 
             {/* Join Banner */}
-            <section className="join-banner">
-                <div className="join-banner-content">
-                    <h2 className="join-banner-title">Ready to join our ranks?</h2>
-                    <p className="join-banner-text">The 5th Expeditionary Group is actively recruiting pilots, marines, and support personnel. Apply today and become part of our elite fighting force.</p>
-                    <div className="join-banner-buttons">
-                        <button className="join-button primary">
-                            APPLY NOW
-                        </button>
-                        <button className="join-button secondary">
-                            LEARN MORE
-                        </button>
+            {!isAuthenticated && (
+                <section className="join-banner">
+                    <div className="join-banner-content">
+                        <h2 className="join-banner-title">Ready to join our ranks?</h2>
+                        <p className="join-banner-text">The 5th Expeditionary Group is actively recruiting pilots, marines, and support personnel. Apply today and become part of our elite fighting force.</p>
+                        <div className="join-banner-buttons">
+                            <button onClick={handleDiscordLogin} className="join-button primary">
+                                LOGIN WITH DISCORD
+                            </button>
+                            <button className="join-button secondary">
+                                LEARN MORE
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* Quick Links */}
             <section className="quick-links">
