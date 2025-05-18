@@ -49,41 +49,51 @@ const AdminDashboard = () => {
             switch(tabName) {
                 case 'users':
                     response = await api.get('/users/');
-                    if (response.data && Array.isArray(response.data)) {
+                    // Handle paginated response format (count, next, previous, results)
+                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
+                        setUsers(response.data.results);
+                    } else if (response.data && Array.isArray(response.data)) {
+                        // Handle direct array response
                         setUsers(response.data);
                     } else {
                         setUsers([]);
-                        console.error('API returned non-array data for users:', response.data);
+                        console.error('API returned unexpected data format for users:', response.data);
                         setError('Invalid data format received from server');
                     }
                     break;
                 case 'ranks':
                     response = await api.get('/ranks/');
-                    if (response.data && Array.isArray(response.data)) {
+                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
+                        setRanks(response.data.results);
+                    } else if (response.data && Array.isArray(response.data)) {
                         setRanks(response.data);
                     } else {
                         setRanks([]);
-                        console.error('API returned non-array data for ranks:', response.data);
+                        console.error('API returned unexpected data format for ranks:', response.data);
                         setError('Invalid data format received from server');
                     }
                     break;
                 case 'branches':
                     response = await api.get('/branches/');
-                    if (response.data && Array.isArray(response.data)) {
+                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
+                        setBranches(response.data.results);
+                    } else if (response.data && Array.isArray(response.data)) {
                         setBranches(response.data);
                     } else {
                         setBranches([]);
-                        console.error('API returned non-array data for branches:', response.data);
+                        console.error('API returned unexpected data format for branches:', response.data);
                         setError('Invalid data format received from server');
                     }
                     break;
                 case 'units':
                     response = await api.get('/units/');
-                    if (response.data && Array.isArray(response.data)) {
+                    if (response.data && response.data.results && Array.isArray(response.data.results)) {
+                        setUnits(response.data.results);
+                    } else if (response.data && Array.isArray(response.data)) {
                         setUnits(response.data);
                     } else {
                         setUnits([]);
-                        console.error('API returned non-array data for units:', response.data);
+                        console.error('API returned unexpected data format for units:', response.data);
                         setError('Invalid data format received from server');
                     }
                     break;
@@ -497,21 +507,27 @@ const AdminDashboard = () => {
                 const entityType = modalType.split('_')[1];
                 response = await api.post(`/${entityType}/`, modalData);
 
+                // Extract data from the response based on format
+                const responseData = response.data && response.data.results ? response.data.results : response.data;
+
                 // Update local state
-                if (entityType === 'users') setUsers([...users, response.data]);
-                if (entityType === 'ranks') setRanks([...ranks, response.data]);
-                if (entityType === 'branches') setBranches([...branches, response.data]);
-                if (entityType === 'units') setUnits([...units, response.data]);
+                if (entityType === 'users') setUsers([...users, responseData]);
+                if (entityType === 'ranks') setRanks([...ranks, responseData]);
+                if (entityType === 'branches') setBranches([...branches, responseData]);
+                if (entityType === 'units') setUnits([...units, responseData]);
             }
             else if (modalType.startsWith('edit_')) {
                 const entityType = modalType.split('_')[1];
                 response = await api.put(`/${entityType}/${modalData.id}/`, modalData);
 
+                // Extract data from the response based on format
+                const responseData = response.data && response.data.results ? response.data.results : response.data;
+
                 // Update local state
-                if (entityType === 'users') setUsers(users.map(item => item.id === modalData.id ? response.data : item));
-                if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? response.data : item));
-                if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? response.data : item));
-                if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? response.data : item));
+                if (entityType === 'users') setUsers(users.map(item => item.id === modalData.id ? responseData : item));
+                if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? responseData : item));
+                if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? responseData : item));
+                if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? responseData : item));
             }
             else if (modalType.startsWith('link_')) {
                 // Handle linking logic here
