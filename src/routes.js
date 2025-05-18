@@ -4,6 +4,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import Home from './components/pages/Home/Home';
 import DiscordCallback from './components/auth/DiscordCallback';
 import NotFound from './components/pages/NotFound/NotFound';
+import AdminDashboard from "./components/pages/AdminDashboard/AdminDashboard";
 
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
@@ -22,6 +23,10 @@ const routes = (isAuthenticated) => [
     {
         path: '/auth/discord/callback',
         element: <DiscordCallback />
+    },
+    {
+        path: '/AdminDashboard',
+        element: <AdminDashboard />
     },
     // Protected routes
     {
