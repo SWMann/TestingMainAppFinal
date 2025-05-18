@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -59,6 +58,9 @@ const AdminDashboard = () => {
                 return user.is_admin;
             case 'delete':
                 // Only admins can delete
+                return user.is_admin;
+            case 'admin':
+                // Only admins have full admin privileges
                 return user.is_admin;
             default:
                 return false;
@@ -579,44 +581,69 @@ const AdminDashboard = () => {
                     // Get the original user data
                     const originalUser = users.find(u => u.id === modalData.id);
 
-                    // Check if rank has changed
-                    const rankChanged = originalUser.current_rank !== modalData.current_rank && modalData.current_rank;
+                    // Check for changes to sensitive fields
+                    const sensitiveFieldsChanged =
+                        originalUser.current_rank !== modalData.current_rank ||
+                        originalUser.primary_unit_id !== modalData.primary_unit_id ||
+                        originalUser.branch_id !== modalData.branch_id;
 
-                    // Only include permitted fields in the update
-                    const userUpdateData = { ...modalData };
+                    // Split the payload for regular fields and sensitive fields
+                    const regularFieldsData = { ...modalData };
+                    const sensitiveFieldsData = {};
 
-                    // Remove protected fields that might cause issues
-                    // According to ProfileSerializer, these are read-only
-                    delete userUpdateData.current_rank;
-                    delete userUpdateData.primary_unit;
-                    delete userUpdateData.branch;
-                    delete userUpdateData.commission_stage;
-                    delete userUpdateData.recruit_status;
+                    // Move sensitive fields to a separate object
+                    if (modalData.current_rank !== undefined) {
+                        sensitiveFieldsData.current_rank = modalData.current_rank;
+                        delete regularFieldsData.current_rank;
+                    }
 
-                    // Regular user update without protected fields
-                    responseData = await handleRequest('PUT', `/users/${modalData.id}/`, userUpdateData);
+                    if (modalData.primary_unit_id !== undefined) {
+                        sensitiveFieldsData.primary_unit = modalData.primary_unit_id;
+                        delete regularFieldsData.primary_unit_id;
+                    }
+
+                    if (modalData.branch_id !== undefined) {
+                        sensitiveFieldsData.branch = modalData.branch_id;
+                        delete regularFieldsData.branch_id;
+                    }
+
+                    if (modalData.commission_stage !== undefined) {
+                        sensitiveFieldsData.commission_stage = modalData.commission_stage;
+                        delete regularFieldsData.commission_stage;
+                    }
+
+                    if (modalData.recruit_status !== undefined) {
+                        sensitiveFieldsData.recruit_status = modalData.recruit_status;
+                        delete regularFieldsData.recruit_status;
+                    }
+
+                    // Regular user update for non-sensitive fields
+                    responseData = await handleRequest('PUT', `/users/${modalData.id}/`, regularFieldsData);
+
+                    // If we have sensitive fields and user is admin, update those separately
+                    if (sensitiveFieldsChanged && canPerformAction('admin') && Object.keys(sensitiveFieldsData).length > 0) {
+                        try {
+                            const sensitiveResponse = await handleRequest(
+                                'PATCH',
+                                `/users/${modalData.id}/sensitive-fields/`,
+                                sensitiveFieldsData
+                            );
+
+                            if (sensitiveResponse) {
+                                // Use the response from the sensitive fields update as it contains all updated data
+                                responseData = sensitiveResponse;
+                            }
+                        } catch (err) {
+                            console.error('Error updating sensitive fields:', err);
+                            setError('Failed to update restricted fields. Admin privileges required.');
+                        }
+                    } else if (sensitiveFieldsChanged) {
+                        setError('Note: Changes to rank, unit, and branch require admin privileges and were not applied.');
+                    }
 
                     if (responseData) {
-                        // For display purposes, combine the response with any changed fields
-                        // that weren't updated in the API call
-                        let updatedUserData = { ...responseData };
-
-                        // If rank was changed but not included in the response, we'll add it for UI consistency
-                        if (rankChanged) {
-                            // Show notification about rank changes requiring admin approval
-                            setError('Note: Rank changes require special permissions and may need admin approval.');
-
-                            // For UI consistency, show the selected rank in the local state
-                            // even though the actual change might require admin approval
-                            updatedUserData = {
-                                ...updatedUserData,
-                                current_rank: modalData.current_rank,
-                                rank: ranks.find(r => r.id === modalData.current_rank)
-                            };
-                        }
-
-                        // Update local state with the modified response
-                        setUsers(users.map(item => item.id === modalData.id ? updatedUserData : item));
+                        // Update local state
+                        setUsers(users.map(item => item.id === modalData.id ? responseData : item));
                         handleCloseModal();
                     }
                 } else {
@@ -735,16 +762,16 @@ const AdminDashboard = () => {
                                 id="branch_id"
                                 value={modalData.branch_id || ''}
                                 onChange={e => setModalData({...modalData, branch_id: e.target.value})}
-                                disabled={modalType === 'edit_users'} // Disable branch editing for existing users
-                                title={modalType === 'edit_users' ? 'Branch changes require admin approval' : ''}
+                                disabled={modalType === 'edit_users' && !canPerformAction('admin')}
+                                title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Branch changes require admin privileges' : ''}
                             >
                                 <option value="">Select Branch</option>
                                 {branches.map(branch => (
                                     <option key={branch.id} value={branch.id}>{branch.name}</option>
                                 ))}
                             </select>
-                            {modalType === 'edit_users' &&
-                                <div className="field-note">Branch changes need admin approval</div>
+                            {modalType === 'edit_users' && !canPerformAction('admin') &&
+                                <div className="field-note">Branch changes need admin privileges</div>
                             }
                         </div>
 
@@ -754,8 +781,8 @@ const AdminDashboard = () => {
                                 id="current_rank"
                                 value={modalData.current_rank || ''}
                                 onChange={e => setModalData({...modalData, current_rank: e.target.value})}
-                                disabled={modalType === 'edit_users'} // Disable rank editing for existing users
-                                title={modalType === 'edit_users' ? 'Rank changes require admin approval' : ''}
+                                disabled={modalType === 'edit_users' && !canPerformAction('admin')}
+                                title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Rank changes require admin privileges' : ''}
                             >
                                 <option value="">Select Rank</option>
                                 {ranks
@@ -765,8 +792,8 @@ const AdminDashboard = () => {
                                     ))
                                 }
                             </select>
-                            {modalType === 'edit_users' &&
-                                <div className="field-note">Rank changes need admin approval</div>
+                            {modalType === 'edit_users' && !canPerformAction('admin') &&
+                                <div className="field-note">Rank changes need admin privileges</div>
                             }
                         </div>
                     </div>
@@ -777,8 +804,8 @@ const AdminDashboard = () => {
                             id="primary_unit_id"
                             value={modalData.primary_unit_id || ''}
                             onChange={e => setModalData({...modalData, primary_unit_id: e.target.value})}
-                            disabled={modalType === 'edit_users'} // Disable unit editing for existing users
-                            title={modalType === 'edit_users' ? 'Unit changes require admin approval' : ''}
+                            disabled={modalType === 'edit_users' && !canPerformAction('admin')}
+                            title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Unit changes require admin privileges' : ''}
                         >
                             <option value="">Select Primary Unit</option>
                             {units
@@ -788,8 +815,8 @@ const AdminDashboard = () => {
                                 ))
                             }
                         </select>
-                        {modalType === 'edit_users' &&
-                            <div className="field-note">Unit changes need admin approval</div>
+                        {modalType === 'edit_users' && !canPerformAction('admin') &&
+                            <div className="field-note">Unit changes need admin privileges</div>
                         }
                     </div>
 
