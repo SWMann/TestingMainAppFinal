@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -96,6 +97,21 @@ const AdminDashboard = () => {
                 } else if (err.response.status === 403) {
                     setError('You do not have permission to perform this action.');
                     return null;
+                } else if (err.response.status === 422 || err.response.status === 400) {
+                    // Handle validation errors
+                    const errorMsg = err.response.data.message ||
+                        err.response.data.error ||
+                        'Validation error. Please check your input.';
+
+                    // Check for field-specific errors
+                    if (err.response.data.errors) {
+                        const fieldErrors = Object.entries(err.response.data.errors)
+                            .map(([field, error]) => `${field}: ${error}`)
+                            .join('; ');
+                        setError(`${errorMsg} (${fieldErrors})`);
+                    } else {
+                        setError(errorMsg);
+                    }
                 } else {
                     setError(`Error: ${err.response.data.message || 'Something went wrong'}`);
                 }
@@ -557,15 +573,63 @@ const AdminDashboard = () => {
             }
             else if (modalType.startsWith('edit_')) {
                 const entityType = modalType.split('_')[1];
-                responseData = await handleRequest('PUT', `/${entityType}/${modalData.id}/`, modalData);
 
-                if (responseData) {
-                    // Update local state
-                    if (entityType === 'users') setUsers(users.map(item => item.id === modalData.id ? responseData : item));
-                    if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? responseData : item));
-                    if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? responseData : item));
-                    if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? responseData : item));
-                    handleCloseModal();
+                // Special handling for user updates when the entity is a user
+                if (entityType === 'users') {
+                    // Get the original user data
+                    const originalUser = users.find(u => u.id === modalData.id);
+
+                    // Check if rank has changed
+                    const rankChanged = originalUser.current_rank !== modalData.current_rank && modalData.current_rank;
+
+                    // Only include permitted fields in the update
+                    const userUpdateData = { ...modalData };
+
+                    // Remove protected fields that might cause issues
+                    // According to ProfileSerializer, these are read-only
+                    delete userUpdateData.current_rank;
+                    delete userUpdateData.primary_unit;
+                    delete userUpdateData.branch;
+                    delete userUpdateData.commission_stage;
+                    delete userUpdateData.recruit_status;
+
+                    // Regular user update without protected fields
+                    responseData = await handleRequest('PUT', `/users/${modalData.id}/`, userUpdateData);
+
+                    if (responseData) {
+                        // For display purposes, combine the response with any changed fields
+                        // that weren't updated in the API call
+                        let updatedUserData = { ...responseData };
+
+                        // If rank was changed but not included in the response, we'll add it for UI consistency
+                        if (rankChanged) {
+                            // Show notification about rank changes requiring admin approval
+                            setError('Note: Rank changes require special permissions and may need admin approval.');
+
+                            // For UI consistency, show the selected rank in the local state
+                            // even though the actual change might require admin approval
+                            updatedUserData = {
+                                ...updatedUserData,
+                                current_rank: modalData.current_rank,
+                                rank: ranks.find(r => r.id === modalData.current_rank)
+                            };
+                        }
+
+                        // Update local state with the modified response
+                        setUsers(users.map(item => item.id === modalData.id ? updatedUserData : item));
+                        handleCloseModal();
+                    }
+                } else {
+                    // Handle normal updates for other entity types
+                    responseData = await handleRequest('PUT', `/${entityType}/${modalData.id}/`, modalData);
+
+                    if (responseData) {
+                        // Update local state
+                        if (entityType === 'ranks') setRanks(ranks.map(item => item.id === modalData.id ? responseData : item));
+                        if (entityType === 'branches') setBranches(branches.map(item => item.id === modalData.id ? responseData : item));
+                        if (entityType === 'units') setUnits(units.map(item => item.id === modalData.id ? responseData : item));
+                        handleCloseModal();
+                    }
                 }
             }
             else if (modalType.startsWith('link_')) {
@@ -671,20 +735,27 @@ const AdminDashboard = () => {
                                 id="branch_id"
                                 value={modalData.branch_id || ''}
                                 onChange={e => setModalData({...modalData, branch_id: e.target.value})}
+                                disabled={modalType === 'edit_users'} // Disable branch editing for existing users
+                                title={modalType === 'edit_users' ? 'Branch changes require admin approval' : ''}
                             >
                                 <option value="">Select Branch</option>
                                 {branches.map(branch => (
                                     <option key={branch.id} value={branch.id}>{branch.name}</option>
                                 ))}
                             </select>
+                            {modalType === 'edit_users' &&
+                                <div className="field-note">Branch changes need admin approval</div>
+                            }
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="rank_id">Rank</label>
+                            <label htmlFor="current_rank">Rank</label>
                             <select
-                                id="rank_id"
-                                value={modalData.rank_id || ''}
-                                onChange={e => setModalData({...modalData, rank_id: e.target.value})}
+                                id="current_rank"
+                                value={modalData.current_rank || ''}
+                                onChange={e => setModalData({...modalData, current_rank: e.target.value})}
+                                disabled={modalType === 'edit_users'} // Disable rank editing for existing users
+                                title={modalType === 'edit_users' ? 'Rank changes require admin approval' : ''}
                             >
                                 <option value="">Select Rank</option>
                                 {ranks
@@ -694,6 +765,9 @@ const AdminDashboard = () => {
                                     ))
                                 }
                             </select>
+                            {modalType === 'edit_users' &&
+                                <div className="field-note">Rank changes need admin approval</div>
+                            }
                         </div>
                     </div>
 
@@ -703,6 +777,8 @@ const AdminDashboard = () => {
                             id="primary_unit_id"
                             value={modalData.primary_unit_id || ''}
                             onChange={e => setModalData({...modalData, primary_unit_id: e.target.value})}
+                            disabled={modalType === 'edit_users'} // Disable unit editing for existing users
+                            title={modalType === 'edit_users' ? 'Unit changes require admin approval' : ''}
                         >
                             <option value="">Select Primary Unit</option>
                             {units
@@ -712,6 +788,9 @@ const AdminDashboard = () => {
                                 ))
                             }
                         </select>
+                        {modalType === 'edit_users' &&
+                            <div className="field-note">Unit changes need admin approval</div>
+                        }
                     </div>
 
                     <div className="form-row checkbox-group">
