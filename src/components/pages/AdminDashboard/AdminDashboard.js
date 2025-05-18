@@ -624,7 +624,7 @@ const AdminDashboard = () => {
                     if (sensitiveFieldsChanged && canPerformAction('admin') && Object.keys(sensitiveFieldsData).length > 0) {
                         try {
                             const sensitiveResponse = await handleRequest(
-                                'PATCH',
+                                'PUT',
                                 `/users/${modalData.id}/sensitive-fields/`,
                                 sensitiveFieldsData
                             );
