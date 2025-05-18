@@ -13,7 +13,7 @@ const AdminDashboard = () => {
     // Auth state
     const { user } = useSelector(state => state.auth);
 
-    // Entity data states
+    // Initialize state variables with empty arrays to ensure they're always iterable
     const [users, setUsers] = useState([]);
     const [ranks, setRanks] = useState([]);
     const [branches, setBranches] = useState([]);
@@ -27,6 +27,7 @@ const AdminDashboard = () => {
     const [currentEditItem, setCurrentEditItem] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState('');
+    // Initialize with data safety checks for modal content
     const [modalData, setModalData] = useState({});
     const [sortConfig, setSortConfig] = useState({ field: 'id', direction: 'asc' });
     const [filters, setFilters] = useState({});
@@ -48,19 +49,43 @@ const AdminDashboard = () => {
             switch(tabName) {
                 case 'users':
                     response = await api.get('/users/');
-                    setUsers(response.data);
+                    if (response.data && Array.isArray(response.data)) {
+                        setUsers(response.data);
+                    } else {
+                        setUsers([]);
+                        console.error('API returned non-array data for users:', response.data);
+                        setError('Invalid data format received from server');
+                    }
                     break;
                 case 'ranks':
                     response = await api.get('/ranks/');
-                    setRanks(response.data);
+                    if (response.data && Array.isArray(response.data)) {
+                        setRanks(response.data);
+                    } else {
+                        setRanks([]);
+                        console.error('API returned non-array data for ranks:', response.data);
+                        setError('Invalid data format received from server');
+                    }
                     break;
                 case 'branches':
                     response = await api.get('/branches/');
-                    setBranches(response.data);
+                    if (response.data && Array.isArray(response.data)) {
+                        setBranches(response.data);
+                    } else {
+                        setBranches([]);
+                        console.error('API returned non-array data for branches:', response.data);
+                        setError('Invalid data format received from server');
+                    }
                     break;
                 case 'units':
                     response = await api.get('/units/');
-                    setUnits(response.data);
+                    if (response.data && Array.isArray(response.data)) {
+                        setUnits(response.data);
+                    } else {
+                        setUnits([]);
+                        console.error('API returned non-array data for units:', response.data);
+                        setError('Invalid data format received from server');
+                    }
                     break;
                 default:
                     break;
@@ -348,7 +373,7 @@ const AdminDashboard = () => {
 
     // Function to get sorted data
     const getSortedData = (data) => {
-        if (!sortConfig.field) return data;
+        if (!sortConfig.field || !Array.isArray(data)) return data || [];
 
         return [...data].sort((a, b) => {
             // Handle nested properties like rank.name
@@ -387,7 +412,7 @@ const AdminDashboard = () => {
 
     // Function to filter data based on search term
     const getFilteredData = (data) => {
-        if (!searchTerm) return data;
+        if (!searchTerm || !Array.isArray(data)) return data || [];
 
         return data.filter(item => {
             // Search across all string properties
@@ -422,6 +447,8 @@ const AdminDashboard = () => {
 
     // Function to select all items
     const handleSelectAll = (data) => {
+        if (!Array.isArray(data)) return;
+
         if (selectedItems.length === data.length) {
             setSelectedItems([]);
         } else {
@@ -1055,6 +1082,17 @@ const AdminDashboard = () => {
 
     // Render users table
     const renderUsersTable = () => {
+        // Ensure users is an array before filtering
+        if (!Array.isArray(users)) {
+            console.error("Users data is not an array:", users);
+            return (
+                <div className="loading-indicator">
+                    <AlertTriangle size={24} />
+                    <span>Error: Invalid data format</span>
+                </div>
+            );
+        }
+
         const filteredData = getFilteredData(users);
         const sortedData = getSortedData(filteredData);
 
@@ -1241,6 +1279,17 @@ const AdminDashboard = () => {
 
     // Render ranks table
     const renderRanksTable = () => {
+        // Ensure ranks is an array before filtering
+        if (!Array.isArray(ranks)) {
+            console.error("Ranks data is not an array:", ranks);
+            return (
+                <div className="loading-indicator">
+                    <AlertTriangle size={24} />
+                    <span>Error: Invalid data format</span>
+                </div>
+            );
+        }
+
         const filteredData = getFilteredData(ranks);
         const sortedData = getSortedData(filteredData);
 
@@ -1391,6 +1440,17 @@ const AdminDashboard = () => {
 
     // Render branches table
     const renderBranchesTable = () => {
+        // Ensure branches is an array before filtering
+        if (!Array.isArray(branches)) {
+            console.error("Branches data is not an array:", branches);
+            return (
+                <div className="loading-indicator">
+                    <AlertTriangle size={24} />
+                    <span>Error: Invalid data format</span>
+                </div>
+            );
+        }
+
         const filteredData = getFilteredData(branches);
         const sortedData = getSortedData(filteredData);
 
@@ -1522,6 +1582,17 @@ const AdminDashboard = () => {
 
     // Render units table
     const renderUnitsTable = () => {
+        // Ensure units is an array before filtering
+        if (!Array.isArray(units)) {
+            console.error("Units data is not an array:", units);
+            return (
+                <div className="loading-indicator">
+                    <AlertTriangle size={24} />
+                    <span>Error: Invalid data format</span>
+                </div>
+            );
+        }
+
         const filteredData = getFilteredData(units);
         const sortedData = getSortedData(filteredData);
 
