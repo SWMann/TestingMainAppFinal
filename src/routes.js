@@ -5,6 +5,7 @@ import Home from './components/pages/Home/Home';
 import DiscordCallback from './components/auth/DiscordCallback';
 import NotFound from './components/pages/NotFound/NotFound';
 import AdminDashboard from "./components/pages/AdminDashboard/AdminDashboard";
+import ProfilePage from "./components/pages/ProfilePage/ProfilePage";
 
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
@@ -27,6 +28,10 @@ const routes = (isAuthenticated) => [
     {
         path: '/AdminDashboard',
         element: <AdminDashboard />
+    },
+    {
+        path: '/profile/:userId?',
+        element: <ProfilePage />  // Don't pass userId as prop - it's handled internally
     },
     // Protected routes
     {
