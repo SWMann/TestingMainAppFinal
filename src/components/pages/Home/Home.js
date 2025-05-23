@@ -64,7 +64,7 @@ const HomePage = () => {
 
             try {
                 // Fetch announcements
-                const announcementsResponse = await api.get('/api/announcements/');
+                const announcementsResponse = await api.get('/announcements/');
                 const announcementsData = announcementsResponse.data.results || announcementsResponse.data;
 
                 // Sort announcements - pinned first, then by date
@@ -79,12 +79,12 @@ const HomePage = () => {
                 setAnnouncements(sortedAnnouncements);
 
                 // Fetch upcoming events
-                const eventsResponse = await api.get('/api/events/upcoming/');
+                const eventsResponse = await api.get('/events/upcoming/');
                 const eventsData = eventsResponse.data.results || eventsResponse.data;
                 setUpcomingEvents(Array.isArray(eventsData) ? eventsData.slice(0, 6) : []);
 
                 // Fetch all events for recent operations (completed events)
-                const allEventsResponse = await api.get('/api/events/');
+                const allEventsResponse = await api.get('/events/');
                 const allEventsData = allEventsResponse.data.results || allEventsResponse.data;
 
                 // Filter for completed events and sort by date
@@ -98,7 +98,7 @@ const HomePage = () => {
                 setRecentOperations(completedEvents);
 
                 // Fetch units
-                const unitsResponse = await api.get('/api/units/');
+                const unitsResponse = await api.get('/units/');
                 const unitsData = unitsResponse.data.results || unitsResponse.data;
 
                 // Get featured units (you might want to add a 'featured' flag to your units)
@@ -109,14 +109,14 @@ const HomePage = () => {
 
                 // Fetch users for member count
                 try {
-                    const usersResponse = await api.get('/api/users/');
+                    const usersResponse = await api.get('/users/');
                     const usersData = usersResponse.data.results || usersResponse.data;
                     const activeUsers = Array.isArray(usersData)
                         ? usersData.filter(u => u.is_active).length
                         : 0;
 
                     // Fetch ships for fleet size
-                    const shipsResponse = await api.get('/api/ships/');
+                    const shipsResponse = await api.get('/ships/');
                     const shipsData = shipsResponse.data.results || shipsResponse.data;
                     const approvedShips = Array.isArray(shipsData)
                         ? shipsData.filter(s => s.approval_status === 'Approved').length

@@ -76,26 +76,26 @@ const ProfilePage = () => {
             try {
                 // Fetch user profile
                 const userEndpoint = targetUserId
-                    ? `/api/users/${targetUserId}/`
-                    : '/api/users/me/';
+                    ? `/users/${targetUserId}/`
+                    : '/users/me/';
                 const userResponse = await api.get(userEndpoint);
                 setProfileData(userResponse.data);
 
                 // Fetch user positions
-                const positionsResponse = await api.get(`/api/users/${userResponse.data.id}/positions/`);
+                const positionsResponse = await api.get(`/users/${userResponse.data.id}/positions/`);
                 setUserPositions(positionsResponse.data.results || positionsResponse.data || []);
 
                 // Fetch user certificates
-                const certificatesResponse = await api.get(`/api/users/${userResponse.data.id}/certificates/`);
+                const certificatesResponse = await api.get(`/users/${userResponse.data.id}/certificates/`);
                 setUserCertificates(certificatesResponse.data.results || certificatesResponse.data || []);
 
                 // Fetch user events
-                const eventsResponse = await api.get(`/api/users/${userResponse.data.id}/events/`);
+                const eventsResponse = await api.get(`/users/${userResponse.data.id}/events/`);
                 setUserEvents(eventsResponse.data.results || eventsResponse.data || []);
 
                 // Fetch user ships
                 try {
-                    const shipsResponse = await api.get(`/api/ships/?owner_id=${userResponse.data.id}`);
+                    const shipsResponse = await api.get(`/ships/?owner_id=${userResponse.data.id}`);
                     setUserShips(shipsResponse.data.results || shipsResponse.data || []);
                 } catch (err) {
                     console.error('Error fetching ships:', err);
