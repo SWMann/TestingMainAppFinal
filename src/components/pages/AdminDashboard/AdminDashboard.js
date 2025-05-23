@@ -7,7 +7,6 @@ import {
     Settings
 } from 'lucide-react';
 import api from '../../../services/api';
-import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     // Auth state
@@ -796,10 +795,10 @@ const AdminDashboard = () => {
         // User creation/edit form
         if (modalType === 'create_users' || modalType === 'edit_users') {
             return (
-                <form onSubmit={handleFormSubmit} className="modal-form">
-                    <h3 className="modal-title">{modalType === 'create_users' ? 'Create New User' : 'Edit User'}</h3>
+                <form onSubmit={handleFormSubmit} style={styles.modalForm}>
+                    <h3 style={styles.modalTitle}>{modalType === 'create_users' ? 'Create New User' : 'Edit User'}</h3>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="username">Username</label>
                         <input
                             type="text"
@@ -807,10 +806,11 @@ const AdminDashboard = () => {
                             value={modalData.username || ''}
                             onChange={e => setModalData({...modalData, username: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="email">Email</label>
                         <input
                             type="email"
@@ -818,21 +818,23 @@ const AdminDashboard = () => {
                             value={modalData.email || ''}
                             onChange={e => setModalData({...modalData, email: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="service_number">Service Number</label>
                         <input
                             type="text"
                             id="service_number"
                             value={modalData.service_number || ''}
                             onChange={e => setModalData({...modalData, service_number: e.target.value})}
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
+                    <div style={styles.formRow}>
+                        <div style={styles.formGroup}>
                             <label htmlFor="branch_id">Branch</label>
                             <select
                                 id="branch_id"
@@ -840,6 +842,7 @@ const AdminDashboard = () => {
                                 onChange={e => setModalData({...modalData, branch_id: e.target.value})}
                                 disabled={modalType === 'edit_users' && !canPerformAction('admin')}
                                 title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Branch changes require admin privileges' : ''}
+                                style={styles.input}
                             >
                                 <option value="">Select Branch</option>
                                 {branches.map(branch => (
@@ -847,11 +850,11 @@ const AdminDashboard = () => {
                                 ))}
                             </select>
                             {modalType === 'edit_users' && !canPerformAction('admin') &&
-                                <div className="field-note">Branch changes need admin privileges</div>
+                                <div style={styles.fieldNote}>Branch changes need admin privileges</div>
                             }
                         </div>
 
-                        <div className="form-group">
+                        <div style={styles.formGroup}>
                             <label htmlFor="current_rank_id">Rank</label>
                             <select
                                 id="current_rank_id"
@@ -859,6 +862,7 @@ const AdminDashboard = () => {
                                 onChange={e => setModalData({...modalData, current_rank_id: e.target.value})}
                                 disabled={modalType === 'edit_users' && !canPerformAction('admin')}
                                 title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Rank changes require admin privileges' : ''}
+                                style={styles.input}
                             >
                                 <option value="">Select Rank</option>
                                 {ranks
@@ -869,12 +873,12 @@ const AdminDashboard = () => {
                                 }
                             </select>
                             {modalType === 'edit_users' && !canPerformAction('admin') &&
-                                <div className="field-note">Rank changes need admin privileges</div>
+                                <div style={styles.fieldNote}>Rank changes need admin privileges</div>
                             }
                         </div>
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="primary_unit_id">Primary Unit</label>
                         <select
                             id="primary_unit_id"
@@ -882,6 +886,7 @@ const AdminDashboard = () => {
                             onChange={e => setModalData({...modalData, primary_unit_id: e.target.value})}
                             disabled={modalType === 'edit_users' && !canPerformAction('admin')}
                             title={modalType === 'edit_users' && !canPerformAction('admin') ? 'Unit changes require admin privileges' : ''}
+                            style={styles.input}
                         >
                             <option value="">Select Primary Unit</option>
                             {units
@@ -892,12 +897,12 @@ const AdminDashboard = () => {
                             }
                         </select>
                         {modalType === 'edit_users' && !canPerformAction('admin') &&
-                            <div className="field-note">Unit changes need admin privileges</div>
+                            <div style={styles.fieldNote}>Unit changes need admin privileges</div>
                         }
                     </div>
 
-                    <div className="form-row checkbox-group">
-                        <div className="form-check">
+                    <div style={styles.checkboxGroup}>
+                        <div style={styles.formCheck}>
                             <input
                                 type="checkbox"
                                 id="is_active"
@@ -907,7 +912,7 @@ const AdminDashboard = () => {
                             <label htmlFor="is_active">Active</label>
                         </div>
 
-                        <div className="form-check">
+                        <div style={styles.formCheck}>
                             <input
                                 type="checkbox"
                                 id="is_staff"
@@ -917,7 +922,7 @@ const AdminDashboard = () => {
                             <label htmlFor="is_staff">Staff</label>
                         </div>
 
-                        <div className="form-check">
+                        <div style={styles.formCheck}>
                             <input
                                 type="checkbox"
                                 id="is_admin"
@@ -928,9 +933,9 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="modal-actions">
-                        <button type="button" className="button secondary" onClick={handleCloseModal}>Cancel</button>
-                        <button type="submit" className="button primary">
+                    <div style={styles.modalActions}>
+                        <button type="button" style={{...styles.button, ...styles.buttonSecondary}} onClick={handleCloseModal}>Cancel</button>
+                        <button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>
                             {isLoading ? <Loader size={16} className="spin" /> : 'Save'}
                         </button>
                     </div>
@@ -941,10 +946,10 @@ const AdminDashboard = () => {
         // Rank creation/edit form
         if (modalType === 'create_ranks' || modalType === 'edit_ranks') {
             return (
-                <form onSubmit={handleFormSubmit} className="modal-form">
-                    <h3 className="modal-title">{modalType === 'create_ranks' ? 'Create New Rank' : 'Edit Rank'}</h3>
+                <form onSubmit={handleFormSubmit} style={styles.modalForm}>
+                    <h3 style={styles.modalTitle}>{modalType === 'create_ranks' ? 'Create New Rank' : 'Edit Rank'}</h3>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="name">Rank Name</label>
                         <input
                             type="text"
@@ -952,10 +957,11 @@ const AdminDashboard = () => {
                             value={modalData.name || ''}
                             onChange={e => setModalData({...modalData, name: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="abbreviation">Abbreviation</label>
                         <input
                             type="text"
@@ -963,16 +969,18 @@ const AdminDashboard = () => {
                             value={modalData.abbreviation || ''}
                             onChange={e => setModalData({...modalData, abbreviation: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="branch_id">Branch</label>
                         <select
                             id="branch_id"
                             value={modalData.branch_id || ''}
                             onChange={e => setModalData({...modalData, branch_id: e.target.value})}
                             required
+                            style={styles.input}
                         >
                             <option value="">Select Branch</option>
                             {branches.map(branch => (
@@ -981,7 +989,7 @@ const AdminDashboard = () => {
                         </select>
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="tier">Tier (Rank Level)</label>
                         <input
                             type="number"
@@ -991,21 +999,23 @@ const AdminDashboard = () => {
                             required
                             min="1"
                             max="10"
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="description">Description</label>
                         <textarea
                             id="description"
                             value={modalData.description || ''}
                             onChange={e => setModalData({...modalData, description: e.target.value})}
                             rows="3"
+                            style={styles.textarea}
                         />
                     </div>
 
-                    <div className="form-row checkbox-group">
-                        <div className="form-check">
+                    <div style={styles.checkboxGroup}>
+                        <div style={styles.formCheck}>
                             <input
                                 type="checkbox"
                                 id="is_officer"
@@ -1015,7 +1025,7 @@ const AdminDashboard = () => {
                             <label htmlFor="is_officer">Officer</label>
                         </div>
 
-                        <div className="form-check">
+                        <div style={styles.formCheck}>
                             <input
                                 type="checkbox"
                                 id="is_enlisted"
@@ -1025,7 +1035,7 @@ const AdminDashboard = () => {
                             <label htmlFor="is_enlisted">Enlisted</label>
                         </div>
 
-                        <div className="form-check">
+                        <div style={styles.formCheck}>
                             <input
                                 type="checkbox"
                                 id="is_warrant"
@@ -1036,9 +1046,9 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="modal-actions">
-                        <button type="button" className="button secondary" onClick={handleCloseModal}>Cancel</button>
-                        <button type="submit" className="button primary">
+                    <div style={styles.modalActions}>
+                        <button type="button" style={{...styles.button, ...styles.buttonSecondary}} onClick={handleCloseModal}>Cancel</button>
+                        <button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>
                             {isLoading ? <Loader size={16} className="spin" /> : 'Save'}
                         </button>
                     </div>
@@ -1049,10 +1059,10 @@ const AdminDashboard = () => {
         // Branch creation/edit form
         if (modalType === 'create_branches' || modalType === 'edit_branches') {
             return (
-                <form onSubmit={handleFormSubmit} className="modal-form">
-                    <h3 className="modal-title">{modalType === 'create_branches' ? 'Create New Branch' : 'Edit Branch'}</h3>
+                <form onSubmit={handleFormSubmit} style={styles.modalForm}>
+                    <h3 style={styles.modalTitle}>{modalType === 'create_branches' ? 'Create New Branch' : 'Edit Branch'}</h3>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="name">Branch Name</label>
                         <input
                             type="text"
@@ -1060,10 +1070,11 @@ const AdminDashboard = () => {
                             value={modalData.name || ''}
                             onChange={e => setModalData({...modalData, name: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="abbreviation">Abbreviation</label>
                         <input
                             type="text"
@@ -1071,42 +1082,44 @@ const AdminDashboard = () => {
                             value={modalData.abbreviation || ''}
                             onChange={e => setModalData({...modalData, abbreviation: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="description">Description</label>
                         <textarea
                             id="description"
                             value={modalData.description || ''}
                             onChange={e => setModalData({...modalData, description: e.target.value})}
                             rows="3"
+                            style={styles.textarea}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="color_code">Color Code</label>
-                        <div className="color-input-container">
+                        <div style={styles.colorInputContainer}>
                             <input
                                 type="color"
                                 id="color_code"
                                 value={modalData.color_code || '#1F4287'}
                                 onChange={e => setModalData({...modalData, color_code: e.target.value})}
-                                className="color-picker"
+                                style={styles.colorPicker}
                             />
                             <input
                                 type="text"
                                 value={modalData.color_code || '#1F4287'}
                                 onChange={e => setModalData({...modalData, color_code: e.target.value})}
                                 placeholder="#000000"
-                                className="color-text"
+                                style={styles.colorText}
                             />
                         </div>
                     </div>
 
-                    <div className="modal-actions">
-                        <button type="button" className="button secondary" onClick={handleCloseModal}>Cancel</button>
-                        <button type="submit" className="button primary">
+                    <div style={styles.modalActions}>
+                        <button type="button" style={{...styles.button, ...styles.buttonSecondary}} onClick={handleCloseModal}>Cancel</button>
+                        <button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>
                             {isLoading ? <Loader size={16} className="spin" /> : 'Save'}
                         </button>
                     </div>
@@ -1117,10 +1130,10 @@ const AdminDashboard = () => {
         // Unit creation/edit form
         if (modalType === 'create_units' || modalType === 'edit_units') {
             return (
-                <form onSubmit={handleFormSubmit} className="modal-form">
-                    <h3 className="modal-title">{modalType === 'create_units' ? 'Create New Unit' : 'Edit Unit'}</h3>
+                <form onSubmit={handleFormSubmit} style={styles.modalForm}>
+                    <h3 style={styles.modalTitle}>{modalType === 'create_units' ? 'Create New Unit' : 'Edit Unit'}</h3>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="name">Unit Name</label>
                         <input
                             type="text"
@@ -1128,10 +1141,11 @@ const AdminDashboard = () => {
                             value={modalData.name || ''}
                             onChange={e => setModalData({...modalData, name: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="abbreviation">Abbreviation</label>
                         <input
                             type="text"
@@ -1139,17 +1153,19 @@ const AdminDashboard = () => {
                             value={modalData.abbreviation || ''}
                             onChange={e => setModalData({...modalData, abbreviation: e.target.value})}
                             required
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
+                    <div style={styles.formRow}>
+                        <div style={styles.formGroup}>
                             <label htmlFor="branch_id">Branch</label>
                             <select
                                 id="branch_id"
                                 value={modalData.branch_id || ''}
                                 onChange={e => setModalData({...modalData, branch_id: e.target.value})}
                                 required
+                                style={styles.input}
                             >
                                 <option value="">Select Branch</option>
                                 {branches.map(branch => (
@@ -1158,13 +1174,14 @@ const AdminDashboard = () => {
                             </select>
                         </div>
 
-                        <div className="form-group">
+                        <div style={styles.formGroup}>
                             <label htmlFor="unit_type">Unit Type</label>
                             <select
                                 id="unit_type"
                                 value={modalData.unit_type || ''}
                                 onChange={e => setModalData({...modalData, unit_type: e.target.value})}
                                 required
+                                style={styles.input}
                             >
                                 <option value="">Select Type</option>
                                 <option value="Fleet">Fleet</option>
@@ -1178,12 +1195,13 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="parent_unit_id">Parent Unit</label>
                         <select
                             id="parent_unit_id"
                             value={modalData.parent_unit_id || ''}
                             onChange={e => setModalData({...modalData, parent_unit_id: e.target.value || null})}
+                            style={styles.input}
                         >
                             <option value="">None (Top Level Unit)</option>
                             {units
@@ -1196,37 +1214,40 @@ const AdminDashboard = () => {
                         </select>
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="description">Description</label>
                         <textarea
                             id="description"
                             value={modalData.description || ''}
                             onChange={e => setModalData({...modalData, description: e.target.value})}
                             rows="3"
+                            style={styles.textarea}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="motto">Motto</label>
                         <input
                             type="text"
                             id="motto"
                             value={modalData.motto || ''}
                             onChange={e => setModalData({...modalData, motto: e.target.value})}
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="established_date">Established Date</label>
                         <input
                             type="date"
                             id="established_date"
                             value={modalData.established_date ? modalData.established_date.substring(0, 10) : ''}
                             onChange={e => setModalData({...modalData, established_date: e.target.value})}
+                            style={styles.input}
                         />
                     </div>
 
-                    <div className="form-check">
+                    <div style={styles.formCheck}>
                         <input
                             type="checkbox"
                             id="is_active"
@@ -1236,9 +1257,9 @@ const AdminDashboard = () => {
                         <label htmlFor="is_active">Active</label>
                     </div>
 
-                    <div className="modal-actions">
-                        <button type="button" className="button secondary" onClick={handleCloseModal}>Cancel</button>
-                        <button type="submit" className="button primary">
+                    <div style={styles.modalActions}>
+                        <button type="button" style={{...styles.button, ...styles.buttonSecondary}} onClick={handleCloseModal}>Cancel</button>
+                        <button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>
                             {isLoading ? <Loader size={16} className="spin" /> : 'Save'}
                         </button>
                     </div>
@@ -1249,16 +1270,17 @@ const AdminDashboard = () => {
         // Link user to unit form
         if (modalType === 'link_users_unit') {
             return (
-                <form onSubmit={handleFormSubmit} className="modal-form">
-                    <h3 className="modal-title">Assign User to Unit</h3>
+                <form onSubmit={handleFormSubmit} style={styles.modalForm}>
+                    <h3 style={styles.modalTitle}>Assign User to Unit</h3>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="userId">User</label>
                         <select
                             id="userId"
                             value={modalData.userId || ''}
                             onChange={e => setModalData({...modalData, userId: e.target.value})}
                             required
+                            style={styles.input}
                         >
                             <option value="">Select User</option>
                             {users.map(user => (
@@ -1267,13 +1289,14 @@ const AdminDashboard = () => {
                         </select>
                     </div>
 
-                    <div className="form-group">
+                    <div style={styles.formGroup}>
                         <label htmlFor="unitId">Unit</label>
                         <select
                             id="unitId"
                             value={modalData.unitId || ''}
                             onChange={e => setModalData({...modalData, unitId: e.target.value})}
                             required
+                            style={styles.input}
                         >
                             <option value="">Select Unit</option>
                             {units.map(unit => (
@@ -1282,9 +1305,9 @@ const AdminDashboard = () => {
                         </select>
                     </div>
 
-                    <div className="modal-actions">
-                        <button type="button" className="button secondary" onClick={handleCloseModal}>Cancel</button>
-                        <button type="submit" className="button primary">
+                    <div style={styles.modalActions}>
+                        <button type="button" style={{...styles.button, ...styles.buttonSecondary}} onClick={handleCloseModal}>Cancel</button>
+                        <button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>
                             {isLoading ? <Loader size={16} className="spin" /> : 'Assign'}
                         </button>
                     </div>
@@ -1301,7 +1324,7 @@ const AdminDashboard = () => {
         if (!Array.isArray(users)) {
             console.error("Users data is not an array:", users);
             return (
-                <div className="loading-indicator">
+                <div style={styles.loadingIndicator}>
                     <AlertTriangle size={24} />
                     <span>Error: Invalid data format</span>
                 </div>
@@ -1313,31 +1336,31 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="admin-action-bar">
-                    <div className="search-section">
-                        <div className="search-box">
+                <div style={styles.tableActions}>
+                    <div style={styles.tableFilters}>
+                        <div style={styles.searchContainer}>
                             <input
                                 type="text"
                                 placeholder="Search users..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-field"
+                                style={styles.searchInput}
                             />
-                            <Search className="search-icon" size={16} />
+                            <Search style={styles.searchIcon} size={16} />
                         </div>
 
                         <button
-                            className="filter-btn"
+                            style={{...styles.button, ...styles.filterButton}}
                             onClick={() => {}}
                         >
                             <Filter size={16} /> Filters
                         </button>
                     </div>
 
-                    <div className="action-section">
+                    <div style={{ marginLeft: 'auto' }}>
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="delete-btn"
+                                style={{...styles.button, ...styles.buttonDanger}}
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1347,14 +1370,14 @@ const AdminDashboard = () => {
                         {canPerformAction('write') && (
                             <>
                                 <button
-                                    className="assign-btn"
+                                    style={{...styles.button, ...styles.buttonSecondary, marginLeft: '8px'}}
                                     onClick={() => handleOpenLinkModal('users_unit')}
                                 >
                                     <Link size={16} /> Assign to Unit
                                 </button>
 
                                 <button
-                                    className="create-btn"
+                                    style={{...styles.button, ...styles.buttonPrimary, marginLeft: '8px'}}
                                     onClick={() => handleOpenCreateModal('users')}
                                 >
                                     <Plus size={16} /> New User
@@ -1364,25 +1387,25 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="table-container">
-                    <table className="admin-table">
+                <div style={styles.tableContainer}>
+                    <table style={styles.table}>
                         <thead>
                         <tr>
-                            <th className="checkbox-cell">
+                            <th style={styles.checkboxCell}>
                                 <input
                                     type="checkbox"
                                     checked={selectedItems.length === filteredData.length && filteredData.length > 0}
                                     onChange={() => handleSelectAll(filteredData)}
                                 />
                             </th>
-                            <th className="avatar-cell">Avatar</th>
-                            <th onClick={() => handleSort('username')} className="sortable-column">
+                            <th style={styles.avatarCell}>Avatar</th>
+                            <th onClick={() => handleSort('username')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Username
                                 {sortConfig.field === 'username' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('current_rank.name')} className="sortable-column">
+                            <th onClick={() => handleSort('current_rank.name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Rank
                                 {sortConfig.field === 'current_rank.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
@@ -1391,105 +1414,105 @@ const AdminDashboard = () => {
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('branch.name')} className="sortable-column">
+                            <th onClick={() => handleSort('branch.name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Branch
                                 {sortConfig.field === 'branch.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('primary_unit.name')} className="sortable-column">
+                            <th onClick={() => handleSort('primary_unit.name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Unit
                                 {sortConfig.field === 'primary_unit.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('service_number')} className="sortable-column">
+                            <th onClick={() => handleSort('service_number')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Service #
                                 {sortConfig.field === 'service_number' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('is_active')} className="sortable-column">
+                            <th onClick={() => handleSort('is_active')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Status
                                 {sortConfig.field === 'is_active' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th className="actions-cell">Actions</th>
+                            <th style={styles.actionsCell}>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         {sortedData.length === 0 ? (
                             <tr>
-                                <td colSpan="9" className="no-data">No users found</td>
+                                <td colSpan="9" style={styles.noData}>No users found</td>
                             </tr>
                         ) : (
                             sortedData.map(user => (
-                                <tr key={user.id} className={selectedItems.includes(user.id) ? 'selected-row' : ''}>
-                                    <td className="checkbox-cell">
+                                <tr key={user.id} style={selectedItems.includes(user.id) ? styles.selectedRow : {}}>
+                                    <td style={styles.checkboxCell}>
                                         <input
                                             type="checkbox"
                                             checked={selectedItems.includes(user.id)}
                                             onChange={() => handleItemSelect(user.id)}
                                         />
                                     </td>
-                                    <td className="avatar-cell">
-                                        <div className="user-avatar-container">
+                                    <td style={styles.avatarCell}>
+                                        <div style={styles.userAvatarContainer}>
                                             <img
                                                 src={user.avatar_url || '/api/placeholder/40/40'}
                                                 alt={user.username}
-                                                className="table-avatar"
+                                                style={styles.tableAvatar}
                                             />
                                         </div>
                                     </td>
-                                    <td>{user.username}</td>
-                                    <td>
+                                    <td style={styles.td}>{user.username}</td>
+                                    <td style={styles.td}>
                                         {(user.current_rank && typeof user.current_rank === 'object') ? (
-                                            <div className="badge" style={{ backgroundColor: (user.branch && typeof user.branch === 'object') ? user.branch.color_code : '#1F4287' }}>
+                                            <div style={{...styles.badge, backgroundColor: (user.branch && typeof user.branch === 'object') ? user.branch.color_code : '#1F4287'}}>
                                                 {user.current_rank.abbreviation}
                                             </div>
                                         ) : (user.rank && typeof user.rank === 'object') ? (
-                                            <div className="badge" style={{ backgroundColor: (user.rank.branch && typeof user.rank.branch === 'object') ? user.rank.branch.color_code : '#1F4287' }}>
+                                            <div style={{...styles.badge, backgroundColor: (user.rank.branch && typeof user.rank.branch === 'object') ? user.rank.branch.color_code : '#1F4287'}}>
                                                 {user.rank.abbreviation}
                                             </div>
                                         ) : ranks.find(r => r.id === user.current_rank) ? (
-                                            <div className="badge" style={{ backgroundColor: '#1F4287' }}>
+                                            <div style={{...styles.badge, backgroundColor: '#1F4287'}}>
                                                 {ranks.find(r => r.id === user.current_rank).abbreviation}
                                             </div>
                                         ) : '-'}
                                     </td>
-                                    <td>
+                                    <td style={styles.td}>
                                         {(user.branch && typeof user.branch === 'object') ? (
-                                            <div className="badge branch-badge" style={{ backgroundColor: user.branch.color_code || '#1F4287' }}>
+                                            <div style={{...styles.badge, ...styles.branchBadge, backgroundColor: user.branch.color_code || '#1F4287'}}>
                                                 {user.branch.abbreviation}
                                             </div>
                                         ) : branches.find(b => b.id === user.branch_id) ? (
-                                            <div className="badge branch-badge" style={{ backgroundColor: branches.find(b => b.id === user.branch_id).color_code || '#1F4287' }}>
+                                            <div style={{...styles.badge, ...styles.branchBadge, backgroundColor: branches.find(b => b.id === user.branch_id).color_code || '#1F4287'}}>
                                                 {branches.find(b => b.id === user.branch_id).abbreviation}
                                             </div>
                                         ) : '-'}
                                     </td>
-                                    <td>{(user.primary_unit && typeof user.primary_unit === 'object') ? user.primary_unit.name :
+                                    <td style={styles.td}>{(user.primary_unit && typeof user.primary_unit === 'object') ? user.primary_unit.name :
                                         units.find(u => u.id === user.primary_unit_id) ? units.find(u => u.id === user.primary_unit_id).name : '-'}</td>
-                                    <td>{user.service_number || '-'}</td>
-                                    <td>
-                                        <div className={`status-indicator ${user.is_active ? 'active' : 'inactive'}`}>
+                                    <td style={styles.td}>{user.service_number || '-'}</td>
+                                    <td style={styles.td}>
+                                        <div style={user.is_active ? styles.statusActive : styles.statusInactive}>
                                             {user.is_active ? 'Active' : 'Inactive'}
                                         </div>
                                     </td>
-                                    <td className="actions-cell">
-                                        <div className="action-buttons">
+                                    <td style={styles.actionsCell}>
+                                        <div style={styles.actionButtons}>
                                             {canPerformAction('write') && (
                                                 <>
                                                     <button
-                                                        className="icon-button"
+                                                        style={styles.iconButton}
                                                         onClick={() => handleOpenEditModal('users', user)}
                                                         title="Edit User"
                                                     >
                                                         <Edit size={16} />
                                                     </button>
                                                     <button
-                                                        className="icon-button"
+                                                        style={styles.iconButton}
                                                         onClick={() => handleOpenLinkModal('users_unit', { userId: user.id })}
                                                         title="Assign to Unit"
                                                     >
@@ -1498,7 +1521,7 @@ const AdminDashboard = () => {
                                                 </>
                                             )}
                                             <button
-                                                className="icon-button view-button"
+                                                style={{...styles.iconButton, ...styles.viewButton}}
                                                 onClick={() => {}}
                                                 title="View Profile"
                                             >
@@ -1522,7 +1545,7 @@ const AdminDashboard = () => {
         if (!Array.isArray(ranks)) {
             console.error("Ranks data is not an array:", ranks);
             return (
-                <div className="loading-indicator">
+                <div style={styles.loadingIndicator}>
                     <AlertTriangle size={24} />
                     <span>Error: Invalid data format</span>
                 </div>
@@ -1534,31 +1557,31 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="admin-action-bar">
-                    <div className="search-section">
-                        <div className="search-box">
+                <div style={styles.tableActions}>
+                    <div style={styles.tableFilters}>
+                        <div style={styles.searchContainer}>
                             <input
                                 type="text"
                                 placeholder="Search ranks..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-field"
+                                style={styles.searchInput}
                             />
-                            <Search className="search-icon" size={16} />
+                            <Search style={styles.searchIcon} size={16} />
                         </div>
 
                         <button
-                            className="filter-btn"
+                            style={{...styles.button, ...styles.filterButton}}
                             onClick={() => {}}
                         >
                             <Filter size={16} /> Filters
                         </button>
                     </div>
 
-                    <div className="action-section">
+                    <div style={{ marginLeft: 'auto' }}>
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="delete-btn"
+                                style={{...styles.button, ...styles.buttonDanger}}
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1567,7 +1590,7 @@ const AdminDashboard = () => {
 
                         {canPerformAction('write') && (
                             <button
-                                className="create-btn"
+                                style={{...styles.button, ...styles.buttonPrimary, marginLeft: '8px'}}
                                 onClick={() => handleOpenCreateModal('ranks')}
                             >
                                 <Plus size={16} /> New Rank
@@ -1576,93 +1599,93 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="table-container">
-                    <table className="admin-table">
+                <div style={styles.tableContainer}>
+                    <table style={styles.table}>
                         <thead>
                         <tr>
-                            <th className="checkbox-cell">
+                            <th style={styles.checkboxCell}>
                                 <input
                                     type="checkbox"
                                     checked={selectedItems.length === filteredData.length && filteredData.length > 0}
                                     onChange={() => handleSelectAll(filteredData)}
                                 />
                             </th>
-                            <th className="icon-cell">Insignia</th>
-                            <th onClick={() => handleSort('name')} className="sortable-column">
+                            <th style={styles.iconCell}>Insignia</th>
+                            <th onClick={() => handleSort('name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Name
                                 {sortConfig.field === 'name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('abbreviation')} className="sortable-column">
+                            <th onClick={() => handleSort('abbreviation')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Abbr.
                                 {sortConfig.field === 'abbreviation' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('branch.name')} className="sortable-column">
+                            <th onClick={() => handleSort('branch.name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Branch
                                 {sortConfig.field === 'branch.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('tier')} className="sortable-column">
+                            <th onClick={() => handleSort('tier')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Tier
                                 {sortConfig.field === 'tier' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('is_officer')} className="sortable-column">
+                            <th onClick={() => handleSort('is_officer')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Type
                                 {sortConfig.field === 'is_officer' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th className="actions-cell">Actions</th>
+                            <th style={styles.actionsCell}>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         {sortedData.length === 0 ? (
                             <tr>
-                                <td colSpan="8" className="no-data">No ranks found</td>
+                                <td colSpan="8" style={styles.noData}>No ranks found</td>
                             </tr>
                         ) : (
                             sortedData.map(rank => (
-                                <tr key={rank.id} className={selectedItems.includes(rank.id) ? 'selected-row' : ''}>
-                                    <td className="checkbox-cell">
+                                <tr key={rank.id} style={selectedItems.includes(rank.id) ? styles.selectedRow : {}}>
+                                    <td style={styles.checkboxCell}>
                                         <input
                                             type="checkbox"
                                             checked={selectedItems.includes(rank.id)}
                                             onChange={() => handleItemSelect(rank.id)}
                                         />
                                     </td>
-                                    <td className="icon-cell">
+                                    <td style={styles.iconCell}>
                                         <img
                                             src={rank.insignia_image_url || '/api/placeholder/30/15'}
                                             alt={rank.name}
-                                            className="rank-insignia"
+                                            style={styles.rankInsignia}
                                         />
                                     </td>
-                                    <td>{rank.name}</td>
-                                    <td>{rank.abbreviation}</td>
-                                    <td>
+                                    <td style={styles.td}>{rank.name}</td>
+                                    <td style={styles.td}>{rank.abbreviation}</td>
+                                    <td style={styles.td}>
                                         {rank.branch ? (
-                                            <div className="badge branch-badge" style={{ backgroundColor: rank.branch.color_code || '#1F4287' }}>
+                                            <div style={{...styles.badge, ...styles.branchBadge, backgroundColor: rank.branch.color_code || '#1F4287'}}>
                                                 {rank.branch.abbreviation}
                                             </div>
                                         ) : '-'}
                                     </td>
-                                    <td>{rank.tier}</td>
-                                    <td>
-                                        {rank.is_officer && <span className="rank-type officer">Officer</span>}
-                                        {rank.is_enlisted && <span className="rank-type enlisted">Enlisted</span>}
-                                        {rank.is_warrant && <span className="rank-type warrant">Warrant</span>}
+                                    <td style={styles.td}>{rank.tier}</td>
+                                    <td style={styles.td}>
+                                        {rank.is_officer && <span style={styles.rankTypeOfficer}>Officer</span>}
+                                        {rank.is_enlisted && <span style={styles.rankTypeEnlisted}>Enlisted</span>}
+                                        {rank.is_warrant && <span style={styles.rankTypeWarrant}>Warrant</span>}
                                     </td>
-                                    <td className="actions-cell">
-                                        <div className="action-buttons">
+                                    <td style={styles.actionsCell}>
+                                        <div style={styles.actionButtons}>
                                             {canPerformAction('write') && (
                                                 <button
-                                                    className="icon-button"
+                                                    style={styles.iconButton}
                                                     onClick={() => handleOpenEditModal('ranks', rank)}
                                                     title="Edit Rank"
                                                 >
@@ -1687,7 +1710,7 @@ const AdminDashboard = () => {
         if (!Array.isArray(branches)) {
             console.error("Branches data is not an array:", branches);
             return (
-                <div className="loading-indicator">
+                <div style={styles.loadingIndicator}>
                     <AlertTriangle size={24} />
                     <span>Error: Invalid data format</span>
                 </div>
@@ -1699,24 +1722,24 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="admin-action-bar">
-                    <div className="search-section">
-                        <div className="search-box">
+                <div style={styles.tableActions}>
+                    <div style={styles.tableFilters}>
+                        <div style={styles.searchContainer}>
                             <input
                                 type="text"
                                 placeholder="Search branches..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-field"
+                                style={styles.searchInput}
                             />
-                            <Search className="search-icon" size={16} />
+                            <Search style={styles.searchIcon} size={16} />
                         </div>
                     </div>
 
-                    <div className="action-section">
+                    <div style={{ marginLeft: 'auto' }}>
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="delete-btn"
+                                style={{...styles.button, ...styles.buttonDanger}}
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1725,7 +1748,7 @@ const AdminDashboard = () => {
 
                         {canPerformAction('write') && (
                             <button
-                                className="create-btn"
+                                style={{...styles.button, ...styles.buttonPrimary, marginLeft: '8px'}}
                                 onClick={() => handleOpenCreateModal('branches')}
                             >
                                 <Plus size={16} /> New Branch
@@ -1734,81 +1757,81 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="table-container">
-                    <table className="admin-table">
+                <div style={styles.tableContainer}>
+                    <table style={styles.table}>
                         <thead>
                         <tr>
-                            <th className="checkbox-cell">
+                            <th style={styles.checkboxCell}>
                                 <input
                                     type="checkbox"
                                     checked={selectedItems.length === filteredData.length && filteredData.length > 0}
                                     onChange={() => handleSelectAll(filteredData)}
                                 />
                             </th>
-                            <th className="logo-cell">Logo</th>
-                            <th onClick={() => handleSort('name')} className="sortable-column">
+                            <th style={styles.logoCell}>Logo</th>
+                            <th onClick={() => handleSort('name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Name
                                 {sortConfig.field === 'name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('abbreviation')} className="sortable-column">
+                            <th onClick={() => handleSort('abbreviation')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Abbr.
                                 {sortConfig.field === 'abbreviation' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('color_code')} className="sortable-column">
+                            <th onClick={() => handleSort('color_code')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Color
                                 {sortConfig.field === 'color_code' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th>Description</th>
-                            <th className="actions-cell">Actions</th>
+                            <th style={styles.th}>Description</th>
+                            <th style={styles.actionsCell}>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         {sortedData.length === 0 ? (
                             <tr>
-                                <td colSpan="7" className="no-data">No branches found</td>
+                                <td colSpan="7" style={styles.noData}>No branches found</td>
                             </tr>
                         ) : (
                             sortedData.map(branch => (
-                                <tr key={branch.id} className={selectedItems.includes(branch.id) ? 'selected-row' : ''}>
-                                    <td className="checkbox-cell">
+                                <tr key={branch.id} style={selectedItems.includes(branch.id) ? styles.selectedRow : {}}>
+                                    <td style={styles.checkboxCell}>
                                         <input
                                             type="checkbox"
                                             checked={selectedItems.includes(branch.id)}
                                             onChange={() => handleItemSelect(branch.id)}
                                         />
                                     </td>
-                                    <td className="logo-cell">
-                                        <div className="branch-logo-container" style={{ backgroundColor: branch.color_code || '#1F4287' }}>
+                                    <td style={styles.logoCell}>
+                                        <div style={{...styles.branchLogoContainer, backgroundColor: branch.color_code || '#1F4287'}}>
                                             <img
                                                 src={branch.logo_url || '/api/placeholder/40/40'}
                                                 alt={branch.name}
-                                                className="branch-logo"
+                                                style={styles.branchLogo}
                                             />
                                         </div>
                                     </td>
-                                    <td>{branch.name}</td>
-                                    <td>
-                                        <div className="badge branch-badge" style={{ backgroundColor: branch.color_code || '#1F4287' }}>
+                                    <td style={styles.td}>{branch.name}</td>
+                                    <td style={styles.td}>
+                                        <div style={{...styles.badge, ...styles.branchBadge, backgroundColor: branch.color_code || '#1F4287'}}>
                                             {branch.abbreviation}
                                         </div>
                                     </td>
-                                    <td>
-                                        <div className="color-swatch" style={{ backgroundColor: branch.color_code || '#1F4287' }}>
+                                    <td style={styles.td}>
+                                        <div style={{...styles.colorSwatch, backgroundColor: branch.color_code || '#1F4287'}}>
                                             {branch.color_code}
                                         </div>
                                     </td>
-                                    <td className="description-cell">{branch.description}</td>
-                                    <td className="actions-cell">
-                                        <div className="action-buttons">
+                                    <td style={styles.descriptionCell}>{branch.description}</td>
+                                    <td style={styles.actionsCell}>
+                                        <div style={styles.actionButtons}>
                                             {canPerformAction('write') && (
                                                 <button
-                                                    className="icon-button"
+                                                    style={styles.iconButton}
                                                     onClick={() => handleOpenEditModal('branches', branch)}
                                                     title="Edit Branch"
                                                 >
@@ -1833,7 +1856,7 @@ const AdminDashboard = () => {
         if (!Array.isArray(units)) {
             console.error("Units data is not an array:", units);
             return (
-                <div className="loading-indicator">
+                <div style={styles.loadingIndicator}>
                     <AlertTriangle size={24} />
                     <span>Error: Invalid data format</span>
                 </div>
@@ -1845,31 +1868,31 @@ const AdminDashboard = () => {
 
         return (
             <>
-                <div className="admin-action-bar">
-                    <div className="search-section">
-                        <div className="search-box">
+                <div style={styles.tableActions}>
+                    <div style={styles.tableFilters}>
+                        <div style={styles.searchContainer}>
                             <input
                                 type="text"
                                 placeholder="Search units..."
                                 value={searchTerm}
                                 onChange={handleSearch}
-                                className="search-field"
+                                style={styles.searchInput}
                             />
-                            <Search className="search-icon" size={16} />
+                            <Search style={styles.searchIcon} size={16} />
                         </div>
 
                         <button
-                            className="filter-btn"
+                            style={{...styles.button, ...styles.filterButton}}
                             onClick={() => {}}
                         >
                             <Filter size={16} /> Filters
                         </button>
                     </div>
 
-                    <div className="action-section">
+                    <div style={{ marginLeft: 'auto' }}>
                         {selectedItems.length > 0 && canPerformAction('delete') && (
                             <button
-                                className="delete-btn"
+                                style={{...styles.button, ...styles.buttonDanger}}
                                 onClick={handleDeleteItems}
                             >
                                 <Trash2 size={16} /> Delete {selectedItems.length > 1 ? `(${selectedItems.length})` : ''}
@@ -1879,14 +1902,14 @@ const AdminDashboard = () => {
                         {canPerformAction('write') && (
                             <>
                                 <button
-                                    className="assign-btn"
+                                    style={{...styles.button, ...styles.buttonSecondary, marginLeft: '8px'}}
                                     onClick={() => handleOpenLinkModal('users_unit')}
                                 >
                                     <UserPlus size={16} /> Add Members
                                 </button>
 
                                 <button
-                                    className="create-btn"
+                                    style={{...styles.button, ...styles.buttonPrimary, marginLeft: '8px'}}
                                     onClick={() => handleOpenCreateModal('units')}
                                 >
                                     <Plus size={16} /> New Unit
@@ -1896,112 +1919,112 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="table-container">
-                    <table className="admin-table">
+                <div style={styles.tableContainer}>
+                    <table style={styles.table}>
                         <thead>
                         <tr>
-                            <th className="checkbox-cell">
+                            <th style={styles.checkboxCell}>
                                 <input
                                     type="checkbox"
                                     checked={selectedItems.length === filteredData.length && filteredData.length > 0}
                                     onChange={() => handleSelectAll(filteredData)}
                                 />
                             </th>
-                            <th className="emblem-cell">Emblem</th>
-                            <th onClick={() => handleSort('name')} className="sortable-column">
+                            <th style={styles.emblemCell}>Emblem</th>
+                            <th onClick={() => handleSort('name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Name
                                 {sortConfig.field === 'name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('abbreviation')} className="sortable-column">
+                            <th onClick={() => handleSort('abbreviation')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Abbr.
                                 {sortConfig.field === 'abbreviation' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('branch.name')} className="sortable-column">
+                            <th onClick={() => handleSort('branch.name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Branch
                                 {sortConfig.field === 'branch.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('unit_type')} className="sortable-column">
+                            <th onClick={() => handleSort('unit_type')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Type
                                 {sortConfig.field === 'unit_type' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('parent_unit.name')} className="sortable-column">
+                            <th onClick={() => handleSort('parent_unit.name')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Parent Unit
                                 {sortConfig.field === 'parent_unit.name' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th onClick={() => handleSort('is_active')} className="sortable-column">
+                            <th onClick={() => handleSort('is_active')} style={{...styles.th, ...styles.sortableColumn}}>
                                 Status
                                 {sortConfig.field === 'is_active' && (
                                     sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                 )}
                             </th>
-                            <th className="actions-cell">Actions</th>
+                            <th style={styles.actionsCell}>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         {sortedData.length === 0 ? (
                             <tr>
-                                <td colSpan="9" className="no-data">No units found</td>
+                                <td colSpan="9" style={styles.noData}>No units found</td>
                             </tr>
                         ) : (
                             sortedData.map(unit => (
-                                <tr key={unit.id} className={selectedItems.includes(unit.id) ? 'selected-row' : ''}>
-                                    <td className="checkbox-cell">
+                                <tr key={unit.id} style={selectedItems.includes(unit.id) ? styles.selectedRow : {}}>
+                                    <td style={styles.checkboxCell}>
                                         <input
                                             type="checkbox"
                                             checked={selectedItems.includes(unit.id)}
                                             onChange={() => handleItemSelect(unit.id)}
                                         />
                                     </td>
-                                    <td className="emblem-cell">
-                                        <div className="unit-emblem-container">
+                                    <td style={styles.emblemCell}>
+                                        <div style={styles.unitEmblemContainer}>
                                             <img
                                                 src={unit.emblem_url || '/api/placeholder/40/40'}
                                                 alt={unit.name}
-                                                className="unit-emblem"
+                                                style={styles.unitEmblem}
                                             />
                                         </div>
                                     </td>
-                                    <td>{unit.name}</td>
-                                    <td>
-                                        <div className="unit-abbreviation">{unit.abbreviation}</div>
+                                    <td style={styles.td}>{unit.name}</td>
+                                    <td style={styles.td}>
+                                        <div style={styles.unitAbbreviation}>{unit.abbreviation}</div>
                                     </td>
-                                    <td>
+                                    <td style={styles.td}>
                                         {unit.branch ? (
-                                            <div className="badge branch-badge" style={{ backgroundColor: unit.branch.color_code || '#1F4287' }}>
+                                            <div style={{...styles.badge, ...styles.branchBadge, backgroundColor: unit.branch.color_code || '#1F4287'}}>
                                                 {unit.branch.abbreviation}
                                             </div>
                                         ) : '-'}
                                     </td>
-                                    <td>{unit.unit_type}</td>
-                                    <td>{unit.parent_unit?.name || '-'}</td>
-                                    <td>
-                                        <div className={`status-indicator ${unit.is_active ? 'active' : 'inactive'}`}>
+                                    <td style={styles.td}>{unit.unit_type}</td>
+                                    <td style={styles.td}>{unit.parent_unit?.name || '-'}</td>
+                                    <td style={styles.td}>
+                                        <div style={unit.is_active ? styles.statusActive : styles.statusInactive}>
                                             {unit.is_active ? 'Active' : 'Inactive'}
                                         </div>
                                     </td>
-                                    <td className="actions-cell">
-                                        <div className="action-buttons">
+                                    <td style={styles.actionsCell}>
+                                        <div style={styles.actionButtons}>
                                             {canPerformAction('write') && (
                                                 <>
                                                     <button
-                                                        className="icon-button"
+                                                        style={styles.iconButton}
                                                         onClick={() => handleOpenEditModal('units', unit)}
                                                         title="Edit Unit"
                                                     >
                                                         <Edit size={16} />
                                                     </button>
                                                     <button
-                                                        className="icon-button"
+                                                        style={styles.iconButton}
                                                         onClick={() => handleOpenLinkModal('users_unit', { unitId: unit.id })}
                                                         title="Add Members"
                                                     >
@@ -2010,7 +2033,7 @@ const AdminDashboard = () => {
                                                 </>
                                             )}
                                             <button
-                                                className="icon-button view-button"
+                                                style={{...styles.iconButton, ...styles.viewButton}}
                                                 onClick={() => {}}
                                                 title="View Unit"
                                             >
@@ -2029,25 +2052,25 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="admin-dashboard">
-            <header className="admin-header">
-                <div className="admin-header-content">
-                    <div className="admin-title">
+        <div style={styles.adminDashboard}>
+            <header style={styles.adminHeader}>
+                <div style={styles.adminHeaderContent}>
+                    <div style={styles.adminTitle}>
                         <h1>Administration Dashboard</h1>
-                        <div className="admin-subtitle">Manage organization data and user accounts</div>
+                        <div style={styles.adminSubtitle}>Manage organization data and user accounts</div>
                     </div>
 
-                    <div className="admin-user">
+                    <div style={styles.adminUser}>
                         {user && (
-                            <div className="admin-user-info">
+                            <div style={styles.adminUserInfo}>
                                 <img
                                     src={user.avatar_url || '/api/placeholder/40/40'}
                                     alt={user.username}
-                                    className="admin-user-avatar"
+                                    style={styles.adminUserAvatar}
                                 />
-                                <div className="admin-user-details">
-                                    <div className="admin-username">{user.username}</div>
-                                    <div className="admin-role">Administrator</div>
+                                <div style={styles.adminUserDetails}>
+                                    <div style={styles.adminUsername}>{user.username}</div>
+                                    <div style={styles.adminRole}>Administrator</div>
                                 </div>
                             </div>
                         )}
@@ -2055,84 +2078,84 @@ const AdminDashboard = () => {
                 </div>
             </header>
 
-            <div className="admin-content">
-                <nav className="admin-sidebar">
-                    <div className="admin-logo">
-                        <div className="logo-icon">
-                            <svg className="logo-svg" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div style={styles.adminContent}>
+                <nav style={styles.adminSidebar}>
+                    <div style={styles.adminLogo}>
+                        <div style={styles.logoIcon}>
+                            <svg style={styles.logoSvg} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                             </svg>
                         </div>
-                        <div className="logo-text">5TH EXPEDITIONARY</div>
+                        <div style={styles.logoText}>5TH EXPEDITIONARY</div>
                     </div>
 
-                    <ul className="admin-nav">
-                        <li className={activeTab === 'users' ? 'active' : ''}>
-                            <button onClick={() => setActiveTab('users')}>
+                    <ul style={styles.adminNav}>
+                        <li style={activeTab === 'users' ? styles.navItemActive : styles.navItem}>
+                            <button onClick={() => setActiveTab('users')} style={styles.navButton}>
                                 <Users size={18} />
                                 <span>Users</span>
                             </button>
                         </li>
-                        <li className={activeTab === 'ranks' ? 'active' : ''}>
-                            <button onClick={() => setActiveTab('ranks')}>
+                        <li style={activeTab === 'ranks' ? styles.navItemActive : styles.navItem}>
+                            <button onClick={() => setActiveTab('ranks')} style={styles.navButton}>
                                 <Shield size={18} />
                                 <span>Ranks</span>
                             </button>
                         </li>
-                        <li className={activeTab === 'branches' ? 'active' : ''}>
-                            <button onClick={() => setActiveTab('branches')}>
+                        <li style={activeTab === 'branches' ? styles.navItemActive : styles.navItem}>
+                            <button onClick={() => setActiveTab('branches')} style={styles.navButton}>
                                 <Flag size={18} />
                                 <span>Branches</span>
                             </button>
                         </li>
-                        <li className={activeTab === 'units' ? 'active' : ''}>
-                            <button onClick={() => setActiveTab('units')}>
+                        <li style={activeTab === 'units' ? styles.navItemActive : styles.navItem}>
+                            <button onClick={() => setActiveTab('units')} style={styles.navButton}>
                                 <Grid size={18} />
                                 <span>Units</span>
                             </button>
                         </li>
-                        <li>
-                            <a href="/" className="back-link">
+                        <li style={styles.navItem}>
+                            <a href="/" style={styles.backLink}>
                                 <Settings size={18} />
                                 <span>Settings</span>
                             </a>
                         </li>
                     </ul>
 
-                    <div className="admin-footer">
-                        <a href="/" className="back-link">
+                    <div style={styles.adminFooter}>
+                        <a href="/" style={styles.backLink}>
                             &larr; Back to Website
                         </a>
                     </div>
                 </nav>
 
-                <main className="admin-main">
+                <main style={styles.adminMain}>
                     {error && (
-                        <div className="error-message">
+                        <div style={styles.errorMessage}>
                             <AlertTriangle size={16} />
                             <span>{error}</span>
-                            <button onClick={() => setError(null)} className="close-button">
+                            <button onClick={() => setError(null)} style={styles.closeButton}>
                                 <X size={16} />
                             </button>
                         </div>
                     )}
 
-                    <div className="admin-panel">
+                    <div style={styles.adminPanel}>
                         {isLoading ? (
-                            <div className="loading-indicator">
+                            <div style={styles.loadingIndicator}>
                                 <Loader size={24} className="spin" />
                                 <span>Loading data...</span>
                             </div>
                         ) : (
                             <>
-                                <div className="panel-header">
+                                <div style={styles.panelHeader}>
                                     {activeTab === 'users' && <h2><Users size={20} /> Users Management</h2>}
                                     {activeTab === 'ranks' && <h2><Shield size={20} /> Ranks Management</h2>}
                                     {activeTab === 'branches' && <h2><Flag size={20} /> Branches Management</h2>}
                                     {activeTab === 'units' && <h2><Grid size={20} /> Units Management</h2>}
                                 </div>
 
-                                <div className="panel-content">
+                                <div style={styles.panelContent}>
                                     {activeTab === 'users' && renderUsersTable()}
                                     {activeTab === 'ranks' && renderRanksTable()}
                                     {activeTab === 'branches' && renderBranchesTable()}
@@ -2146,9 +2169,9 @@ const AdminDashboard = () => {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-container">
-                        <button className="modal-close" onClick={handleCloseModal}>
+                <div style={styles.modalOverlay}>
+                    <div style={styles.modalContainer}>
+                        <button style={styles.modalClose} onClick={handleCloseModal}>
                             <X size={20} />
                         </button>
                         {renderModalContent()}
@@ -2157,6 +2180,540 @@ const AdminDashboard = () => {
             )}
         </div>
     );
+};
+
+// Inline styles to prevent column overlap
+const styles = {
+    adminDashboard: {
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        backgroundColor: '#0C1C2C',
+        color: '#FFFFFF',
+        fontFamily: "'Titillium Web', sans-serif",
+    },
+    adminHeader: {
+        backgroundColor: '#0C1C2C',
+        borderBottom: '1px solid #382C54',
+        padding: '16px 24px',
+    },
+    adminHeaderContent: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    adminTitle: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    adminSubtitle: {
+        fontSize: '14px',
+        color: '#8B92A0',
+        marginTop: '4px',
+    },
+    adminUser: {
+        display: 'flex',
+        alignItems: 'center',
+    },
+    adminUserInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+    },
+    adminUserAvatar: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        border: '2px solid #4FCBF8',
+    },
+    adminUserDetails: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    adminUsername: {
+        fontWeight: 'bold',
+        fontSize: '14px',
+    },
+    adminRole: {
+        fontSize: '12px',
+        color: '#8B92A0',
+    },
+    adminContent: {
+        display: 'flex',
+        flex: 1,
+        overflow: 'hidden',
+    },
+    adminSidebar: {
+        width: '240px',
+        backgroundColor: '#0A1929',
+        borderRight: '1px solid #382C54',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '24px 0',
+    },
+    adminLogo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '0 24px',
+        marginBottom: '32px',
+    },
+    logoIcon: {
+        width: '32px',
+        height: '32px',
+        color: '#4FCBF8',
+    },
+    logoSvg: {
+        width: '100%',
+        height: '100%',
+    },
+    logoText: {
+        fontSize: '16px',
+        fontWeight: 'bold',
+        color: '#4FCBF8',
+    },
+    adminNav: {
+        listStyle: 'none',
+        padding: 0,
+        margin: 0,
+        flex: 1,
+    },
+    navItem: {
+        marginBottom: '4px',
+    },
+    navItemActive: {
+        marginBottom: '4px',
+        backgroundColor: '#1A2332',
+        borderLeft: '3px solid #4FCBF8',
+    },
+    navButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        width: '100%',
+        padding: '12px 24px',
+        background: 'none',
+        border: 'none',
+        color: '#8B92A0',
+        fontSize: '14px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+    },
+    adminFooter: {
+        padding: '24px',
+    },
+    backLink: {
+        color: '#8B92A0',
+        textDecoration: 'none',
+        fontSize: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    adminMain: {
+        flex: 1,
+        overflow: 'auto',
+        backgroundColor: '#0C1C2C',
+        padding: '24px',
+    },
+    errorMessage: {
+        backgroundColor: '#FF6B35',
+        color: '#FFFFFF',
+        padding: '12px 16px',
+        borderRadius: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '16px',
+    },
+    closeButton: {
+        marginLeft: 'auto',
+        background: 'none',
+        border: 'none',
+        color: '#FFFFFF',
+        cursor: 'pointer',
+    },
+    adminPanel: {
+        backgroundColor: '#0A1929',
+        borderRadius: '8px',
+        border: '1px solid #382C54',
+        overflow: 'hidden',
+    },
+    loadingIndicator: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        padding: '48px',
+        color: '#8B92A0',
+    },
+    panelHeader: {
+        padding: '20px 24px',
+        borderBottom: '1px solid #382C54',
+    },
+    panelContent: {
+        padding: '0',
+    },
+    tableActions: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '16px 24px',
+        borderBottom: '1px solid #382C54',
+    },
+    tableFilters: {
+        display: 'flex',
+        gap: '12px',
+        alignItems: 'center',
+    },
+    searchContainer: {
+        position: 'relative',
+    },
+    searchInput: {
+        backgroundColor: '#0C1C2C',
+        border: '1px solid #382C54',
+        borderRadius: '4px',
+        padding: '8px 36px 8px 12px',
+        color: '#FFFFFF',
+        fontSize: '14px',
+        width: '240px',
+    },
+    searchIcon: {
+        position: 'absolute',
+        right: '12px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        color: '#8B92A0',
+    },
+    button: {
+        padding: '8px 16px',
+        borderRadius: '4px',
+        border: 'none',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        transition: 'all 0.2s ease',
+    },
+    buttonPrimary: {
+        backgroundColor: '#4FCBF8',
+        color: '#0C1C2C',
+    },
+    buttonSecondary: {
+        backgroundColor: '#382C54',
+        color: '#FFFFFF',
+    },
+    buttonDanger: {
+        backgroundColor: '#FF6B35',
+        color: '#FFFFFF',
+    },
+    filterButton: {
+        backgroundColor: '#0C1C2C',
+        color: '#8B92A0',
+        border: '1px solid #382C54',
+    },
+    tableContainer: {
+        overflowX: 'auto',
+        minHeight: '400px',
+    },
+    table: {
+        width: '100%',
+        borderCollapse: 'separate',
+        borderSpacing: 0,
+        tableLayout: 'fixed',
+    },
+    th: {
+        backgroundColor: '#0C1C2C',
+        padding: '12px 16px',
+        textAlign: 'left',
+        fontWeight: '600',
+        fontSize: '13px',
+        color: '#8B92A0',
+        borderBottom: '1px solid #382C54',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    td: {
+        padding: '12px 16px',
+        fontSize: '14px',
+        color: '#FFFFFF',
+        borderBottom: '1px solid #1A2332',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    checkboxCell: {
+        width: '48px',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1A2332',
+    },
+    avatarCell: {
+        width: '64px',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1A2332',
+    },
+    iconCell: {
+        width: '64px',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1A2332',
+    },
+    logoCell: {
+        width: '64px',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1A2332',
+    },
+    emblemCell: {
+        width: '64px',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1A2332',
+    },
+    actionsCell: {
+        width: '120px',
+        padding: '12px 16px',
+        borderBottom: '1px solid #1A2332',
+    },
+    descriptionCell: {
+        maxWidth: '300px',
+        padding: '12px 16px',
+        fontSize: '14px',
+        color: '#FFFFFF',
+        borderBottom: '1px solid #1A2332',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    sortableColumn: {
+        cursor: 'pointer',
+        userSelect: 'none',
+    },
+    selectedRow: {
+        backgroundColor: '#1A2332',
+    },
+    noData: {
+        textAlign: 'center',
+        padding: '48px',
+        color: '#8B92A0',
+    },
+    userAvatarContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tableAvatar: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        objectFit: 'cover',
+    },
+    badge: {
+        display: 'inline-block',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    branchBadge: {
+        textTransform: 'uppercase',
+    },
+    statusActive: {
+        color: '#39FF14',
+        fontSize: '13px',
+        fontWeight: '500',
+    },
+    statusInactive: {
+        color: '#FF6B35',
+        fontSize: '13px',
+        fontWeight: '500',
+    },
+    actionButtons: {
+        display: 'flex',
+        gap: '8px',
+    },
+    iconButton: {
+        padding: '8px',
+        backgroundColor: 'transparent',
+        border: '1px solid #382C54',
+        borderRadius: '4px',
+        color: '#8B92A0',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+    },
+    viewButton: {
+        borderColor: '#4FCBF8',
+        color: '#4FCBF8',
+    },
+    rankInsignia: {
+        maxWidth: '48px',
+        maxHeight: '24px',
+        objectFit: 'contain',
+    },
+    rankTypeOfficer: {
+        color: '#E4D00A',
+        fontSize: '12px',
+        fontWeight: '500',
+    },
+    rankTypeEnlisted: {
+        color: '#4FCBF8',
+        fontSize: '12px',
+        fontWeight: '500',
+    },
+    rankTypeWarrant: {
+        color: '#39FF14',
+        fontSize: '12px',
+        fontWeight: '500',
+    },
+    branchLogoContainer: {
+        width: '40px',
+        height: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '8px',
+    },
+    branchLogo: {
+        width: '32px',
+        height: '32px',
+        objectFit: 'contain',
+    },
+    colorSwatch: {
+        display: 'inline-block',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        color: '#FFFFFF',
+    },
+    unitEmblemContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    unitEmblem: {
+        width: '40px',
+        height: '40px',
+        objectFit: 'contain',
+    },
+    unitAbbreviation: {
+        fontSize: '13px',
+        fontWeight: '600',
+    },
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+    },
+    modalContainer: {
+        backgroundColor: '#0A1929',
+        border: '1px solid #382C54',
+        borderRadius: '8px',
+        maxWidth: '600px',
+        width: '90%',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        position: 'relative',
+    },
+    modalClose: {
+        position: 'absolute',
+        top: '16px',
+        right: '16px',
+        background: 'none',
+        border: 'none',
+        color: '#8B92A0',
+        cursor: 'pointer',
+    },
+    modalForm: {
+        padding: '32px',
+    },
+    modalTitle: {
+        fontSize: '20px',
+        fontWeight: '600',
+        marginBottom: '24px',
+    },
+    formGroup: {
+        marginBottom: '20px',
+    },
+    formRow: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '16px',
+        marginBottom: '20px',
+    },
+    input: {
+        width: '100%',
+        padding: '8px 12px',
+        backgroundColor: '#0C1C2C',
+        border: '1px solid #382C54',
+        borderRadius: '4px',
+        color: '#FFFFFF',
+        fontSize: '14px',
+        marginTop: '8px',
+    },
+    textarea: {
+        width: '100%',
+        padding: '8px 12px',
+        backgroundColor: '#0C1C2C',
+        border: '1px solid #382C54',
+        borderRadius: '4px',
+        color: '#FFFFFF',
+        fontSize: '14px',
+        marginTop: '8px',
+        resize: 'vertical',
+    },
+    checkboxGroup: {
+        display: 'flex',
+        gap: '24px',
+        marginBottom: '20px',
+    },
+    formCheck: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    fieldNote: {
+        fontSize: '12px',
+        color: '#FF6B35',
+        marginTop: '4px',
+    },
+    colorInputContainer: {
+        display: 'flex',
+        gap: '12px',
+        alignItems: 'center',
+        marginTop: '8px',
+    },
+    colorPicker: {
+        width: '48px',
+        height: '36px',
+        padding: '2px',
+        backgroundColor: '#0C1C2C',
+        border: '1px solid #382C54',
+        borderRadius: '4px',
+        cursor: 'pointer',
+    },
+    colorText: {
+        flex: 1,
+        padding: '8px 12px',
+        backgroundColor: '#0C1C2C',
+        border: '1px solid #382C54',
+        borderRadius: '4px',
+        color: '#FFFFFF',
+        fontSize: '14px',
+    },
+    modalActions: {
+        display: 'flex',
+        gap: '12px',
+        justifyContent: 'flex-end',
+        marginTop: '32px',
+    },
 };
 
 export default AdminDashboard;
