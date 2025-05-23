@@ -18,6 +18,12 @@ const HomePage = () => {
     const [featuredUnits, setFeaturedUnits] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [orgStats, setOrgStats] = useState({
+        memberCount: 0,
+        activeOperations: 0,
+        completedOperations: 0,
+        fleetSize: 0
+    });
 
     // Format date function
     const formatDate = (dateString) => {
@@ -58,198 +64,87 @@ const HomePage = () => {
 
             try {
                 // Fetch announcements
-                const announcementsResponse = await api.get('/announcements/');
-                setAnnouncements(announcementsResponse.data);
+                const announcementsResponse = await api.get('/api/announcements/');
+                const announcementsData = announcementsResponse.data.results || announcementsResponse.data;
+
+                // Sort announcements - pinned first, then by date
+                const sortedAnnouncements = Array.isArray(announcementsData)
+                    ? announcementsData.sort((a, b) => {
+                        if (a.is_pinned && !b.is_pinned) return -1;
+                        if (!a.is_pinned && b.is_pinned) return 1;
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    }).slice(0, 5) // Show only 5 most recent
+                    : [];
+
+                setAnnouncements(sortedAnnouncements);
 
                 // Fetch upcoming events
-                const eventsResponse = await api.get('/events/upcoming/');
-                setUpcomingEvents(eventsResponse.data);
+                const eventsResponse = await api.get('/api/events/upcoming/');
+                const eventsData = eventsResponse.data.results || eventsResponse.data;
+                setUpcomingEvents(Array.isArray(eventsData) ? eventsData.slice(0, 6) : []);
 
-                // Fetch recent operations
-                const operationsResponse = await api.get('/events/recent/');
-                setRecentOperations(operationsResponse.data);
+                // Fetch all events for recent operations (completed events)
+                const allEventsResponse = await api.get('/api/events/');
+                const allEventsData = allEventsResponse.data.results || allEventsResponse.data;
 
-                // Fetch featured units
-                const unitsResponse = await api.get('/units/');
-                setFeaturedUnits(unitsResponse.data);
+                // Filter for completed events and sort by date
+                const completedEvents = Array.isArray(allEventsData)
+                    ? allEventsData.filter(event => {
+                        const eventDate = new Date(event.end_time || event.start_time);
+                        return eventDate < new Date() && event.status !== 'Cancelled';
+                    }).sort((a, b) => new Date(b.start_time) - new Date(a.start_time)).slice(0, 5)
+                    : [];
+
+                setRecentOperations(completedEvents);
+
+                // Fetch units
+                const unitsResponse = await api.get('/api/units/');
+                const unitsData = unitsResponse.data.results || unitsResponse.data;
+
+                // Get featured units (you might want to add a 'featured' flag to your units)
+                const featured = Array.isArray(unitsData)
+                    ? unitsData.filter(unit => unit.is_active !== false).slice(0, 3)
+                    : [];
+                setFeaturedUnits(featured);
+
+                // Fetch users for member count
+                try {
+                    const usersResponse = await api.get('/api/users/');
+                    const usersData = usersResponse.data.results || usersResponse.data;
+                    const activeUsers = Array.isArray(usersData)
+                        ? usersData.filter(u => u.is_active).length
+                        : 0;
+
+                    // Fetch ships for fleet size
+                    const shipsResponse = await api.get('/api/ships/');
+                    const shipsData = shipsResponse.data.results || shipsResponse.data;
+                    const approvedShips = Array.isArray(shipsData)
+                        ? shipsData.filter(s => s.approval_status === 'Approved').length
+                        : 0;
+
+                    setOrgStats({
+                        memberCount: activeUsers,
+                        activeOperations: upcomingEvents.length,
+                        completedOperations: completedEvents.length,
+                        fleetSize: approvedShips
+                    });
+                } catch (statsError) {
+                    console.error('Error fetching stats:', statsError);
+                    // Use default stats if can't fetch
+                }
+
             } catch (err) {
                 console.error('Error fetching data:', err);
-                setError('Failed to load data. Please try again later.');
+                setError('Failed to load some data. Please try refreshing the page.');
 
-                // Load fallback data if API calls fail
-                loadFallbackData();
+                // Set empty arrays instead of fallback data
+                setAnnouncements([]);
+                setUpcomingEvents([]);
+                setRecentOperations([]);
+                setFeaturedUnits([]);
             } finally {
                 setIsLoading(false);
             }
-        };
-
-        // Fallback data in case API calls fail during development
-        const loadFallbackData = () => {
-            // Announcements fallback data
-            setAnnouncements([
-                {
-                    id: 'ann-1',
-                    title: 'Operation Phoenix Dawn Briefing',
-                    content: 'All officers are required to attend the pre-operation briefing for Operation Phoenix Dawn. Critical mission parameters will be discussed.',
-                    author_id: 'user-123',
-                    author: {
-                        username: 'Admiral_Voss',
-                        rank: { abbreviation: 'Adm.' }
-                    },
-                    is_pinned: true,
-                    created_at: '2955-05-16T14:30:00Z',
-                },
-                {
-                    id: 'ann-2',
-                    title: 'Fleet Mobilization Order',
-                    content: 'By order of Fleet Command, all vessels are to prepare for Deployment Phase Delta. Maintenance inspections must be completed within 48 hours.',
-                    author_id: 'user-456',
-                    author: {
-                        username: 'Commander_Chen',
-                        rank: { abbreviation: 'Cmdr.' }
-                    },
-                    is_pinned: false,
-                    created_at: '2955-05-14T09:15:00Z',
-                },
-                {
-                    id: 'ann-3',
-                    title: 'New Combat Doctrine Published',
-                    content: 'The updated Fleet Combat Engagement Doctrine v5.3 has been published to the Standards Library. All officers must review by end of month.',
-                    author_id: 'user-789',
-                    author: {
-                        username: 'Capt_Reynolds',
-                        rank: { abbreviation: 'Capt.' }
-                    },
-                    is_pinned: false,
-                    created_at: '2955-05-10T11:45:00Z',
-                }
-            ]);
-
-            // Events fallback data
-            setUpcomingEvents([
-                {
-                    id: 'event-1',
-                    title: 'Operation Phoenix Dawn',
-                    description: 'Large-scale fleet operation targeting hostile activity in the Pyro system.',
-                    event_type: 'Combat Operation',
-                    start_time: '2955-05-19T18:00:00Z',
-                    end_time: '2955-05-19T21:30:00Z',
-                    location: 'Pyro System - Nav Point Alpha',
-                    host_unit_id: 'unit-1',
-                    host_unit: {
-                        name: '3rd Fleet, 2nd Squadron',
-                        abbreviation: '3F-2S'
-                    },
-                    is_mandatory: true,
-                    image_url: '/api/placeholder/400/200'
-                },
-                {
-                    id: 'event-2',
-                    title: 'Advanced Formation Training',
-                    description: 'Training exercise focused on multi-ship tactical formations and maneuvers.',
-                    event_type: 'Training Exercise',
-                    start_time: '2955-05-21T19:00:00Z',
-                    end_time: '2955-05-21T21:00:00Z',
-                    location: 'Stanton System - Training Area B',
-                    host_unit_id: 'unit-2',
-                    host_unit: {
-                        name: 'Fleet Training Command',
-                        abbreviation: 'FTC'
-                    },
-                    is_mandatory: false,
-                    image_url: '/api/placeholder/400/200'
-                },
-                {
-                    id: 'event-3',
-                    title: 'Quartermaster Supply Distribution',
-                    description: 'Distribution of standard issue gear and equipment to authorized personnel.',
-                    event_type: 'Logistics',
-                    start_time: '2955-05-22T16:00:00Z',
-                    end_time: '2955-05-22T18:00:00Z',
-                    location: 'Port Tressler - Deck 4',
-                    host_unit_id: 'unit-3',
-                    host_unit: {
-                        name: 'Logistics Division',
-                        abbreviation: 'LOG'
-                    },
-                    is_mandatory: false,
-                    image_url: '/api/placeholder/400/200'
-                }
-            ]);
-
-            // Operations fallback data
-            setRecentOperations([
-                {
-                    id: 'op-1',
-                    title: 'Border Security Patrol',
-                    description: 'Routine patrol of system borders to deter unauthorized incursions.',
-                    event_type: 'Routine Operation',
-                    start_time: '2955-05-12T19:00:00Z',
-                    end_time: '2955-05-12T22:00:00Z',
-                    status: 'Completed',
-                    participants: 24,
-                    success_rating: 5
-                },
-                {
-                    id: 'op-2',
-                    title: 'Operation Starfall',
-                    description: 'Coordinated attack on pirate outpost in asteroid belt.',
-                    event_type: 'Combat Operation',
-                    start_time: '2955-05-08T20:00:00Z',
-                    end_time: '2955-05-08T23:30:00Z',
-                    status: 'Completed',
-                    participants: 32,
-                    success_rating: 4
-                },
-                {
-                    id: 'op-3',
-                    title: 'Search and Rescue Mission',
-                    description: 'Emergency rescue of stranded civilian transport.',
-                    event_type: 'Rescue Operation',
-                    start_time: '2955-05-05T15:30:00Z',
-                    end_time: '2955-05-05T18:45:00Z',
-                    status: 'Completed',
-                    participants: 16,
-                    success_rating: 5
-                }
-            ]);
-
-            // Units fallback data
-            setFeaturedUnits([
-                {
-                    id: 'unit-1',
-                    name: '3rd Fleet, 2nd Squadron',
-                    abbreviation: '3F-2S',
-                    description: 'Naval combat squadron specializing in coordinated fleet actions',
-                    emblem_url: '/api/placeholder/64/64',
-                    banner_image_url: '/api/placeholder/300/150',
-                    motto: 'Swift Justice',
-                    member_count: 42,
-                    established_date: '2941-03-15'
-                },
-                {
-                    id: 'unit-2',
-                    name: 'Special Operations Group',
-                    abbreviation: 'SOG',
-                    description: 'Elite unit conducting covert and high-risk operations',
-                    emblem_url: '/api/placeholder/64/64',
-                    banner_image_url: '/api/placeholder/300/150',
-                    motto: 'Unseen, Unheard, Unstoppable',
-                    member_count: 24,
-                    established_date: '2947-09-22'
-                },
-                {
-                    id: 'unit-3',
-                    name: 'Fleet Intelligence Division',
-                    abbreviation: 'FID',
-                    description: 'Intelligence gathering and tactical analysis unit',
-                    emblem_url: '/api/placeholder/64/64',
-                    banner_image_url: '/api/placeholder/300/150',
-                    motto: 'Knowledge Is Power',
-                    member_count: 18,
-                    established_date: '2944-11-05'
-                }
-            ]);
         };
 
         fetchData();
@@ -258,13 +153,32 @@ const HomePage = () => {
     // Get the nearest upcoming event
     const nextEvent = upcomingEvents.length > 0 ? upcomingEvents[0] : null;
 
-    // Get organization stats
-    const orgStats = {
-        memberCount: 248,
-        activeOperations: upcomingEvents.length || 0,
-        completedOperations: recentOperations.length || 0,
-        fleetSize: 86
+    // Function to get event type badge color
+    const getEventTypeBadgeClass = (eventType) => {
+        const typeMap = {
+            'Combat Operation': 'combat',
+            'Training Exercise': 'training',
+            'Training': 'training',
+            'Logistics': 'logistics',
+            'Ceremony': 'ceremony',
+            'Operation': 'combat',
+            'Routine Operation': 'routine',
+            'Rescue Operation': 'rescue'
+        };
+        return typeMap[eventType] || 'default';
     };
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="homepage-container">
+                <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                    <p>Loading data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="homepage-container">
@@ -316,8 +230,8 @@ const HomePage = () => {
                                         className="user-avatar"
                                     />
                                     <span className="user-name">
-                    {user?.rank?.abbreviation || ''} {user?.username || 'User'}
-                  </span>
+                                        {user?.current_rank?.abbreviation || ''} {user?.username || 'User'}
+                                    </span>
                                     <ChevronDown size={16} className="dropdown-chevron" />
                                 </button>
                             ) : (
@@ -441,6 +355,14 @@ const HomePage = () => {
                 </div>
             </section>
 
+            {/* Error Message */}
+            {error && (
+                <div className="error-banner">
+                    <AlertTriangle size={20} />
+                    <span>{error}</span>
+                </div>
+            )}
+
             {/* Main Content */}
             <section className="main-content">
                 <div className="content-container">
@@ -460,30 +382,39 @@ const HomePage = () => {
                                 </div>
 
                                 <div className="announcements-list">
-                                    {announcements.map(announcement => (
-                                        <div
-                                            key={announcement.id}
-                                            className={announcement.is_pinned ? 'announcement pinned' : 'announcement'}
-                                        >
-                                            {announcement.is_pinned && (
-                                                <div className="pinned-label">
-                                                    <AlertTriangle size={14} />
-                                                    <span>PINNED ANNOUNCEMENT</span>
-                                                </div>
-                                            )}
+                                    {announcements.length > 0 ? (
+                                        announcements.map(announcement => (
+                                            <div
+                                                key={announcement.id}
+                                                className={announcement.is_pinned ? 'announcement pinned' : 'announcement'}
+                                            >
+                                                {announcement.is_pinned && (
+                                                    <div className="pinned-label">
+                                                        <AlertTriangle size={14} />
+                                                        <span>PINNED ANNOUNCEMENT</span>
+                                                    </div>
+                                                )}
 
-                                            <h3 className="announcement-title">{announcement.title}</h3>
-                                            <p className="announcement-content">{announcement.content}</p>
+                                                <h3 className="announcement-title">{announcement.title}</h3>
+                                                <p className="announcement-content">{announcement.content}</p>
 
-                                            <div className="announcement-footer">
-                                                <div className="announcement-author">
-                                                    <AtSign size={14} />
-                                                    <span>{announcement.author.rank.abbreviation} {announcement.author.username}</span>
+                                                <div className="announcement-footer">
+                                                    <div className="announcement-author">
+                                                        <AtSign size={14} />
+                                                        <span>
+                                                            {announcement.author?.current_rank?.abbreviation || ''} {announcement.author?.username || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="announcement-date">{formatDate(announcement.created_at)}</div>
                                                 </div>
-                                                <div className="announcement-date">{formatDate(announcement.created_at)}</div>
                                             </div>
+                                        ))
+                                    ) : (
+                                        <div className="empty-state">
+                                            <Info size={24} />
+                                            <p>No announcements at this time</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
 
@@ -500,58 +431,64 @@ const HomePage = () => {
                                 </div>
 
                                 <div className="events-grid">
-                                    {upcomingEvents.map(event => (
-                                        <div key={event.id} className="event-card">
-                                            <div className="event-image-container">
-                                                <img
-                                                    src={event.image_url}
-                                                    alt={event.title}
-                                                    className="event-image"
-                                                />
-                                                <div className="event-image-gradient"></div>
-                                                <div className="event-type-badge"
-                                                     data-type={event.event_type === 'Combat Operation' ? 'combat' :
-                                                         event.event_type === 'Training Exercise' ? 'training' : 'logistics'}>
-                                                    {event.event_type}
+                                    {upcomingEvents.length > 0 ? (
+                                        upcomingEvents.map(event => (
+                                            <div key={event.id} className="event-card">
+                                                <div className="event-image-container">
+                                                    <img
+                                                        src={event.image_url || '/api/placeholder/400/200'}
+                                                        alt={event.title}
+                                                        className="event-image"
+                                                    />
+                                                    <div className="event-image-gradient"></div>
+                                                    <div className="event-type-badge"
+                                                         data-type={getEventTypeBadgeClass(event.event_type)}>
+                                                        {event.event_type}
+                                                    </div>
+                                                    {event.is_mandatory && (
+                                                        <div className="mandatory-badge">
+                                                            MANDATORY
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {event.is_mandatory && (
-                                                    <div className="mandatory-badge">
-                                                        MANDATORY
-                                                    </div>
-                                                )}
-                                            </div>
 
-                                            <div className="event-details">
-                                                <h3 className="event-title">{event.title}</h3>
-                                                <p className="event-description">{event.description}</p>
+                                                <div className="event-details">
+                                                    <h3 className="event-title">{event.title}</h3>
+                                                    <p className="event-description">{event.description}</p>
 
-                                                <div className="event-meta-grid">
-                                                    <div className="event-meta-item">
-                                                        <div className="event-meta-label">Date</div>
-                                                        <div className="event-meta-value">{formatDate(event.start_time)}</div>
-                                                    </div>
-                                                    <div className="event-meta-item">
-                                                        <div className="event-meta-label">Time</div>
-                                                        <div className="event-meta-value">{formatTime(event.start_time)}</div>
-                                                    </div>
-                                                    <div className="event-meta-item">
-                                                        <div className="event-meta-label">Location</div>
-                                                        <div className="event-meta-value">{event.location.split(' - ')[0]}</div>
-                                                    </div>
-                                                    <div className="event-meta-item">
-                                                        <div className="event-meta-label">Host</div>
-                                                        <div className="event-meta-value">{event.host_unit.abbreviation}</div>
+                                                    <div className="event-meta-grid">
+                                                        <div className="event-meta-item">
+                                                            <div className="event-meta-label">Date</div>
+                                                            <div className="event-meta-value">{formatDate(event.start_time)}</div>
+                                                        </div>
+                                                        <div className="event-meta-item">
+                                                            <div className="event-meta-label">Time</div>
+                                                            <div className="event-meta-value">{formatTime(event.start_time)}</div>
+                                                        </div>
+                                                        <div className="event-meta-item">
+                                                            <div className="event-meta-label">Location</div>
+                                                            <div className="event-meta-value">{event.location?.split(' - ')[0] || 'TBD'}</div>
+                                                        </div>
+                                                        <div className="event-meta-item">
+                                                            <div className="event-meta-label">Host</div>
+                                                            <div className="event-meta-value">{event.host_unit?.abbreviation || 'TBD'}</div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            <div className="event-footer">
-                                                <button className="event-rsvp-button">
-                                                    RSVP
-                                                </button>
+                                                <div className="event-footer">
+                                                    <button className="event-rsvp-button">
+                                                        RSVP
+                                                    </button>
+                                                </div>
                                             </div>
+                                        ))
+                                    ) : (
+                                        <div className="empty-state">
+                                            <Calendar size={24} />
+                                            <p>No upcoming events scheduled</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
 
@@ -568,42 +505,49 @@ const HomePage = () => {
                                 </div>
 
                                 <div className="table-container">
-                                    <table className="operations-table">
-                                        <thead>
-                                        <tr>
-                                            <th>Operation</th>
-                                            <th>Date</th>
-                                            <th>Type</th>
-                                            <th>Personnel</th>
-                                            <th>Result</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {recentOperations.map(operation => (
-                                            <tr key={operation.id} className="operation-row">
-                                                <td className="operation-name">{operation.title}</td>
-                                                <td className="operation-date">{formatDate(operation.start_time)}</td>
-                                                <td>
-                            <span className={`operation-type-badge ${operation.event_type === 'Combat Operation' ? 'combat' :
-                                operation.event_type === 'Routine Operation' ? 'routine' : 'rescue'}`}>
-                              {operation.event_type}
-                            </span>
-                                                </td>
-                                                <td className="operation-personnel">{operation.participants} deployed</td>
-                                                <td>
-                                                    <div className="rating-dots">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <div
-                                                                key={i}
-                                                                className={i < operation.success_rating ? 'rating-dot filled' : 'rating-dot'}
-                                                            ></div>
-                                                        ))}
-                                                    </div>
-                                                </td>
+                                    {recentOperations.length > 0 ? (
+                                        <table className="operations-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Operation</th>
+                                                <th>Date</th>
+                                                <th>Type</th>
+                                                <th>Personnel</th>
+                                                <th>Result</th>
                                             </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            {recentOperations.map(operation => (
+                                                <tr key={operation.id} className="operation-row">
+                                                    <td className="operation-name">{operation.title}</td>
+                                                    <td className="operation-date">{formatDate(operation.start_time)}</td>
+                                                    <td>
+                                                        <span className={`operation-type-badge ${getEventTypeBadgeClass(operation.event_type)}`}>
+                                                            {operation.event_type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="operation-personnel">
+                                                        {operation.max_participants || 'N/A'}
+                                                    </td>
+                                                    <td>
+                                                        <div className="rating-dots">
+                                                            {operation.status === 'Completed' ? (
+                                                                <span className="status-completed">Completed</span>
+                                                            ) : (
+                                                                <span className="status-other">{operation.status || 'Unknown'}</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    ) : (
+                                        <div className="empty-state">
+                                            <Activity size={24} />
+                                            <p>No recent operations to display</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -622,18 +566,18 @@ const HomePage = () => {
                                         <div>
                                             <h2 className="welcome-title">Welcome back,</h2>
                                             <div className="welcome-name">
-                                                {user?.rank?.abbreviation || ''} {user?.username || 'User'}
+                                                {user?.current_rank?.abbreviation || ''} {user?.username || 'User'}
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="stats-grid">
                                         <div className="stat-box">
-                                            <div className="stat-value">3</div>
+                                            <div className="stat-value">{upcomingEvents.length}</div>
                                             <div className="stat-label">Upcoming Events</div>
                                         </div>
                                         <div className="stat-box">
-                                            <div className="stat-value">2</div>
+                                            <div className="stat-value">0</div>
                                             <div className="stat-label">New Messages</div>
                                         </div>
                                     </div>
@@ -717,38 +661,53 @@ const HomePage = () => {
                                 </h2>
 
                                 <div className="units-list">
-                                    {featuredUnits.map(unit => (
-                                        <div key={unit.id} className="unit-card">
-                                            <div className="unit-banner">
-                                                <img
-                                                    src={unit.banner_image_url}
-                                                    alt={unit.name}
-                                                    className="unit-banner-image"
-                                                />
-                                                <div className="unit-banner-gradient"></div>
-                                                <div className="unit-info">
-                                                    <div className="unit-emblem">
-                                                        <img src={unit.emblem_url} alt={unit.abbreviation} className="unit-emblem-image" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="unit-name">{unit.name}</div>
-                                                        <div className="unit-abbr">{unit.abbreviation}</div>
+                                    {featuredUnits.length > 0 ? (
+                                        featuredUnits.map(unit => (
+                                            <div key={unit.id} className="unit-card">
+                                                <div className="unit-banner">
+                                                    <img
+                                                        src={unit.banner_image_url || '/api/placeholder/300/150'}
+                                                        alt={unit.name}
+                                                        className="unit-banner-image"
+                                                    />
+                                                    <div className="unit-banner-gradient"></div>
+                                                    <div className="unit-info">
+                                                        <div className="unit-emblem">
+                                                            <img
+                                                                src={unit.emblem_url || '/api/placeholder/64/64'}
+                                                                alt={unit.abbreviation}
+                                                                className="unit-emblem-image"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <div className="unit-name">{unit.name}</div>
+                                                            <div className="unit-abbr">{unit.abbreviation}</div>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="unit-footer">
+                                                    <div className="unit-member-count">
+                                                        {unit.member_count || 0} Members
+                                                    </div>
+                                                    <a href="#" className="unit-details-link">View Details</a>
+                                                </div>
                                             </div>
-                                            <div className="unit-footer">
-                                                <div className="unit-member-count">{unit.member_count} Members</div>
-                                                <a href="#" className="unit-details-link">View Details</a>
-                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="empty-state">
+                                            <Shield size={24} />
+                                            <p>No units to display</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
 
-                                <div className="view-all-units">
-                                    <a href="#" className="view-all-units-button">
-                                        VIEW ALL UNITS
-                                    </a>
-                                </div>
+                                {featuredUnits.length > 0 && (
+                                    <div className="view-all-units">
+                                        <a href="#" className="view-all-units-button">
+                                            VIEW ALL UNITS
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
