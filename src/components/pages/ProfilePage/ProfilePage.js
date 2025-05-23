@@ -26,6 +26,19 @@ const ProfilePage = () => {
     const [userShips, setUserShips] = useState([]);
     const [unitHistory, setUnitHistory] = useState([]);
     const [rankProgression, setRankProgression] = useState([]);
+    const [orgStats, setOrgStats] = useState({
+        memberCount: 0,
+        activeOperations: 0,
+        completedOperations: 0,
+        fleetSize: 0,
+        days_in_service: 0,
+        completed_operations: 0,
+        upcoming_operations: 0,
+        total_certificates: 0,
+        active_certificates: 0,
+        total_ships: 0,
+        approved_ships: 0
+    });
 
     // Determine which user to display
     const targetUserId = userId || currentUser?.id;
