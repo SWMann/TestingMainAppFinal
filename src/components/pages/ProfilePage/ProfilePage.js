@@ -74,34 +74,46 @@ const ProfilePage = () => {
             setError(null);
 
             try {
-                // Fetch user profile
-                const userEndpoint = targetUserId
-                    ? `/users/${targetUserId}/`
-                    : '/users/me/';
-                const userResponse = await api.get(userEndpoint);
-                setProfileData(userResponse.data);
+                // Fetch comprehensive user profile data
+                const profileEndpoint = targetUserId
+                    ? `/users/profile/${targetUserId}/`
+                    : '/users/profile/me/';
 
-                // Fetch user positions
-                const positionsResponse = await api.get(`/users/${userResponse.data.id}/positions/`);
-                setUserPositions(positionsResponse.data.results || positionsResponse.data || []);
+                const profileResponse = await api.get(profileEndpoint);
+                const data = profileResponse.data;
 
-                // Fetch user certificates
-                const certificatesResponse = await api.get(`/users/${userResponse.data.id}/certificates/`);
-                setUserCertificates(certificatesResponse.data.results || certificatesResponse.data || []);
+                // Set all the data from the comprehensive response
+                setProfileData(data.user);
+                setUserPositions(data.positions || []);
+                setUserCertificates(data.certificates || []);
+                setUserEvents(data.events || []);
+                setUserShips(data.ships || []);
 
-                // Fetch user events
-                const eventsResponse = await api.get(`/users/${userResponse.data.id}/events/`);
-                setUserEvents(eventsResponse.data.results || eventsResponse.data || []);
-
-                // Fetch user ships
-                try {
-                    const shipsResponse = await api.get(`/ships/?owner_id=${userResponse.data.id}`);
-                    setUserShips(shipsResponse.data.results || shipsResponse.data || []);
-                } catch (err) {
-                    console.error('Error fetching ships:', err);
+                // Set organization stats
+                if (data.statistics) {
+                    setOrgStats({
+                        ...orgStats,
+                        ...data.statistics
+                    });
                 }
 
-                // TODO: Fetch unit history and rank progression when endpoints are available
+                // Fetch unit history
+                if (data.user?.id) {
+                    try {
+                        const unitHistoryResponse = await api.get(`/users/${data.user.id}/unit-history/`);
+                        setUnitHistory(unitHistoryResponse.data.history || []);
+                    } catch (err) {
+                        console.error('Error fetching unit history:', err);
+                    }
+
+                    // Fetch rank progression
+                    try {
+                        const rankProgressionResponse = await api.get(`/users/${data.user.id}/rank-progression/`);
+                        setRankProgression(rankProgressionResponse.data.progression || []);
+                    } catch (err) {
+                        console.error('Error fetching rank progression:', err);
+                    }
+                }
 
             } catch (err) {
                 console.error('Error fetching user data:', err);
@@ -194,6 +206,26 @@ const ProfilePage = () => {
                         </span>
                     </div>
                 </div>
+
+                {/* Mentor Assignment */}
+                {profileData.mentor && (
+                    <div className="mentor-section">
+                        <h4 className="mentor-title">Assigned Mentor</h4>
+                        <div className="mentor-info">
+                            <img
+                                src={profileData.mentor.avatar_url || '/api/placeholder/64/64'}
+                                alt={profileData.mentor.username}
+                                className="mentor-avatar"
+                            />
+                            <div className="mentor-details">
+                                <span className="mentor-name">
+                                    {profileData.mentor.rank?.abbreviation} {profileData.mentor.username}
+                                </span>
+                                <span className="mentor-role">Training Mentor</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Current Positions */}
@@ -288,7 +320,41 @@ const ProfilePage = () => {
                     <Users size={20} />
                     Unit Assignment History
                 </h3>
-                {userPositions.length > 0 ? (
+                {unitHistory.length > 0 ? (
+                    <div className="timeline">
+                        {unitHistory.map((item, index) => (
+                            <div key={item.id} className="timeline-item">
+                                <div className="timeline-marker">
+                                    <div className={`marker ${item.status === 'Active' ? 'active' : ''}`}></div>
+                                </div>
+                                <div className="timeline-content">
+                                    <div className="timeline-header">
+                                        <h4>{item.unit?.name || 'Unknown Unit'}</h4>
+                                        <span className={`status-badge ${item.status === 'Active' ? 'active' : 'inactive'}`}>
+                                            {item.status}
+                                        </span>
+                                    </div>
+                                    <p className="timeline-position">{item.position?.title || 'Unknown Position'}</p>
+                                    <div className="timeline-meta">
+                                        <span>
+                                            <Calendar size={14} />
+                                            {formatDate(item.assignment_date)}
+                                        </span>
+                                        {item.order_number && (
+                                            <span>
+                                                <Hash size={14} />
+                                                Order: {item.order_number}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {item.unit?.description && (
+                                        <p className="timeline-description">{item.unit.description}</p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : userPositions.length > 0 ? (
                     <div className="timeline">
                         {userPositions.sort((a, b) => new Date(b.assignment_date) - new Date(a.assignment_date)).map((position, index) => (
                             <div key={position.id} className="timeline-item">
@@ -297,12 +363,12 @@ const ProfilePage = () => {
                                 </div>
                                 <div className="timeline-content">
                                     <div className="timeline-header">
-                                        <h4>{position.unit?.name || 'Unknown Unit'}</h4>
+                                        <h4>{position.unit_name || 'Unknown Unit'}</h4>
                                         <span className={`status-badge ${position.status === 'Active' ? 'active' : 'inactive'}`}>
                                             {position.status}
                                         </span>
                                     </div>
-                                    <p className="timeline-position">{position.position?.title || 'Unknown Position'}</p>
+                                    <p className="timeline-position">{position.position_title || 'Unknown Position'}</p>
                                     <div className="timeline-meta">
                                         <span>
                                             <Calendar size={14} />
@@ -315,9 +381,6 @@ const ProfilePage = () => {
                                             </span>
                                         )}
                                     </div>
-                                    {position.unit?.description && (
-                                        <p className="timeline-description">{position.unit.description}</p>
-                                    )}
                                 </div>
                             </div>
                         ))}
@@ -351,8 +414,8 @@ const ProfilePage = () => {
                                         <Briefcase size={20} />
                                     </div>
                                     <div className="node-content">
-                                        <h4>{position.position?.title || 'Unknown Position'}</h4>
-                                        <p>{position.unit?.abbreviation || 'Unknown Unit'}</p>
+                                        <h4>{position.position_title || 'Unknown Position'}</h4>
+                                        <p>{position.unit_name || 'Unknown Unit'}</p>
                                         <span className="node-date">{formatDate(position.assignment_date)}</span>
                                         {position.is_primary && <div className="primary-indicator">Primary Role</div>}
                                     </div>
@@ -379,14 +442,14 @@ const ProfilePage = () => {
                         {userCertificates.sort((a, b) => new Date(b.issue_date) - new Date(a.issue_date)).map(cert => (
                             <div key={cert.id} className="cert-timeline-item">
                                 <div className="cert-badge">
-                                    {cert.certificate?.badge_image_url ? (
-                                        <img src={cert.certificate.badge_image_url} alt={cert.certificate.name} />
+                                    {cert.certificate_badge ? (
+                                        <img src={cert.certificate_badge} alt={cert.certificate_name} />
                                     ) : (
                                         <Award size={24} />
                                     )}
                                 </div>
                                 <div className="cert-details">
-                                    <h5>{cert.certificate?.name || 'Unknown Certification'}</h5>
+                                    <h5>{cert.certificate_name || 'Unknown Certification'}</h5>
                                     <p>{cert.certificate?.description}</p>
                                     <div className="cert-meta">
                                         <span>
@@ -395,7 +458,7 @@ const ProfilePage = () => {
                                         </span>
                                         <span>
                                             <UserCheck size={14} />
-                                            Issuer: {cert.issuer?.username || 'Unknown'}
+                                            Issuer: {cert.issuer_username || 'Unknown'}
                                         </span>
                                         {cert.expiry_date && (
                                             <span className="expiry">
@@ -668,19 +731,19 @@ const ProfilePage = () => {
 
                         <div className="profile-stats">
                             <div className="stat">
-                                <span className="stat-value">{daysInService}</span>
+                                <span className="stat-value">{orgStats.days_in_service || daysInService}</span>
                                 <span className="stat-label">Days in Service</span>
                             </div>
                             <div className="stat">
-                                <span className="stat-value">{userCertificates.length}</span>
+                                <span className="stat-value">{orgStats.total_certificates || userCertificates.length}</span>
                                 <span className="stat-label">Certifications</span>
                             </div>
                             <div className="stat">
-                                <span className="stat-value">{completedOps}</span>
+                                <span className="stat-value">{orgStats.completed_operations || completedOps}</span>
                                 <span className="stat-label">Operations</span>
                             </div>
                             <div className="stat">
-                                <span className="stat-value">{userShips.length}</span>
+                                <span className="stat-value">{orgStats.total_ships || userShips.length}</span>
                                 <span className="stat-label">Ships</span>
                             </div>
                         </div>
