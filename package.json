@@ -17,7 +17,8 @@
     "web-vitals": "^2.1.4",
     "@reduxjs/toolkit": "^2.0.1",
     "axios": "^1.6.2",
-    "lucide-react": ""
+    "lucide-react": "",
+    "reactflow": ""
   },
   "scripts": {
     "start": "react-scripts start",
