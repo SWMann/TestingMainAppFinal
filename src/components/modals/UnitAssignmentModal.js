@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building, ChevronRight } from 'lucide-react';
-import api from '../../../services/api';
 import './AdminModals.css';
+import api from "../../services/api";
 
 const UnitAssignmentModal = ({ user, onClose, onAssign }) => {
     const [units, setUnits] = useState([]);

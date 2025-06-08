@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Briefcase, Star, Users } from 'lucide-react';
-import api from '../../../services/api';
+import api from "../../services/api";
 import './AdminModals.css';
 
 const PositionAssignmentModal = ({ user, onClose, onAssign }) => {
