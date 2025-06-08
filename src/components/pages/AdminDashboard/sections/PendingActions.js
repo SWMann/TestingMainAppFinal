@@ -3,8 +3,8 @@ import {
     Clock, UserPlus, Ship, Truck, FileText, CheckCircle, XCircle,
     Eye, MessageSquare, Calendar, AlertCircle, ChevronRight
 } from 'lucide-react';
-import api from '../../../services/api';
 import './ManagementSections.css';
+import api from "../../../../services/api";
 
 const PendingActions = () => {
     const [loading, setLoading] = useState(true);

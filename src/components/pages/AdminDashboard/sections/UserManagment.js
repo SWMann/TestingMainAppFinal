@@ -4,11 +4,11 @@ import {
     ChevronUp, ChevronDown, MoreVertical, Mail, Calendar, Clock,
     Award, Briefcase, X, Check, AlertCircle
 } from 'lucide-react';
-import api from '../../../services/api';
-import PromotionModal from '../../modals/PromotionModal';
-import UnitAssignmentModal from '../../modals/UnitAssignmentModal';
-import PositionAssignmentModal from '../../modals/PositionAssignmentModal';
 import './ManagementSections.css';
+import api from "../../../../services/api";
+import PositionAssignmentModal from "../../../modals/PositionAssignmentModal";
+import UnitAssignmentModal from "../../../modals/UnitAssignmentModal";
+import PromotionModal from "../../../modals/PromotionModal";
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
