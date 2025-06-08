@@ -12,10 +12,11 @@ import UserManagement from './sections/UserManagement';
 import PendingActions from './sections/PendingActions';
 import RankManagement from "./sections/RankManagement";
 import UnitManagement from "./sections/UnitManagement";
+import EventManagement from "./sections/EventManagement";
+import OpordManagement from "./sections/OpordManagement";
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
-const EventManagement = () => <div>Event Management Section - To be implemented</div>;
 const TrainingManagement = () => <div>Training Management Section - To be implemented</div>;
 const OperationsManagement = () => <div>Operations Management Section - To be implemented</div>;
 const AnnouncementManagement = () => <div>Announcement Management Section - To be implemented</div>;
@@ -120,8 +121,8 @@ const AdminDashboard = ({ user }) => {
         { id: 'ranks', label: 'Rank Management', icon: ChevronUp },
         { id: 'units', label: 'Units & Positions', icon: Shield },
         { id: 'events', label: 'Events', icon: Calendar },
+        { id: 'operations', label: 'Opord', icon: ClipboardList },
         { id: 'training', label: 'Training & Certs', icon: GraduationCap },
-        { id: 'operations', label: 'Operations', icon: ClipboardList },
         { id: 'announcements', label: 'Announcements', icon: Bell },
         { id: 'forums', label: 'Forums', icon: MessageSquare },
         { id: 'standards', label: 'Standards & SOPs', icon: BookOpen },
