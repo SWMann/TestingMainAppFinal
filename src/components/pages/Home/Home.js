@@ -46,14 +46,29 @@ const HomePage = () => {
 
     // Function to handle Discord login
     const handleDiscordLogin = () => {
-        authService.loginWithDiscord();
+        try {
+            console.log('Homepage: Starting Discord login');
+            authService.loginWithDiscord();
+        } catch (error) {
+            console.error('Homepage: Discord login error:', error);
+            setError('Failed to start Discord login. Please try again.');
+        }
     };
 
     // Function to handle logout
     const handleLogout = async () => {
-        await authService.logout();
-        dispatch({ type: 'LOGOUT' });
-        setIsDropdownOpen(false);
+        try {
+            console.log('Homepage: Starting logout');
+            await authService.logout();
+            dispatch({ type: 'LOGOUT' });
+            setIsDropdownOpen(false);
+            console.log('Homepage: Logout successful');
+        } catch (error) {
+            console.error('Homepage: Logout error:', error);
+            // Still clear local state even if API call fails
+            dispatch({ type: 'LOGOUT' });
+            setIsDropdownOpen(false);
+        }
     };
 
     // Function to fetch data from API
