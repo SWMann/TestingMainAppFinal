@@ -10,6 +10,7 @@ import './AdminDashboard.css';
 import api from "../../../services/api";
 import UserManagement from './sections/UserManagement';
 import PendingActions from './sections/PendingActions';
+import RankManagement from "./sections/RankManagement";
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
@@ -116,6 +117,7 @@ const AdminDashboard = ({ user }) => {
         { id: 'overview', label: 'Overview', icon: Home },
         { id: 'pending', label: 'Pending Actions', icon: Clock, badge: statistics.pendingApplications + statistics.pendingShips + statistics.pendingVehicles },
         { id: 'users', label: 'User Management', icon: Users },
+        { id: 'ranks', label: 'Rank Management', icon: ChevronUp },
         { id: 'units', label: 'Units & Positions', icon: Shield },
         { id: 'events', label: 'Events', icon: Calendar },
         { id: 'training', label: 'Training & Certs', icon: GraduationCap },
@@ -142,6 +144,8 @@ const AdminDashboard = ({ user }) => {
                 return <EventManagement />;
             case 'training':
                 return <TrainingManagement />;
+            case 'rank':
+                return <RankManagement />;
             case 'operations':
                 return <OperationsManagement />;
             case 'announcements':
