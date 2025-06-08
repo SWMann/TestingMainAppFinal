@@ -6,6 +6,7 @@ import {
     Loader, MoreHorizontal, AlertTriangle, CheckCircle, UserPlus,
     Settings
 } from 'lucide-react';
+import './AdminDashboard.css';
 import api from '../../../services/api';
 
 const AdminDashboard = () => {
