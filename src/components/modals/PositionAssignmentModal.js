@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Briefcase, Star, Users } from 'lucide-react';
+import {X, Briefcase, Star, Users, AlertCircle} from 'lucide-react';
 import api from "../../services/api";
 import './AdminModals.css';
 
