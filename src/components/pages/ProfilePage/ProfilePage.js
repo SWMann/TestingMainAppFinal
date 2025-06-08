@@ -15,7 +15,7 @@ import UnitAssignmentModal from "../../modals/UnitAssignmentModal";
 import PositionAssignmentModal from "../../modals/PositionAssignmentModal";
 
 const UserProfile = () => {
-    const { serviceNumber } = useParams();
+    const { serviceNumber } = useParams(); // This can be a UUID, service number, or undefined
     const navigate = useNavigate();
     const { user: currentUser } = useSelector(state => state.auth);
 
@@ -29,9 +29,25 @@ const UserProfile = () => {
     const [showUnitModal, setShowUnitModal] = useState(false);
     const [showPositionModal, setShowPositionModal] = useState(false);
 
+    // Helper function to check if a string is a UUID
+    const isUUID = (str) => {
+        if (!str) return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(str);
+    };
+
     // Check if current user is an officer
     const isOfficer = currentUser?.current_rank?.is_officer || currentUser?.is_admin;
-    const isOwnProfile = !serviceNumber || serviceNumber === currentUser?.id;
+
+    // Determine if viewing own profile (will be updated after data loads)
+    const [isOwnProfile, setIsOwnProfile] = useState(true);
+
+    useEffect(() => {
+        // Update isOwnProfile when profile data loads
+        if (profileData && currentUser) {
+            setIsOwnProfile(profileData.user.id === currentUser.id);
+        }
+    }, [profileData, currentUser]);
 
     useEffect(() => {
         fetchProfileData();
@@ -43,24 +59,48 @@ const UserProfile = () => {
 
         try {
             let response;
-            if (serviceNumber) {
-                // First get user by service number
-                const usersResponse = await api.get(`/users/profile/${serviceNumber}/`);
-                const users = usersResponse.data.results || usersResponse.data;
-                if (users.length === 0) {
-                    throw new Error('User not found');
-                }
-                const userId = users[0].id;
-                response = await api.get(`/users/profile/${userId}/`);
-            } else {
-                // Get current user's profile
+
+            if (!serviceNumber) {
+                // No parameter provided - fetch current user's profile
+                console.log('Fetching current user profile');
                 response = await api.get('/users/profile/me/');
+            } else if (isUUID(serviceNumber)) {
+                // Parameter is a UUID - fetch profile directly
+                console.log('Fetching profile by UUID:', serviceNumber);
+                response = await api.get(`/users/profile/${serviceNumber}/`);
+            } else {
+                // Parameter is a service number - need to search first
+                console.log('Searching for user by service number:', serviceNumber);
+                const searchResponse = await api.get('/users/', {
+                    params: { service_number: serviceNumber }
+                });
+
+                const users = searchResponse.data.results || searchResponse.data;
+
+                if (!Array.isArray(users) || users.length === 0) {
+                    throw new Error(`No user found with service number: ${serviceNumber}`);
+                }
+
+                // Get the first matching user's ID
+                const userId = users[0].id;
+                console.log('Found user with ID:', userId);
+
+                // Now fetch their profile
+                response = await api.get(`/users/profile/${userId}/`);
             }
 
+            console.log('Profile data received:', response.data);
             setProfileData(response.data);
         } catch (err) {
             console.error('Error fetching profile:', err);
-            setError(err.response?.data?.detail || 'Failed to load profile data');
+
+            if (err.response?.status === 404) {
+                setError('User profile not found');
+            } else if (err.message) {
+                setError(err.message);
+            } else {
+                setError('Failed to load profile data');
+            }
         } finally {
             setIsLoading(false);
         }
