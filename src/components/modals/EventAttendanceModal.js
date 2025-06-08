@@ -4,7 +4,8 @@ import {
     Search, Filter, Download, MessageSquare, User
 } from 'lucide-react';
 import './AdminModals.css';
-import api from "../../../../services/api";
+import api from "../../services/api";
+
 
 const EventAttendanceModal = ({ event, onClose, onUpdate }) => {
     const [attendances, setAttendances] = useState([]);

@@ -3,7 +3,7 @@ import {
     X, FileText, Search, Link, Calendar, User, Shield, CheckCircle
 } from 'lucide-react';
 import './AdminModals.css';
-import api from "../../../../services/api";
+import api from "../../services/api";
 
 const LinkOpordModal = ({ event, onClose, onLink }) => {
     const [opords, setOpords] = useState([]);
