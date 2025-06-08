@@ -6,9 +6,9 @@ import {
 } from 'lucide-react';
 import './ManagementSections.css';
 import api from "../../../../services/api";
-import PositionAssignmentModal from "../../../modals/PositionAssignmentModal";
-import UnitAssignmentModal from "../../../modals/UnitAssignmentModal";
 import PromotionModal from "../../../modals/PromotionModal";
+import UnitAssignmentModal from "../../../modals/UnitAssignmentModal";
+import PositionAssignmentModal from "../../../modals/PositionAssignmentModal";
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
