@@ -13,7 +13,7 @@ import PendingActions from './sections/PendingActions';
 import RankManagement from "./sections/RankManagement";
 import UnitManagement from "./sections/UnitManagement";
 import EventManagement from "./sections/EventManagement";
-import OpordManagement from "./sections/OpordManagement";
+import OperationManagement from "./sections/OperationManagement";
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
@@ -148,7 +148,7 @@ const AdminDashboard = ({ user }) => {
             case 'ranks':
                 return <RankManagement />;
             case 'operations':
-                return <OpordManagement />;
+                return <OperationManagement />;
             case 'announcements':
                 return <AnnouncementManagement />;
             case 'forums':
