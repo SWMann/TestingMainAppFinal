@@ -7,6 +7,7 @@ import NotFound from './components/pages/NotFound/NotFound';
 import AdminDashboard from "./components/pages/AdminDashboard/AdminDashboard";
 import ProfilePage from "./components/pages/ProfilePage/ProfilePage";
 import OrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
+import UserProfile from "./components/pages/ProfilePage/ProfilePage";
 
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
@@ -31,8 +32,12 @@ const routes = (isAuthenticated) => [
         element: <AdminDashboard />
     },
     {
-        path: '/profile/:userId?',
-        element: <ProfilePage />  // Don't pass userId as prop - it's handled internally
+        path: '/profile',
+        element: <UserProfile />  // Shows current user's profile
+    },
+    {
+        path: '/profile/:serviceNumber',
+        element: <UserProfile />  // Shows specific user's profile by service number
     },
     {
         path: '/organization-chart',

@@ -3,6 +3,7 @@ import { Shield, Users, Award, Star, FileText, Calendar, Bell, Clock, Medal,
     BookOpen, Truck, ChevronRight, ChevronDown, Edit, LogOut,
     Menu, Search, AtSign, AlertTriangle, Info, User, Activity } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import api from "../../../services/api"
 import authService from '../../../services/authService';
 import './Home.css';
@@ -266,12 +267,16 @@ const HomePage = () => {
                                 <div className="dropdown-menu">
                                     <ul className="dropdown-list">
                                         <li>
-                                            <a href="#" className="dropdown-item">
+                                            <Link
+                                                to="/profile"
+                                                className="dropdown-item"
+                                                onClick={() => setIsDropdownOpen(false)}
+                                            >
                                                 <div className="dropdown-item-content">
                                                     <User size={16} className="dropdown-item-icon" />
                                                     <span>Profile</span>
                                                 </div>
-                                            </a>
+                                            </Link>
                                         </li>
                                         <li>
                                             <a href="#" className="dropdown-item">
@@ -597,9 +602,9 @@ const HomePage = () => {
                                         </div>
                                     </div>
 
-                                    <a href="#" className="dashboard-button">
+                                    <Link to="/profile" className="dashboard-button">
                                         MY DASHBOARD
-                                    </a>
+                                    </Link>
                                 </div>
                             ) : (
                                 <div className="panel">
