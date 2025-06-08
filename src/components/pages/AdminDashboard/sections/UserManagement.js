@@ -12,6 +12,7 @@ import PositionAssignmentModal from "../../../modals/PositionAssignmentModal";
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
+    const [ranks, setRanks] = useState({}); // Store ranks as a map for easy lookup
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBy, setFilterBy] = useState('all');
@@ -24,18 +25,44 @@ const UserManagement = () => {
     const [activeDropdown, setActiveDropdown] = useState(null);
 
     useEffect(() => {
-        fetchUsers();
+        // Fetch both users and ranks when component mounts
+        fetchInitialData();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchInitialData = async () => {
         setLoading(true);
+        try {
+            // Fetch both users and ranks in parallel
+            const [usersResponse, ranksResponse] = await Promise.all([
+                api.get('/users/'),
+                api.get('/ranks/')
+            ]);
+
+            // Process users
+            setUsers(usersResponse.data.results || usersResponse.data);
+
+            // Create a map of ranks for easy lookup by ID
+            const ranksMap = {};
+            const ranksData = ranksResponse.data.results || ranksResponse.data;
+            ranksData.forEach(rank => {
+                ranksMap[rank.id] = rank;
+            });
+            setRanks(ranksMap);
+
+            console.log('Ranks loaded:', ranksMap); // Debug log
+        } catch (error) {
+            console.error('Error fetching initial data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchUsers = async () => {
         try {
             const response = await api.get('/users/');
             setUsers(response.data.results || response.data);
         } catch (error) {
             console.error('Error fetching users:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -151,6 +178,19 @@ const UserManagement = () => {
         console.log(`${type}: ${message}`);
     };
 
+    // Helper function to get rank data
+    const getUserRank = (user) => {
+        if (!user.current_rank) return null;
+
+        // If current_rank is just an ID, look it up in our ranks map
+        if (typeof user.current_rank === 'number' || typeof user.current_rank === 'string') {
+            return ranks[user.current_rank] || null;
+        }
+
+        // If it's already an object, return it
+        return user.current_rank;
+    };
+
     // Filter and sort users
     const filteredUsers = users.filter(user => {
         const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -171,7 +211,9 @@ const UserManagement = () => {
             case 'username':
                 return a.username.localeCompare(b.username);
             case 'rank':
-                return (a.current_rank?.tier || 0) - (b.current_rank?.tier || 0);
+                const rankA = getUserRank(a);
+                const rankB = getUserRank(b);
+                return (rankA?.tier || 0) - (rankB?.tier || 0);
             case 'unit':
                 return (a.primary_unit?.name || '').localeCompare(b.primary_unit?.name || '');
             case 'joined':
@@ -255,137 +297,143 @@ const UserManagement = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {sortedUsers.map(user => (
-                                <tr key={user.id}>
-                                    <td>
-                                        <div className="user-cell">
-                                            <img
-                                                src={user.avatar_url || '/default-avatar.png'}
-                                                alt={user.username}
-                                                className="user-avatar"
-                                            />
-                                            <div>
-                                                <div className="user-name">{user.username}</div>
-                                                <div className="user-discord">Discord: {user.discord_id}</div>
+                            {sortedUsers.map(user => {
+                                const userRank = getUserRank(user);
+
+                                return (
+                                    <tr key={user.id}>
+                                        <td>
+                                            <div className="user-cell">
+                                                <img
+                                                    src={user.avatar_url || '/default-avatar.png'}
+                                                    alt={user.username}
+                                                    className="user-avatar"
+                                                />
+                                                <div>
+                                                    <div className="user-name">{user.username}</div>
+                                                    <div className="user-discord">Discord: {user.discord_id}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {user.current_rank ? (
-                                            <div className="rank-cell">
-                                                {user.current_rank.insignia_image_url && (
-                                                    <img
-                                                        src={user.current_rank.insignia_image_url}
-                                                        alt={user.current_rank.name}
-                                                        className="rank-insignia"
-                                                    />
-                                                )}
-                                                <span>{user.current_rank.abbreviation}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="no-data">No rank</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {user.primary_unit ? (
-                                            <span className="unit-name">{user.primary_unit.name}</span>
-                                        ) : (
-                                            <span className="no-data">No unit</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        <div className="status-badges">
+                                        </td>
+                                        <td>
+                                            {userRank ? (
+                                                <div className="rank-cell">
+                                                    {userRank.insignia_image_url && (
+                                                        <img
+                                                            src={userRank.insignia_image_url}
+                                                            alt={userRank.name}
+                                                            className="rank-insignia"
+                                                        />
+                                                    )}
+                                                    <span>
+                                                        {userRank.abbreviation || userRank.name}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="no-data">No rank</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {user.primary_unit ? (
+                                                <span className="unit-name">{user.primary_unit.name}</span>
+                                            ) : (
+                                                <span className="no-data">No unit</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <div className="status-badges">
                                                 <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
                                                     {user.is_active ? 'Active' : 'Inactive'}
                                                 </span>
-                                            {user.is_admin && (
-                                                <span className="status-badge admin">Admin</span>
-                                            )}
-                                            {user.recruit_status && (
-                                                <span className="status-badge recruit">Recruit</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="date-cell">
-                                            <Calendar size={14} />
-                                            {new Date(user.join_date).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="action-cell">
-                                            <button
-                                                className="icon-btn"
-                                                onClick={() => fetchUserDetails(user.id)}
-                                            >
-                                                <Edit size={16} />
-                                            </button>
-                                            <div className="dropdown-container">
-                                                <button
-                                                    className="icon-btn"
-                                                    onClick={() => setActiveDropdown(activeDropdown === user.id ? null : user.id)}
-                                                >
-                                                    <MoreVertical size={16} />
-                                                </button>
-                                                {activeDropdown === user.id && (
-                                                    <div className="dropdown-menu">
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedUser(user);
-                                                                setShowPromotionModal(true);
-                                                                setActiveDropdown(null);
-                                                            }}
-                                                        >
-                                                            <ChevronUp size={16} />
-                                                            Promote/Demote
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedUser(user);
-                                                                setShowUnitModal(true);
-                                                                setActiveDropdown(null);
-                                                            }}
-                                                        >
-                                                            <Building size={16} />
-                                                            Assign Unit
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedUser(user);
-                                                                setShowPositionModal(true);
-                                                                setActiveDropdown(null);
-                                                            }}
-                                                        >
-                                                            <Briefcase size={16} />
-                                                            Assign Position
-                                                        </button>
-                                                        <div className="dropdown-divider"></div>
-                                                        <button
-                                                            onClick={() => {
-                                                                handleToggleStatus(user.id, user.is_active);
-                                                                setActiveDropdown(null);
-                                                            }}
-                                                        >
-                                                            {user.is_active ? <X size={16} /> : <Check size={16} />}
-                                                            {user.is_active ? 'Deactivate' : 'Activate'}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                handleToggleAdmin(user.id, user.is_admin);
-                                                                setActiveDropdown(null);
-                                                            }}
-                                                            className={user.is_admin ? 'danger' : ''}
-                                                        >
-                                                            <Shield size={16} />
-                                                            {user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                                                        </button>
-                                                    </div>
+                                                {user.is_admin && (
+                                                    <span className="status-badge admin">Admin</span>
+                                                )}
+                                                {user.recruit_status && (
+                                                    <span className="status-badge recruit">Recruit</span>
                                                 )}
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td>
+                                            <div className="date-cell">
+                                                <Calendar size={14} />
+                                                {new Date(user.join_date).toLocaleDateString()}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="action-cell">
+                                                <button
+                                                    className="icon-btn"
+                                                    onClick={() => fetchUserDetails(user.id)}
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                                <div className="dropdown-container">
+                                                    <button
+                                                        className="icon-btn"
+                                                        onClick={() => setActiveDropdown(activeDropdown === user.id ? null : user.id)}
+                                                    >
+                                                        <MoreVertical size={16} />
+                                                    </button>
+                                                    {activeDropdown === user.id && (
+                                                        <div className="dropdown-menu">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedUser(user);
+                                                                    setShowPromotionModal(true);
+                                                                    setActiveDropdown(null);
+                                                                }}
+                                                            >
+                                                                <ChevronUp size={16} />
+                                                                Promote/Demote
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedUser(user);
+                                                                    setShowUnitModal(true);
+                                                                    setActiveDropdown(null);
+                                                                }}
+                                                            >
+                                                                <Building size={16} />
+                                                                Assign Unit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedUser(user);
+                                                                    setShowPositionModal(true);
+                                                                    setActiveDropdown(null);
+                                                                }}
+                                                            >
+                                                                <Briefcase size={16} />
+                                                                Assign Position
+                                                            </button>
+                                                            <div className="dropdown-divider"></div>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleToggleStatus(user.id, user.is_active);
+                                                                    setActiveDropdown(null);
+                                                                }}
+                                                            >
+                                                                {user.is_active ? <X size={16} /> : <Check size={16} />}
+                                                                {user.is_active ? 'Deactivate' : 'Activate'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleToggleAdmin(user.id, user.is_admin);
+                                                                    setActiveDropdown(null);
+                                                                }}
+                                                                className={user.is_admin ? 'danger' : ''}
+                                                            >
+                                                                <Shield size={16} />
+                                                                {user.is_admin ? 'Remove Admin' : 'Make Admin'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             </tbody>
                         </table>
                     )}
@@ -396,6 +444,7 @@ const UserManagement = () => {
             {showUserDetails && selectedUser && (
                 <UserDetailsPanel
                     user={selectedUser}
+                    ranks={ranks}
                     onClose={() => {
                         setShowUserDetails(false);
                         setSelectedUser(null);
@@ -410,6 +459,7 @@ const UserManagement = () => {
             {showPromotionModal && selectedUser && (
                 <PromotionModal
                     user={selectedUser}
+                    ranks={ranks}
                     onClose={() => setShowPromotionModal(false)}
                     onPromote={handlePromote}
                 />
@@ -434,8 +484,20 @@ const UserManagement = () => {
     );
 };
 
-// User Details Panel Component
-const UserDetailsPanel = ({ user, onClose, onPromote, onAssignUnit, onAssignPosition }) => {
+// User Details Panel Component (updated to use ranks map)
+const UserDetailsPanel = ({ user, ranks, onClose, onPromote, onAssignUnit, onAssignPosition }) => {
+    const getUserRank = () => {
+        if (!user.current_rank) return null;
+
+        if (typeof user.current_rank === 'number' || typeof user.current_rank === 'string') {
+            return ranks[user.current_rank] || null;
+        }
+
+        return user.current_rank;
+    };
+
+    const userRank = getUserRank();
+
     return (
         <div className="details-panel">
             <div className="panel-header">
@@ -494,12 +556,12 @@ const UserDetailsPanel = ({ user, onClose, onPromote, onAssignUnit, onAssignPosi
                         <div className="detail-row">
                             <span className="label">Current Rank:</span>
                             <span className="value">
-                                {user.current_rank ? (
+                                {userRank ? (
                                     <div className="rank-display">
-                                        {user.current_rank.insignia_image_url && (
-                                            <img src={user.current_rank.insignia_image_url} alt="" />
+                                        {userRank.insignia_image_url && (
+                                            <img src={userRank.insignia_image_url} alt="" />
                                         )}
-                                        <span>{user.current_rank.name}</span>
+                                        <span>{userRank.name}</span>
                                     </div>
                                 ) : (
                                     'No rank assigned'
