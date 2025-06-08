@@ -144,7 +144,7 @@ const AdminDashboard = ({ user }) => {
                 return <EventManagement />;
             case 'training':
                 return <TrainingManagement />;
-            case 'rank':
+            case 'ranks':
                 return <RankManagement />;
             case 'operations':
                 return <OperationsManagement />;
