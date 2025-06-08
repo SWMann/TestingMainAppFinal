@@ -4,7 +4,7 @@ import {
     Shield, Users, Calendar, GraduationCap, FileText, MessageSquare,
     Home, Settings, Bell, Search, Menu, X, ChevronRight, AlertCircle,
     Ship, Truck, ClipboardList, BookOpen, UserPlus, Activity,
-    CheckCircle, Clock, XCircle, TrendingUp, TrendingDown
+    CheckCircle, Clock, XCircle, TrendingUp, TrendingDown, ChevronUp
 } from 'lucide-react';
 import './AdminDashboard.css';
 import api from "../../../services/api";
