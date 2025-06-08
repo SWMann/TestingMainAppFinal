@@ -8,11 +8,11 @@ import {
 } from 'lucide-react';
 import './AdminDashboard.css';
 import api from "../../../services/api";
-
+import UserManagement from './sections/UserManagement';
+import PendingActions from './sections/PendingActions';
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
-const UserManagement = () => <UserManagement/>;
 const UnitManagement = () => <div>Unit Management Section - To be implemented</div>;
 const EventManagement = () => <div>Event Management Section - To be implemented</div>;
 const TrainingManagement = () => <div>Training Management Section - To be implemented</div>;
@@ -23,7 +23,6 @@ const StandardsManagement = () => <div>Standards Management Section - To be impl
 const ShipManagement = () => <div>Ship Management Section - To be implemented</div>;
 const VehicleManagement = () => <div>Vehicle Management Section - To be implemented</div>;
 const OnboardingManagement = () => <div>Onboarding Management Section - To be implemented</div>;
-const PendingActions = () => <div>Pending Actions Section - To be implemented</div>;
 
 const AdminDashboard = ({ user }) => {
     const navigate = useNavigate();
