@@ -45,7 +45,7 @@ const UserProfile = () => {
             let response;
             if (serviceNumber) {
                 // First get user by service number
-                const usersResponse = await api.get(`/users/?service_number=${serviceNumber}`);
+                const usersResponse = await api.get(`/users/${serviceNumber}`);
                 const users = usersResponse.data.results || usersResponse.data;
                 if (users.length === 0) {
                     throw new Error('User not found');
