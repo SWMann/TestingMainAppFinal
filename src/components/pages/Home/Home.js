@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, Award, Star, FileText, Calendar, Bell, Clock, Medal,
-    BookOpen, Ship, ChevronRight, ChevronDown, Edit, LogOut,
+    BookOpen, Truck, ChevronRight, ChevronDown, Edit, LogOut,
     Menu, Search, AtSign, AlertTriangle, Info, User, Activity } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import api from "../../../services/api"
@@ -22,7 +22,7 @@ const HomePage = () => {
         memberCount: 0,
         activeOperations: 0,
         completedOperations: 0,
-        fleetSize: 0
+        vehicleCount: 0
     });
 
     // Format date function
@@ -115,18 +115,18 @@ const HomePage = () => {
                         ? usersData.filter(u => u.is_active).length
                         : 0;
 
-                    // Fetch ships for fleet size
-                    const shipsResponse = await api.get('/ships/');
-                    const shipsData = shipsResponse.data.results || shipsResponse.data;
-                    const approvedShips = Array.isArray(shipsData)
-                        ? shipsData.filter(s => s.approval_status === 'Approved').length
+                    // Fetch vehicles for motor pool size
+                    const vehiclesResponse = await api.get('/vehicles/');
+                    const vehiclesData = vehiclesResponse.data.results || vehiclesResponse.data;
+                    const approvedVehicles = Array.isArray(vehiclesData)
+                        ? vehiclesData.filter(v => v.approval_status === 'Approved').length
                         : 0;
 
                     setOrgStats({
                         memberCount: activeUsers,
                         activeOperations: upcomingEvents.length,
                         completedOperations: completedEvents.length,
-                        fleetSize: approvedShips
+                        vehicleCount: approvedVehicles
                     });
                 } catch (statsError) {
                     console.error('Error fetching stats:', statsError);
@@ -187,11 +187,9 @@ const HomePage = () => {
                 <div className="header-content">
                     <div className="logo-container">
                         <div className="logo-icon">
-                            <svg className="logo-svg" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                            </svg>
+                            <Shield className="logo-svg" fill="currentColor" />
                         </div>
-                        <h1 className="logo-text">5TH EXPEDITIONARY</h1>
+                        <h1 className="logo-text">III CORPS</h1>
                     </div>
                     <div className="header-actions">
                         {/* Mobile menu button */}
@@ -207,8 +205,9 @@ const HomePage = () => {
                             <ul className="nav-list">
                                 <li><a href="#" className="nav-link active">HOME</a></li>
                                 <li><a href="#" className="nav-link">OPERATIONS</a></li>
-                                <li><a href="#" className="nav-link">ROSTER</a></li>
-                                <li><a href="#" className="nav-link">STANDARDS</a></li>
+                                <li><a href="#" className="nav-link">PERSONNEL</a></li>
+                                <li><a href="#" className="nav-link">TRAINING</a></li>
+                                <li><a href="#" className="nav-link">RESOURCES</a></li>
                             </ul>
                         </nav>
 
@@ -270,8 +269,8 @@ const HomePage = () => {
                                         <li>
                                             <a href="#" className="dropdown-item">
                                                 <div className="dropdown-item-content">
-                                                    <Ship size={16} className="dropdown-item-icon" />
-                                                    <span>My Ships</span>
+                                                    <Truck size={16} className="dropdown-item-icon" />
+                                                    <span>My Equipment</span>
                                                 </div>
                                             </a>
                                         </li>
@@ -304,8 +303,9 @@ const HomePage = () => {
                         <ul className="mobile-menu-list">
                             <li><a href="#" className="mobile-menu-link active">HOME</a></li>
                             <li><a href="#" className="mobile-menu-link">OPERATIONS</a></li>
-                            <li><a href="#" className="mobile-menu-link">ROSTER</a></li>
-                            <li><a href="#" className="mobile-menu-link">STANDARDS</a></li>
+                            <li><a href="#" className="mobile-menu-link">PERSONNEL</a></li>
+                            <li><a href="#" className="mobile-menu-link">TRAINING</a></li>
+                            <li><a href="#" className="mobile-menu-link">RESOURCES</a></li>
                             <li className="mobile-search-item">
                                 <div className="mobile-search-container">
                                     <input
@@ -326,8 +326,8 @@ const HomePage = () => {
                 <div className="hero-image-container">
                     <div className="hero-overlay"></div>
                     <img
-                        src="/api/placeholder/1920/600"
-                        alt="5th Expeditionary Fleet"
+                        src="https://images.unsplash.com/photo-1526890725091-49b05ceb2b4b?w=1920&h=600&fit=crop"
+                        alt="III Corps Operations"
                         className="hero-image"
                     />
                     <div className="hero-gradient"></div>
@@ -335,8 +335,8 @@ const HomePage = () => {
                     {/* Hero content */}
                     <div className="hero-content">
                         <div className="hero-panel">
-                            <h1 className="hero-title">5TH EXPEDITIONARY GROUP</h1>
-                            <p className="hero-subtitle">Defending freedom across the stars</p>
+                            <h1 className="hero-title">III CORPS</h1>
+                            <p className="hero-subtitle">"Phantom Warriors" - Cold War 1989 CENTAG Operations</p>
 
                             {nextEvent && (
                                 <div className="next-op-container">
@@ -346,7 +346,7 @@ const HomePage = () => {
                                         <div className="next-op-time">{formatDate(nextEvent.start_time)} at {formatTime(nextEvent.start_time)}</div>
                                     </div>
                                     <button className="rsvp-button">
-                                        RSVP NOW
+                                        SIGN UP
                                     </button>
                                 </div>
                             )}
@@ -374,7 +374,7 @@ const HomePage = () => {
                                 <div className="panel-header">
                                     <h2 className="panel-title">
                                         <Bell size={20} className="panel-icon" />
-                                        Announcements
+                                        Command Messages
                                     </h2>
                                     <a href="#" className="view-all-link">
                                         View All <ChevronRight size={16} />
@@ -391,7 +391,7 @@ const HomePage = () => {
                                                 {announcement.is_pinned && (
                                                     <div className="pinned-label">
                                                         <AlertTriangle size={14} />
-                                                        <span>PINNED ANNOUNCEMENT</span>
+                                                        <span>PRIORITY MESSAGE</span>
                                                     </div>
                                                 )}
 
@@ -402,7 +402,7 @@ const HomePage = () => {
                                                     <div className="announcement-author">
                                                         <AtSign size={14} />
                                                         <span>
-                                                            {announcement.author?.current_rank?.abbreviation || ''} {announcement.author?.username || 'Unknown'}
+                                                            {announcement.author?.current_rank?.abbreviation || ''} {announcement.author?.username || 'Command'}
                                                         </span>
                                                     </div>
                                                     <div className="announcement-date">{formatDate(announcement.created_at)}</div>
@@ -412,7 +412,7 @@ const HomePage = () => {
                                     ) : (
                                         <div className="empty-state">
                                             <Info size={24} />
-                                            <p>No announcements at this time</p>
+                                            <p>No command messages at this time</p>
                                         </div>
                                     )}
                                 </div>
@@ -436,7 +436,7 @@ const HomePage = () => {
                                             <div key={event.id} className="event-card">
                                                 <div className="event-image-container">
                                                     <img
-                                                        src={event.image_url || '/api/placeholder/400/200'}
+                                                        src={event.image_url || 'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=200&fit=crop'}
                                                         alt={event.title}
                                                         className="event-image"
                                                     />
@@ -466,19 +466,19 @@ const HomePage = () => {
                                                             <div className="event-meta-value">{formatTime(event.start_time)}</div>
                                                         </div>
                                                         <div className="event-meta-item">
-                                                            <div className="event-meta-label">Location</div>
+                                                            <div className="event-meta-label">AO</div>
                                                             <div className="event-meta-value">{event.location?.split(' - ')[0] || 'TBD'}</div>
                                                         </div>
                                                         <div className="event-meta-item">
-                                                            <div className="event-meta-label">Host</div>
-                                                            <div className="event-meta-value">{event.host_unit?.abbreviation || 'TBD'}</div>
+                                                            <div className="event-meta-label">Host Unit</div>
+                                                            <div className="event-meta-value">{event.host_unit?.abbreviation || 'III Corps'}</div>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="event-footer">
                                                     <button className="event-rsvp-button">
-                                                        RSVP
+                                                        SIGN UP
                                                     </button>
                                                 </div>
                                             </div>
@@ -486,7 +486,7 @@ const HomePage = () => {
                                     ) : (
                                         <div className="empty-state">
                                             <Calendar size={24} />
-                                            <p>No upcoming events scheduled</p>
+                                            <p>No upcoming operations scheduled</p>
                                         </div>
                                     )}
                                 </div>
@@ -513,7 +513,7 @@ const HomePage = () => {
                                                 <th>Date</th>
                                                 <th>Type</th>
                                                 <th>Personnel</th>
-                                                <th>Result</th>
+                                                <th>Status</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -566,7 +566,7 @@ const HomePage = () => {
                                         <div>
                                             <h2 className="welcome-title">Welcome back,</h2>
                                             <div className="welcome-name">
-                                                {user?.current_rank?.abbreviation || ''} {user?.username || 'User'}
+                                                {user?.current_rank?.abbreviation || ''} {user?.username || 'Soldier'}
                                             </div>
                                         </div>
                                     </div>
@@ -574,7 +574,7 @@ const HomePage = () => {
                                     <div className="stats-grid">
                                         <div className="stat-box">
                                             <div className="stat-value">{upcomingEvents.length}</div>
-                                            <div className="stat-label">Upcoming Events</div>
+                                            <div className="stat-label">Upcoming Operations</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-value">0</div>
@@ -590,10 +590,10 @@ const HomePage = () => {
                                 <div className="panel">
                                     <h2 className="panel-title">
                                         <Info size={20} className="panel-icon" />
-                                        Join Our Community
+                                        Join the Regiment
                                     </h2>
                                     <p className="join-text">
-                                        Sign in with Discord to access full features and participate in operations.
+                                        Sign in with Discord to access training materials, operation schedules, and unit resources.
                                     </p>
                                     <button onClick={handleDiscordLogin} className="discord-login-button-large">
                                         <div className="discord-icon">
@@ -610,7 +610,7 @@ const HomePage = () => {
                             <div className="panel">
                                 <h2 className="panel-title">
                                     <Info size={20} className="panel-icon" />
-                                    Organization Stats
+                                    III Corps Stats
                                 </h2>
 
                                 <div className="stats-grid">
@@ -620,7 +620,7 @@ const HomePage = () => {
                                         </div>
                                         <div className="org-stat-content">
                                             <div className="org-stat-value">{orgStats.memberCount}</div>
-                                            <div className="org-stat-label">ACTIVE MEMBERS</div>
+                                            <div className="org-stat-label">ACTIVE PERSONNEL</div>
                                         </div>
                                     </div>
                                     <div className="org-stat-box">
@@ -634,11 +634,11 @@ const HomePage = () => {
                                     </div>
                                     <div className="org-stat-box">
                                         <div className="org-stat-icon">
-                                            <Ship size={20} className="stat-icon" />
+                                            <Truck size={20} className="stat-icon" />
                                         </div>
                                         <div className="org-stat-content">
-                                            <div className="org-stat-value">{orgStats.fleetSize}</div>
-                                            <div className="org-stat-label">REGISTERED VESSELS</div>
+                                            <div className="org-stat-value">{orgStats.vehicleCount}</div>
+                                            <div className="org-stat-label">MOTOR POOL</div>
                                         </div>
                                     </div>
                                     <div className="org-stat-box">
@@ -666,7 +666,7 @@ const HomePage = () => {
                                             <div key={unit.id} className="unit-card">
                                                 <div className="unit-banner">
                                                     <img
-                                                        src={unit.banner_image_url || '/api/placeholder/300/150'}
+                                                        src={unit.banner_image_url || 'https://images.unsplash.com/photo-1526890725091-49b05ceb2b4b?w=300&h=150&fit=crop'}
                                                         alt={unit.name}
                                                         className="unit-banner-image"
                                                     />
@@ -687,7 +687,7 @@ const HomePage = () => {
                                                 </div>
                                                 <div className="unit-footer">
                                                     <div className="unit-member-count">
-                                                        {unit.member_count || 0} Members
+                                                        {unit.member_count || 0} Personnel
                                                     </div>
                                                     <a href="#" className="unit-details-link">View Details</a>
                                                 </div>
@@ -718,8 +718,8 @@ const HomePage = () => {
             {!isAuthenticated && (
                 <section className="join-banner">
                     <div className="join-banner-content">
-                        <h2 className="join-banner-title">Ready to join our ranks?</h2>
-                        <p className="join-banner-text">The 5th Expeditionary Group is actively recruiting pilots, marines, and support personnel. Apply today and become part of our elite fighting force.</p>
+                        <h2 className="join-banner-title">Ready to serve in the III Corps?</h2>
+                        <p className="join-banner-text">The III Corps is actively recruiting soldiers for combined arms operations in the CENTAG theater. Experience authentic Cold War military simulation with professional training and teamwork.</p>
                         <div className="join-banner-buttons">
                             <button onClick={handleDiscordLogin} className="join-button primary">
                                 LOGIN WITH DISCORD
@@ -742,8 +742,8 @@ const HomePage = () => {
                                     <FileText size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">Standards Library</h3>
-                            <p className="quick-link-description">Access operational procedures and protocols</p>
+                            <h3 className="quick-link-title">SOPs & Doctrine</h3>
+                            <p className="quick-link-description">Access standard operating procedures and tactical doctrine</p>
                         </a>
 
                         <a href="#" className="quick-link-card">
@@ -752,8 +752,8 @@ const HomePage = () => {
                                     <Users size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">Member Directory</h3>
-                            <p className="quick-link-description">Look up personnel and chain of command</p>
+                            <h3 className="quick-link-title">Personnel Directory</h3>
+                            <p className="quick-link-description">View unit roster and chain of command</p>
                         </a>
 
                         <a href="#" className="quick-link-card">
@@ -763,7 +763,7 @@ const HomePage = () => {
                                 </div>
                             </div>
                             <h3 className="quick-link-title">Training Center</h3>
-                            <p className="quick-link-description">Improve your skills with certifications</p>
+                            <p className="quick-link-description">Complete courses and earn certifications</p>
                         </a>
 
                         <a href="#" className="quick-link-card">
@@ -772,8 +772,8 @@ const HomePage = () => {
                                     <Medal size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">Recognition</h3>
-                            <p className="quick-link-description">View awards and achievements</p>
+                            <h3 className="quick-link-title">Awards Board</h3>
+                            <p className="quick-link-description">View commendations and unit citations</p>
                         </a>
                     </div>
                 </div>
@@ -784,8 +784,8 @@ const HomePage = () => {
                 <div className="footer-content">
                     <div className="footer-grid">
                         <div className="footer-about">
-                            <h3 className="footer-heading">5TH EXPEDITIONARY</h3>
-                            <p className="footer-text">Defending freedom and maintaining order across the stars. The 5th Expeditionary Group is an elite military organization.</p>
+                            <h3 className="footer-heading">III CORPS</h3>
+                            <p className="footer-text">Professional military simulation unit conducting combined arms operations in the Cold War 1989 era. Defending freedom through tactical excellence and teamwork in Arma Reforger.</p>
                         </div>
 
                         <div className="footer-links">
@@ -793,20 +793,20 @@ const HomePage = () => {
                             <ul className="footer-list">
                                 <li><a href="#" className="footer-link">Home</a></li>
                                 <li><a href="#" className="footer-link">Operations</a></li>
-                                <li><a href="#" className="footer-link">Roster</a></li>
-                                <li><a href="#" className="footer-link">Standards</a></li>
+                                <li><a href="#" className="footer-link">Personnel</a></li>
                                 <li><a href="#" className="footer-link">Training</a></li>
+                                <li><a href="#" className="footer-link">Resources</a></li>
                             </ul>
                         </div>
 
                         <div className="footer-links">
                             <h4 className="footer-subheading">Resources</h4>
                             <ul className="footer-list">
-                                <li><a href="#" className="footer-link">Join Us</a></li>
-                                <li><a href="#" className="footer-link">FAQ</a></li>
-                                <li><a href="#" className="footer-link">Support</a></li>
-                                <li><a href="#" className="footer-link">Policy</a></li>
-                                <li><a href="#" className="footer-link">Terms of Service</a></li>
+                                <li><a href="#" className="footer-link">Enlistment</a></li>
+                                <li><a href="#" className="footer-link">BCT Info</a></li>
+                                <li><a href="#" className="footer-link">Unit Standards</a></li>
+                                <li><a href="#" className="footer-link">Contact</a></li>
+                                <li><a href="#" className="footer-link">Privacy Policy</a></li>
                             </ul>
                         </div>
 
@@ -829,12 +829,12 @@ const HomePage = () => {
                                     </svg>
                                 </a>
                             </div>
-                            <p className="discord-text">Join our Discord community for real-time updates and coordination.</p>
+                            <p className="discord-text">Join our Discord for real-time coordination and communication with the regiment.</p>
                         </div>
                     </div>
 
                     <div className="footer-copyright">
-                        <p>© 2943-2955 5th Expeditionary Group. All rights reserved. This is a fan-made Star Citizen organization.</p>
+                        <p>© 2025 III Corps MILSIM. All rights reserved. Not affiliated with the United States Army. This is a gaming community for Arma Reforger.</p>
                     </div>
                 </div>
             </footer>
