@@ -31,7 +31,7 @@ const UserProfile = () => {
 
     // Check if current user is an officer
     const isOfficer = currentUser?.current_rank?.is_officer || currentUser?.is_admin;
-    const isOwnProfile = !serviceNumber || serviceNumber === currentUser?.service_number;
+    const isOwnProfile = !serviceNumber || serviceNumber === currentUser?.id;
 
     useEffect(() => {
         fetchProfileData();
