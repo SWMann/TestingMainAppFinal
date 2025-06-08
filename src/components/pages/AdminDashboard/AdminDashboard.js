@@ -45,10 +45,7 @@ const AdminDashboard = ({ user }) => {
     const [recentActivity, setRecentActivity] = useState([]);
 
     useEffect(() => {
-        if (!user?.is_admin) {
-            navigate('/');
-            return;
-        }
+
         fetchDashboardData();
     }, [user, navigate]);
 
