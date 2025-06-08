@@ -8,7 +8,7 @@ import {
     Building, Users, FileText, Activity, Target, School
 } from 'lucide-react';
 import api from '../../services/api';
-import './UserProfile.css';
+import './ProfilePage.css';
 import PromotionModal from '../../components/modals/PromotionModal';
 import UnitAssignmentModal from '../../components/modals/UnitAssignmentModal';
 import PositionAssignmentModal from '../../components/modals/PositionAssignmentModal';
