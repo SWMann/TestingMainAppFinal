@@ -3,7 +3,7 @@ import {
     Shield, Search, Filter, Plus, Edit, Trash2, ChevronUp,
     ChevronDown, X, AlertCircle, Check, Upload, Star
 } from 'lucide-react';
-import api from '../../../services/api';
+import api from '../../../../services/api';
 import './ManagementSections.css';
 import CreateRankModal from "../../../modals/CreateRankModal";
 import EditRankModal from "../../../modals/EditRankModal";
