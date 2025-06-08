@@ -11,10 +11,10 @@ import api from "../../../services/api";
 import UserManagement from './sections/UserManagement';
 import PendingActions from './sections/PendingActions';
 import RankManagement from "./sections/RankManagement";
+import UnitManagement from "./sections/UnitManagement";
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
-const UnitManagement = () => <div>Unit Management Section - To be implemented</div>;
 const EventManagement = () => <div>Event Management Section - To be implemented</div>;
 const TrainingManagement = () => <div>Training Management Section - To be implemented</div>;
 const OperationsManagement = () => <div>Operations Management Section - To be implemented</div>;
