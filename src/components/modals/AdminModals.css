@@ -208,6 +208,12 @@
     color: #666;
 }
 
+.rank-branch {
+    font-size: 0.75rem;
+    color: #999;
+    font-style: italic;
+}
+
 /* Ranks Container */
 .ranks-container {
     display: flex;

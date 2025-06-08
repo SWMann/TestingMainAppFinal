@@ -10,13 +10,27 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
     const [reason, setReason] = useState('');
     const [error, setError] = useState(null);
 
+    // Debug selected rank changes
     useEffect(() => {
-        console.log('PromotionModal user:', user);
-        if (user?.current_rank?.id) {
-            setSelectedRank(user.current_rank.id);
-        }
+        console.log('Selected rank changed to:', selectedRank);
+    }, [selectedRank]);
+
+    useEffect(() => {
+        console.log('PromotionModal mounted with user:', user);
         fetchRanks();
     }, [user]);
+
+    // Set selected rank when ranks are loaded
+    useEffect(() => {
+        if (ranks.length > 0 && user.current_rank && selectedRank === null) {
+            const currentRankId = typeof user.current_rank === 'object'
+                ? user.current_rank.id
+                : user.current_rank;
+
+            console.log('Setting selected rank from useEffect:', currentRankId);
+            setSelectedRank(currentRankId);
+        }
+    }, [ranks, user.current_rank, selectedRank]);
 
     const fetchRanks = async () => {
         try {
@@ -36,6 +50,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
             }
 
             console.log('Branch ID:', branchId);
+            console.log('Current rank:', user.current_rank);
 
             let ranksData = [];
 
@@ -77,9 +92,27 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
             const sortedRanks = ranksData.sort((a, b) => a.tier - b.tier);
             setRanks(sortedRanks);
 
-            // Set selected rank if user has a current rank
-            if (user.current_rank?.id && !selectedRank) {
-                setSelectedRank(user.current_rank.id);
+            // Set selected rank based on user's current rank (only if not already set)
+            if (user.current_rank && selectedRank === null) {
+                // Handle case where current_rank might be just an ID or an object
+                const currentRankId = typeof user.current_rank === 'object'
+                    ? user.current_rank.id
+                    : user.current_rank;
+
+                console.log('Current rank data:', user.current_rank);
+                console.log('Current rank ID:', currentRankId, 'Type:', typeof currentRankId);
+                console.log('First fetched rank ID:', sortedRanks[0]?.id, 'Type:', typeof sortedRanks[0]?.id);
+
+                setSelectedRank(currentRankId);
+
+                // Verify the rank exists in our fetched ranks
+                const rankExists = sortedRanks.some(r => r.id === currentRankId);
+
+                if (!rankExists && currentRankId) {
+                    console.warn('Current rank ID not found in fetched ranks');
+                    console.log('Looking for:', currentRankId);
+                    console.log('Available IDs:', sortedRanks.map(r => ({ id: r.id, type: typeof r.id })));
+                }
             }
         } catch (error) {
             console.error('Error fetching ranks:', error);
@@ -90,6 +123,14 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                 const allRanks = response.data.results || response.data;
                 const sortedRanks = allRanks.sort((a, b) => a.tier - b.tier);
                 setRanks(sortedRanks);
+
+                // Try to set selected rank again (only if not already set)
+                if (user.current_rank && selectedRank === null) {
+                    const currentRankId = typeof user.current_rank === 'object'
+                        ? user.current_rank.id
+                        : user.current_rank;
+                    setSelectedRank(currentRankId);
+                }
             } catch (fallbackError) {
                 console.error('Fallback also failed:', fallbackError);
             }
@@ -100,19 +141,63 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (selectedRank && selectedRank !== user.current_rank?.id) {
+        const currentRankId = typeof user.current_rank === 'object'
+            ? user.current_rank.id
+            : user.current_rank;
+
+        if (selectedRank && selectedRank !== currentRankId) {
             onPromote(selectedRank, reason);
         }
     };
 
-    const currentRankTier = user.current_rank?.tier || 0;
+    // Get current rank data
+    const getCurrentRankData = () => {
+        if (!user.current_rank) return null;
+
+        // If current_rank is already an object with all the data
+        if (typeof user.current_rank === 'object' && user.current_rank.name) {
+            return user.current_rank;
+        }
+
+        // If current_rank is just an ID, find it in our ranks array
+        const currentRankId = typeof user.current_rank === 'object'
+            ? user.current_rank.id
+            : user.current_rank;
+
+        return ranks.find(r => r.id === currentRankId);
+    };
+
+    const currentRankData = getCurrentRankData();
+    const currentRankTier = currentRankData?.tier || 0;
     const selectedRankData = ranks.find(r => r.id === selectedRank);
     const isPromotion = selectedRankData && selectedRankData.tier > currentRankTier;
+
+    // Check if the selected rank is the current rank
+    const isCurrentRankSelected = () => {
+        if (!user.current_rank || !selectedRank) return false;
+
+        const currentRankId = typeof user.current_rank === 'object'
+            ? user.current_rank.id
+            : user.current_rank;
+
+        return selectedRank === currentRankId;
+    };
 
     // Group ranks by type for better display
     const officerRanks = ranks.filter(r => r.is_officer);
     const warrantRanks = ranks.filter(r => r.is_warrant);
     const enlistedRanks = ranks.filter(r => r.is_enlisted);
+
+    // Check if a rank is the user's current rank
+    const isRankCurrent = (rankId) => {
+        if (!user.current_rank) return false;
+
+        const currentRankId = typeof user.current_rank === 'object'
+            ? user.current_rank.id
+            : user.current_rank;
+
+        return rankId === currentRankId;
+    };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -131,10 +216,10 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                     <div className="current-rank-info">
                         <h4>Current Rank</h4>
                         <div className="rank-display">
-                            {user.current_rank?.insignia_image_url ? (
+                            {currentRankData?.insignia_image_url ? (
                                 <img
-                                    src={user.current_rank.insignia_image_url}
-                                    alt={user.current_rank.name}
+                                    src={currentRankData.insignia_image_url}
+                                    alt={currentRankData.name}
                                     className="rank-insignia-modal"
                                     onError={(e) => e.target.style.display = 'none'}
                                 />
@@ -144,11 +229,14 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                 </div>
                             )}
                             <div>
-                                <div className="rank-name">{user.current_rank?.name || 'No Rank Assigned'}</div>
-                                {user.current_rank && (
+                                <div className="rank-name">{currentRankData?.name || 'No Rank Assigned'}</div>
+                                {currentRankData && (
                                     <>
-                                        <div className="rank-abbr">{user.current_rank.abbreviation}</div>
-                                        <div className="rank-tier">Tier {user.current_rank.tier}</div>
+                                        <div className="rank-abbr">{currentRankData.abbreviation}</div>
+                                        <div className="rank-tier">Tier {currentRankData.tier}</div>
+                                        {currentRankData.branch_name && (
+                                            <div className="rank-branch">{currentRankData.branch_name}</div>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -181,7 +269,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                                     key={rank.id}
                                                     rank={rank}
                                                     isSelected={selectedRank === rank.id}
-                                                    isCurrent={rank.id === user.current_rank?.id}
+                                                    isCurrent={isRankCurrent(rank.id)}
                                                     currentRankTier={currentRankTier}
                                                     onClick={() => setSelectedRank(rank.id)}
                                                 />
@@ -199,7 +287,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                                     key={rank.id}
                                                     rank={rank}
                                                     isSelected={selectedRank === rank.id}
-                                                    isCurrent={rank.id === user.current_rank?.id}
+                                                    isCurrent={isRankCurrent(rank.id)}
                                                     currentRankTier={currentRankTier}
                                                     onClick={() => setSelectedRank(rank.id)}
                                                 />
@@ -217,7 +305,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                                     key={rank.id}
                                                     rank={rank}
                                                     isSelected={selectedRank === rank.id}
-                                                    isCurrent={rank.id === user.current_rank?.id}
+                                                    isCurrent={isRankCurrent(rank.id)}
                                                     currentRankTier={currentRankTier}
                                                     onClick={() => setSelectedRank(rank.id)}
                                                 />
@@ -229,13 +317,13 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                         )}
                     </div>
 
-                    {selectedRankData && selectedRank !== user.current_rank?.id && (
+                    {selectedRankData && !isCurrentRankSelected() && (
                         <div className="rank-change-preview">
                             <h4>Rank Change Summary</h4>
                             <div className="change-details">
                                 <div className="from-rank">
                                     <span className="label">From:</span>
-                                    <span>{user.current_rank?.name || 'No Rank'} (Tier {currentRankTier})</span>
+                                    <span>{currentRankData?.name || 'No Rank'} (Tier {currentRankTier})</span>
                                 </div>
                                 <div className="to-rank">
                                     <span className="label">To:</span>
@@ -264,7 +352,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                         <button
                             type="submit"
                             className={`submit-button ${isPromotion ? 'promote' : 'demote'}`}
-                            disabled={!selectedRank || selectedRank === user.current_rank?.id}
+                            disabled={!selectedRank || isCurrentRankSelected()}
                         >
                             {isPromotion ? 'Promote' : 'Update Rank'}
                         </button>
