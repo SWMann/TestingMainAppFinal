@@ -32,7 +32,7 @@ const OperationsManagement = () => {
     const fetchOpords = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/operations/');
+            const response = await api.get('/opords/');
             setOpords(response.data.results || response.data);
         } catch (error) {
             console.error('Error fetching OPORDs:', error);
@@ -44,7 +44,7 @@ const OperationsManagement = () => {
 
     const handleCreateOpord = async (opordData) => {
         try {
-            await api.post('/operations/', opordData);
+            await api.post('/opords/', opordData);
             await fetchOpords();
             setShowCreateModal(false);
             showNotification('OPORD created successfully', 'success');
@@ -56,7 +56,7 @@ const OperationsManagement = () => {
 
     const handleUpdateOpord = async (opordId, opordData) => {
         try {
-            await api.put(`/operations/${opordId}/`, opordData);
+            await api.put(`/opords/${opordId}/`, opordData);
             await fetchOpords();
             setShowEditModal(false);
             setSelectedOpord(null);
@@ -73,7 +73,7 @@ const OperationsManagement = () => {
         }
 
         try {
-            await api.delete(`/operations/${opordId}/`);
+            await api.delete(`/opords/${opordId}/`);
             await fetchOpords();
             showNotification('OPORD deleted successfully', 'success');
         } catch (error) {
@@ -84,7 +84,7 @@ const OperationsManagement = () => {
 
     const handleApproveOpord = async (opordId, approvalData) => {
         try {
-            await api.post(`/operations/${opordId}/approve/`, approvalData);
+            await api.post(`/opords/${opordId}/approve/`, approvalData);
             await fetchOpords();
             setShowApproveModal(false);
             setSelectedOpord(null);
@@ -110,7 +110,7 @@ const OperationsManagement = () => {
             delete newOpordData.creator;
             delete newOpordData.event_linked;
 
-            await api.post('/operations/', newOpordData);
+            await api.post('/opords/', newOpordData);
             await fetchOpords();
             showNotification('OPORD duplicated successfully', 'success');
         } catch (error) {
