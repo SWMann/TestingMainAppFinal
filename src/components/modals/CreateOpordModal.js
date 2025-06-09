@@ -3,7 +3,6 @@ import {
     X, FileText, Shield, Save, FileCheck
 } from 'lucide-react';
 import './AdminModals.css';
-
 const CreateOpordModal = ({ onClose, onCreate }) => {
     const [formData, setFormData] = useState({
         operation_name: '',
@@ -16,6 +15,7 @@ const CreateOpordModal = ({ onClose, onCreate }) => {
         approval_status: 'Draft'
     });
     const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -45,19 +45,32 @@ const CreateOpordModal = ({ onClose, onCreate }) => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (validateForm()) {
-            onCreate(formData);
+        if (validateForm() && !isSubmitting) {
+            setIsSubmitting(true);
+            try {
+                await onCreate(formData);
+            } catch (error) {
+                console.error('Error creating OPORD:', error);
+                setIsSubmitting(false);
+            }
         }
     };
 
-    const handleSaveAndSubmit = () => {
-        if (validateForm()) {
-            onCreate({ ...formData, approval_status: 'Pending' });
+    const handleSaveAndSubmit = async () => {
+        if (validateForm() && !isSubmitting) {
+            setIsSubmitting(true);
+            try {
+                await onCreate({ ...formData, approval_status: 'Pending' });
+            } catch (error) {
+                console.error('Error creating OPORD:', error);
+                setIsSubmitting(false);
+            }
         }
     };
+
 
     return (
         <div className="modal-overlay" onClick={onClose}>
