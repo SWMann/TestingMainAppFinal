@@ -30,16 +30,23 @@ const HomePage = () => {
     // Fetch user's rank details
     useEffect(() => {
         const fetchUserRank = async () => {
-            if (user && (user.rank || user.rank_id)) {
+            console.log('User object:', user); // Debug log
+
+            if (user && user.current_rank) {
                 try {
-                    // If user has rank_id, fetch the rank details
-                    const rankId = user.rank || user.rank_id;
-                    if (rankId && typeof rankId === 'number') {
+                    const rankId = user.current_rank;
+                    console.log('Rank ID:', rankId); // Debug log
+
+                    // Check if it's a UUID string (not an object)
+                    if (rankId && typeof rankId === 'string') {
+                        console.log('Fetching rank with UUID:', rankId);
                         const rankResponse = await api.get(`/ranks/${rankId}/`);
+                        console.log('Rank response:', rankResponse.data);
                         setUserRank(rankResponse.data);
-                    } else if (user.current_rank && typeof user.current_rank === 'object') {
+                    } else if (rankId && typeof rankId === 'object') {
                         // If current_rank is already an object with details
-                        setUserRank(user.current_rank);
+                        console.log('Rank is already an object:', rankId);
+                        setUserRank(rankId);
                     }
                 } catch (error) {
                     console.error('Error fetching user rank:', error);
@@ -47,14 +54,17 @@ const HomePage = () => {
                     try {
                         const ranksResponse = await api.get('/ranks/');
                         const ranks = ranksResponse.data.results || ranksResponse.data;
-                        const foundRank = ranks.find(r => r.id === (user.rank || user.rank_id));
+                        const foundRank = ranks.find(r => r.id === user.current_rank);
                         if (foundRank) {
+                            console.log('Found rank in list:', foundRank);
                             setUserRank(foundRank);
                         }
                     } catch (fallbackError) {
                         console.error('Error fetching ranks list:', fallbackError);
                     }
                 }
+            } else {
+                console.log('User has no rank information'); // Debug log
             }
         };
 
@@ -102,19 +112,37 @@ const HomePage = () => {
         }
     };
 
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
     // Function to handle logout
     const handleLogout = async () => {
+        // Prevent multiple logout calls
+        if (isLoggingOut) return;
+
         try {
+            setIsLoggingOut(true);
             console.log('Homepage: Starting logout');
-            await authService.logout();
-            dispatch({ type: 'LOGOUT' });
+
+            // Clear local state first to prevent UI issues
             setIsDropdownOpen(false);
+
+            // Clear Redux state
+            dispatch({ type: 'LOGOUT' });
+
+            // Call the logout service
+            // If this causes a redirect, we've already updated the UI
+            await authService.logout();
+
             console.log('Homepage: Logout successful');
+
+            // No redirect needed - let React handle the UI update
         } catch (error) {
             console.error('Homepage: Logout error:', error);
             // Still clear local state even if API call fails
             dispatch({ type: 'LOGOUT' });
             setIsDropdownOpen(false);
+        } finally {
+            setIsLoggingOut(false);
         }
     };
 
@@ -300,6 +328,7 @@ const HomePage = () => {
                                         onClick={handleLogout}
                                         className="logout-button-header"
                                         title="Logout"
+                                        disabled={isLoggingOut}
                                     >
                                         <LogOut size={18} />
                                         <span className="logout-text">Logout</span>
@@ -359,7 +388,11 @@ const HomePage = () => {
                                             </a>
                                         </li>
                                         <li className="dropdown-divider">
-                                            <button onClick={handleLogout} className="dropdown-item">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="dropdown-item"
+                                                disabled={isLoggingOut}
+                                            >
                                                 <div className="dropdown-item-content">
                                                     <LogOut size={16} className="dropdown-item-icon" />
                                                     <span>Logout</span>
@@ -661,7 +694,11 @@ const HomePage = () => {
                                     <Link to="/profile" className="dashboard-button">
                                         MY DASHBOARD
                                     </Link>
-                                    <button onClick={handleLogout} className="logout-panel-button">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="logout-panel-button"
+                                        disabled={isLoggingOut}
+                                    >
                                         <LogOut size={16} />
                                         <span>LOGOUT</span>
                                     </button>
