@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Award, User, Calendar, Upload, Clock, Search } from 'lucide-react';
-import api from '../../../../services/api';
-import '../Modal.css';
+import '../AdminModals.css';
+import api from "../../services/api";
 
 const IssueCertificateModal = ({ certificate, onClose, onIssue }) => {
     const [formData, setFormData] = useState({

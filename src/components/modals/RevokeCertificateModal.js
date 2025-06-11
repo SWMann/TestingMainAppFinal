@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, XCircle, User, Award, Calendar } from 'lucide-react';
-import '../Modal.css';
+import '../AdminModals.css';
 
 const RevokeCertificateModal = ({ issuedCert, onClose, onRevoke }) => {
     const [formData, setFormData] = useState({
