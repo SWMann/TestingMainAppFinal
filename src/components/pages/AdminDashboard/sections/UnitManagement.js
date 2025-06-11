@@ -3,31 +3,39 @@ import {
     Shield, Search, Filter, Plus, Edit, Trash2, Building, Users,
     ChevronRight, MoreVertical, Calendar, MapPin, User,
     GitBranch, Briefcase, X, Check, AlertCircle, Eye,
-    ChevronDown, ChevronUp, Flag, Award, FileText
+    ChevronDown, ChevronUp, Flag, Award, FileText,
+    Star, Hash, Layers, UserCheck
 } from 'lucide-react';
 import './ManagementSections.css';
 import api from "../../../../services/api";
 import {CreateUnitModal} from "../../../modals/CreateUnitModal";
 import {EditUnitModal} from "../../../modals/EditUnitModal";
 import {AssignCommanderModal} from "../../../modals/AssignCommanderModal";
-import {PositionManagementModal} from "../../../modals/PositionManagementModal";
 import {UnitHierarchyModal} from "../../../modals/UnitHierarchyModal";
+import {CreatePositionModal} from "../../../modals/CreatePositionModal";
+import {EditPositionModal} from "../../../modals/EditPositionModal";
+import {UnitDetailsPanel} from "./UnitDetailsPanel";
 
 const UnitManagement = () => {
+    const [activeTab, setActiveTab] = useState('units');
     const [units, setUnits] = useState([]);
     const [branches, setBranches] = useState([]);
+    const [positions, setPositions] = useState([]);
+    const [ranks, setRanks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBy, setFilterBy] = useState('all');
     const [filterBranch, setFilterBranch] = useState('all');
     const [sortBy, setSortBy] = useState('name');
     const [selectedUnit, setSelectedUnit] = useState(null);
+    const [selectedPosition, setSelectedPosition] = useState(null);
     const [showUnitDetails, setShowUnitDetails] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showCommanderModal, setShowCommanderModal] = useState(false);
-    const [showPositionsModal, setShowPositionsModal] = useState(false);
     const [showHierarchyModal, setShowHierarchyModal] = useState(false);
+    const [showCreatePositionModal, setShowCreatePositionModal] = useState(false);
+    const [showEditPositionModal, setShowEditPositionModal] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [expandedUnits, setExpandedUnits] = useState(new Set());
 
@@ -38,16 +46,20 @@ const UnitManagement = () => {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const [unitsResponse, branchesResponse] = await Promise.all([
+            const [unitsResponse, branchesResponse, positionsResponse, ranksResponse] = await Promise.all([
                 api.get('/units/'),
-                api.get('/branches/')
+                api.get('/branches/'),
+                api.get('/positions/'),
+                api.get('/ranks/')
             ]);
 
             setUnits(unitsResponse.data.results || unitsResponse.data);
             setBranches(branchesResponse.data.results || branchesResponse.data);
+            setPositions(positionsResponse.data.results || positionsResponse.data);
+            setRanks(ranksResponse.data.results || ranksResponse.data);
         } catch (error) {
             console.error('Error fetching initial data:', error);
-            showNotification('Failed to load units', 'error');
+            showNotification('Failed to load data', 'error');
         } finally {
             setLoading(false);
         }
@@ -98,6 +110,46 @@ const UnitManagement = () => {
         } catch (error) {
             console.error('Error updating unit:', error);
             showNotification('Failed to update unit', 'error');
+        }
+    };
+
+    const handleCreatePosition = async (positionData) => {
+        try {
+            await api.post('/positions/', positionData);
+            await fetchInitialData();
+            setShowCreatePositionModal(false);
+            showNotification('Position created successfully', 'success');
+        } catch (error) {
+            console.error('Error creating position:', error);
+            showNotification('Failed to create position', 'error');
+        }
+    };
+
+    const handleUpdatePosition = async (positionData) => {
+        try {
+            await api.put(`/positions/${selectedPosition.id}/`, positionData);
+            await fetchInitialData();
+            setShowEditPositionModal(false);
+            setSelectedPosition(null);
+            showNotification('Position updated successfully', 'success');
+        } catch (error) {
+            console.error('Error updating position:', error);
+            showNotification('Failed to update position', 'error');
+        }
+    };
+
+    const handleDeletePosition = async (positionId) => {
+        if (!window.confirm('Are you sure you want to delete this position? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await api.delete(`/positions/${positionId}/`);
+            await fetchInitialData();
+            showNotification('Position deleted successfully', 'success');
+        } catch (error) {
+            console.error('Error deleting position:', error);
+            showNotification('Failed to delete position. It may have assigned users.', 'error');
         }
     };
 
@@ -196,6 +248,16 @@ const UnitManagement = () => {
             default:
                 return 0;
         }
+    });
+
+    // Filter positions
+    const filteredPositions = positions.filter(position => {
+        const matchesSearch =
+            position.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            position.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            position.unit_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesSearch;
     });
 
     // Build hierarchical structure
@@ -303,26 +365,6 @@ const UnitManagement = () => {
                                             <User size={16} />
                                             Assign Commander
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                setSelectedUnit(unit);
-                                                setShowPositionsModal(true);
-                                                setActiveDropdown(null);
-                                            }}
-                                        >
-                                            <Briefcase size={16} />
-                                            Manage Positions
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setSelectedUnit(unit);
-                                                setShowHierarchyModal(true);
-                                                setActiveDropdown(null);
-                                            }}
-                                        >
-                                            <GitBranch size={16} />
-                                            View Hierarchy
-                                        </button>
                                         <div className="dropdown-divider"></div>
                                         <button
                                             onClick={() => {
@@ -354,31 +396,141 @@ const UnitManagement = () => {
         );
     };
 
+    const renderPositionRow = (position) => {
+        return (
+            <tr key={position.id}>
+                <td>
+                    <div className="position-info">
+                        <div>
+                            <div className="position-title">{position.title}</div>
+                            {position.abbreviation && (
+                                <div className="position-abbreviation">{position.abbreviation}</div>
+                            )}
+                        </div>
+                    </div>
+                </td>
+                <td>{position.unit_name || <span className="no-data">Not assigned</span>}</td>
+                <td>
+                    <div className="position-badges">
+                        {position.is_command_position && (
+                            <span className="badge command">
+                                <Star size={14} />
+                                Command
+                            </span>
+                        )}
+                        {position.is_staff_position && (
+                            <span className="badge staff">
+                                <Users size={14} />
+                                Staff
+                            </span>
+                        )}
+                    </div>
+                </td>
+                <td>
+                    {position.min_rank ? (
+                        <span className="rank-requirement">
+                            {position.min_rank.abbreviation}
+                            {position.max_rank && ` - ${position.max_rank.abbreviation}`}
+                        </span>
+                    ) : (
+                        <span className="no-data">No requirement</span>
+                    )}
+                </td>
+                <td>
+                    <span className="slots-badge">
+                        <Hash size={14} />
+                        {position.max_slots} slot{position.max_slots !== 1 ? 's' : ''}
+                    </span>
+                </td>
+                <td>
+                    <div className="action-cell">
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                setSelectedPosition(position);
+                                setShowEditPositionModal(true);
+                            }}
+                            title="Edit Position"
+                        >
+                            <Edit size={16} />
+                        </button>
+                        <button
+                            className="icon-btn danger"
+                            onClick={() => handleDeletePosition(position.id)}
+                            title="Delete Position"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        );
+    };
+
     return (
         <div className="management-section">
             <div className="section-container">
                 <div className="section-header">
                     <div className="section-title">
-                        <Shield size={24} />
-                        <h2>Unit Management</h2>
-                        <span className="count-badge">{units.length} total</span>
+                        {activeTab === 'units' ? (
+                            <>
+                                <Shield size={24} />
+                                <h2>Unit Management</h2>
+                                <span className="count-badge">{units.length} total</span>
+                            </>
+                        ) : (
+                            <>
+                                <Briefcase size={24} />
+                                <h2>Position Management</h2>
+                                <span className="count-badge">{positions.length} total</span>
+                            </>
+                        )}
                     </div>
                     <div className="section-actions">
-                        <button
-                            className="action-btn secondary"
-                            onClick={() => setShowHierarchyModal(true)}
-                        >
-                            <GitBranch size={18} />
-                            View Full Hierarchy
-                        </button>
-                        <button
-                            className="action-btn primary"
-                            onClick={() => setShowCreateModal(true)}
-                        >
-                            <Plus size={18} />
-                            Create Unit
-                        </button>
+                        {activeTab === 'units' ? (
+                            <>
+                                <button
+                                    className="action-btn secondary"
+                                    onClick={() => setShowHierarchyModal(true)}
+                                >
+                                    <GitBranch size={18} />
+                                    View Full Hierarchy
+                                </button>
+                                <button
+                                    className="action-btn primary"
+                                    onClick={() => setShowCreateModal(true)}
+                                >
+                                    <Plus size={18} />
+                                    Create Unit
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                className="action-btn primary"
+                                onClick={() => setShowCreatePositionModal(true)}
+                            >
+                                <Plus size={18} />
+                                Create Position
+                            </button>
+                        )}
                     </div>
+                </div>
+
+                <div className="section-tabs">
+                    <button
+                        className={`tab-btn ${activeTab === 'units' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('units')}
+                    >
+                        <Shield size={18} />
+                        Units
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'positions' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('positions')}
+                    >
+                        <Briefcase size={18} />
+                        Positions
+                    </button>
                 </div>
 
                 <div className="section-filters">
@@ -386,75 +538,109 @@ const UnitManagement = () => {
                         <Search size={18} />
                         <input
                             type="text"
-                            placeholder="Search units..."
+                            placeholder={`Search ${activeTab}...`}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
-                    <div className="filter-group">
-                        <Filter size={18} />
-                        <select value={filterBy} onChange={(e) => setFilterBy(e.target.value)}>
-                            <option value="all">All Units</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+                    {activeTab === 'units' && (
+                        <>
+                            <div className="filter-group">
+                                <Filter size={18} />
+                                <select value={filterBy} onChange={(e) => setFilterBy(e.target.value)}>
+                                    <option value="all">All Units</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
 
-                    <div className="filter-group">
-                        <Building size={18} />
-                        <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}>
-                            <option value="all">All Branches</option>
-                            {branches.map(branch => (
-                                <option key={branch.id} value={branch.id}>
-                                    {branch.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                            <div className="filter-group">
+                                <Building size={18} />
+                                <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}>
+                                    <option value="all">All Branches</option>
+                                    {branches.map(branch => (
+                                        <option key={branch.id} value={branch.id}>
+                                            {branch.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
-                    <div className="sort-group">
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                            <option value="name">Sort by Name</option>
-                            <option value="branch">Sort by Branch</option>
-                            <option value="type">Sort by Type</option>
-                            <option value="established">Sort by Established Date</option>
-                        </select>
-                    </div>
+                            <div className="sort-group">
+                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                                    <option value="name">Sort by Name</option>
+                                    <option value="branch">Sort by Branch</option>
+                                    <option value="type">Sort by Type</option>
+                                    <option value="established">Sort by Established Date</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <div className="data-table-container">
                     {loading ? (
                         <div className="loading-state">
                             <div className="spinner"></div>
-                            <p>Loading units...</p>
+                            <p>Loading {activeTab}...</p>
                         </div>
-                    ) : hierarchicalUnits.length === 0 ? (
-                        <div className="empty-state">
-                            <Shield size={48} />
-                            <h3>No units found</h3>
-                            <p>Try adjusting your search or filters</p>
-                            <button className="action-btn primary" onClick={() => setShowCreateModal(true)}>
-                                <Plus size={18} />
-                                Create First Unit
-                            </button>
-                        </div>
+                    ) : activeTab === 'units' ? (
+                        hierarchicalUnits.length === 0 ? (
+                            <div className="empty-state">
+                                <Shield size={48} />
+                                <h3>No units found</h3>
+                                <p>Try adjusting your search or filters</p>
+                                <button className="action-btn primary" onClick={() => setShowCreateModal(true)}>
+                                    <Plus size={18} />
+                                    Create First Unit
+                                </button>
+                            </div>
+                        ) : (
+                            <table className="data-table">
+                                <thead>
+                                <tr>
+                                    <th>Unit</th>
+                                    <th>Type</th>
+                                    <th>Branch</th>
+                                    <th>Commander</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {hierarchicalUnits.map(unit => renderUnitRow(unit))}
+                                </tbody>
+                            </table>
+                        )
                     ) : (
-                        <table className="data-table">
-                            <thead>
-                            <tr>
-                                <th>Unit</th>
-                                <th>Type</th>
-                                <th>Branch</th>
-                                <th>Commander</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {hierarchicalUnits.map(unit => renderUnitRow(unit))}
-                            </tbody>
-                        </table>
+                        filteredPositions.length === 0 ? (
+                            <div className="empty-state">
+                                <Briefcase size={48} />
+                                <h3>No positions found</h3>
+                                <p>Try adjusting your search</p>
+                                <button className="action-btn primary" onClick={() => setShowCreatePositionModal(true)}>
+                                    <Plus size={18} />
+                                    Create First Position
+                                </button>
+                            </div>
+                        ) : (
+                            <table className="data-table">
+                                <thead>
+                                <tr>
+                                    <th>Position</th>
+                                    <th>Unit</th>
+                                    <th>Type</th>
+                                    <th>Rank Requirements</th>
+                                    <th>Slots</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {filteredPositions.map(position => renderPositionRow(position))}
+                                </tbody>
+                            </table>
+                        )
                     )}
                 </div>
             </div>
@@ -469,7 +655,6 @@ const UnitManagement = () => {
                     }}
                     onEdit={() => setShowEditModal(true)}
                     onAssignCommander={() => setShowCommanderModal(true)}
-                    onManagePositions={() => setShowPositionsModal(true)}
                     onRefresh={() => fetchUnitDetails(selectedUnit.id)}
                 />
             )}
@@ -502,11 +687,25 @@ const UnitManagement = () => {
                 />
             )}
 
-            {showPositionsModal && selectedUnit && (
-                <PositionManagementModal
-                    unit={selectedUnit}
-                    onClose={() => setShowPositionsModal(false)}
-                    onUpdate={() => fetchUnitDetails(selectedUnit.id)}
+            {showCreatePositionModal && (
+                <CreatePositionModal
+                    units={units}
+                    ranks={ranks}
+                    onClose={() => setShowCreatePositionModal(false)}
+                    onCreate={handleCreatePosition}
+                />
+            )}
+
+            {showEditPositionModal && selectedPosition && (
+                <EditPositionModal
+                    position={selectedPosition}
+                    units={units}
+                    ranks={ranks}
+                    onClose={() => {
+                        setShowEditPositionModal(false);
+                        setSelectedPosition(null);
+                    }}
+                    onUpdate={handleUpdatePosition}
                 />
             )}
 
@@ -516,272 +715,6 @@ const UnitManagement = () => {
                     onClose={() => setShowHierarchyModal(false)}
                 />
             )}
-        </div>
-    );
-};
-
-// Unit Details Panel Component
-const UnitDetailsPanel = ({ unit, onClose, onEdit, onAssignCommander, onManagePositions, onRefresh }) => {
-    const [activeTab, setActiveTab] = useState('overview');
-
-    return (
-        <div className="details-panel">
-            <div className="panel-header">
-                <h3>Unit Details</h3>
-                <button className="close-btn" onClick={onClose}>
-                    <X size={20} />
-                </button>
-            </div>
-
-            <div className="panel-content">
-                <div className="unit-profile-section">
-                    {unit.emblem_url && (
-                        <img
-                            src={unit.emblem_url}
-                            alt={unit.name}
-                            className="profile-emblem"
-                        />
-                    )}
-                    <div className="profile-info">
-                        <h2>{unit.name}</h2>
-                        <p className="unit-abbreviation">{unit.abbreviation}</p>
-                        {unit.motto && (
-                            <p className="unit-motto">"{unit.motto}"</p>
-                        )}
-                        <div className="profile-badges">
-                            <span className="badge">{unit.branch_name}</span>
-                            <span className="badge">{unit.unit_type}</span>
-                            {unit.is_active ? (
-                                <span className="badge active">Active</span>
-                            ) : (
-                                <span className="badge inactive">Inactive</span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="detail-tabs">
-                    <button
-                        className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('overview')}
-                    >
-                        Overview
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'members' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('members')}
-                    >
-                        Members ({unit.members?.length || 0})
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'positions' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('positions')}
-                    >
-                        Positions ({unit.positions?.length || 0})
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('events')}
-                    >
-                        Events ({unit.events?.length || 0})
-                    </button>
-                </div>
-
-                <div className="tab-content">
-                    {activeTab === 'overview' && (
-                        <div className="detail-sections">
-                            <div className="detail-section">
-                                <h4>Basic Information</h4>
-                                <div className="detail-row">
-                                    <span className="label">Type:</span>
-                                    <span className="value">{unit.unit_type || 'Not specified'}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="label">Branch:</span>
-                                    <span className="value">{unit.branch_name}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="label">Parent Unit:</span>
-                                    <span className="value">{unit.parent_unit_name || 'None (Top Level)'}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="label">Location:</span>
-                                    <span className="value">
-                                        {unit.location ? (
-                                            <>
-                                                <MapPin size={14} />
-                                                {unit.location}
-                                            </>
-                                        ) : (
-                                            'Not specified'
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="label">Established:</span>
-                                    <span className="value">
-                                        {unit.established_date ? (
-                                            <>
-                                                <Calendar size={14} />
-                                                {new Date(unit.established_date).toLocaleDateString()}
-                                            </>
-                                        ) : (
-                                            'Not specified'
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="detail-section">
-                                <h4>Leadership</h4>
-                                <div className="detail-row">
-                                    <span className="label">Commander:</span>
-                                    <span className="value">
-                                        {unit.commander ? (
-                                            <div className="commander-display">
-                                                <img src={unit.commander.avatar_url || '/default-avatar.png'} alt="" />
-                                                <span>{unit.commander.rank} {unit.commander.username}</span>
-                                            </div>
-                                        ) : (
-                                            'No commander assigned'
-                                        )}
-                                    </span>
-                                    <button className="inline-action-btn" onClick={onAssignCommander}>
-                                        <User size={14} />
-                                        {unit.commander ? 'Change' : 'Assign'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {unit.description && (
-                                <div className="detail-section">
-                                    <h4>Description</h4>
-                                    <p className="description-text">{unit.description}</p>
-                                </div>
-                            )}
-
-                            <div className="detail-section">
-                                <h4>Actions</h4>
-                                <div className="section-actions">
-                                    <button className="section-action-btn" onClick={onEdit}>
-                                        <Edit size={16} />
-                                        Edit Unit
-                                    </button>
-                                    <button className="section-action-btn" onClick={onManagePositions}>
-                                        <Briefcase size={16} />
-                                        Manage Positions
-                                    </button>
-                                    <button className="section-action-btn" onClick={onRefresh}>
-                                        <ChevronRight size={16} />
-                                        Refresh Data
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'members' && (
-                        <div className="members-section">
-                            {unit.members && unit.members.length > 0 ? (
-                                <div className="members-list">
-                                    {unit.members.map(member => (
-                                        <div key={member.id} className="member-item">
-                                            <img
-                                                src={member.avatar_url || '/default-avatar.png'}
-                                                alt={member.username}
-                                                className="member-avatar"
-                                            />
-                                            <div className="member-info">
-                                                <div className="member-name">
-                                                    {member.rank?.abbreviation} {member.username}
-                                                </div>
-                                                <div className="member-position">{member.position}</div>
-                                            </div>
-                                            <div className="member-meta">
-                                                {member.is_primary && <span className="primary-badge">Primary</span>}
-                                                <span className="status-text">{member.status}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-state">
-                                    <Users size={48} />
-                                    <p>No members assigned to this unit</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'positions' && (
-                        <div className="positions-section">
-                            <button className="section-action-btn" onClick={onManagePositions}>
-                                <Plus size={16} />
-                                Add Position
-                            </button>
-                            {unit.positions && unit.positions.length > 0 ? (
-                                <div className="positions-list">
-                                    {unit.positions.map(position => (
-                                        <div key={position.id} className="position-item">
-                                            <div className="position-header">
-                                                <h5>{position.title}</h5>
-                                                {position.abbreviation && (
-                                                    <span className="abbreviation">({position.abbreviation})</span>
-                                                )}
-                                            </div>
-                                            <div className="position-badges">
-                                                {position.is_command_position && (
-                                                    <span className="badge command">Command</span>
-                                                )}
-                                                {position.is_staff_position && (
-                                                    <span className="badge staff">Staff</span>
-                                                )}
-                                                <span className="slots-badge">
-                                                    {position.max_slots} slot{position.max_slots !== 1 ? 's' : ''}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-state">
-                                    <Briefcase size={48} />
-                                    <p>No positions defined for this unit</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'events' && (
-                        <div className="events-section">
-                            {unit.events && unit.events.length > 0 ? (
-                                <div className="events-list">
-                                    {unit.events.map(event => (
-                                        <div key={event.id} className="event-item">
-                                            <div className="event-date">
-                                                <Calendar size={16} />
-                                                {new Date(event.start_time).toLocaleDateString()}
-                                            </div>
-                                            <div className="event-info">
-                                                <h5>{event.title}</h5>
-                                                <p>{event.event_type}</p>
-                                            </div>
-                                            <span className={`status-badge ${event.status.toLowerCase()}`}>
-                                                {event.status}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-state">
-                                    <Calendar size={48} />
-                                    <p>No events scheduled for this unit</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
         </div>
     );
 };
