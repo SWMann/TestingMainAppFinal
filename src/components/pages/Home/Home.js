@@ -19,12 +19,47 @@ const HomePage = () => {
     const [featuredUnits, setFeaturedUnits] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [userRank, setUserRank] = useState(null);
     const [orgStats, setOrgStats] = useState({
         memberCount: 0,
         activeOperations: 0,
         completedOperations: 0,
         vehicleCount: 0
     });
+
+    // Fetch user's rank details
+    useEffect(() => {
+        const fetchUserRank = async () => {
+            if (user && (user.rank || user.rank_id)) {
+                try {
+                    // If user has rank_id, fetch the rank details
+                    const rankId = user.rank || user.rank_id;
+                    if (rankId && typeof rankId === 'number') {
+                        const rankResponse = await api.get(`/ranks/${rankId}/`);
+                        setUserRank(rankResponse.data);
+                    } else if (user.current_rank && typeof user.current_rank === 'object') {
+                        // If current_rank is already an object with details
+                        setUserRank(user.current_rank);
+                    }
+                } catch (error) {
+                    console.error('Error fetching user rank:', error);
+                    // Try to fetch all ranks and find the matching one
+                    try {
+                        const ranksResponse = await api.get('/ranks/');
+                        const ranks = ranksResponse.data.results || ranksResponse.data;
+                        const foundRank = ranks.find(r => r.id === (user.rank || user.rank_id));
+                        if (foundRank) {
+                            setUserRank(foundRank);
+                        }
+                    } catch (fallbackError) {
+                        console.error('Error fetching ranks list:', fallbackError);
+                    }
+                }
+            }
+        };
+
+        fetchUserRank();
+    }, [user]);
 
     // Format date function
     const formatDate = (dateString) => {
@@ -43,6 +78,17 @@ const HomePage = () => {
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    // Get rank abbreviation helper
+    const getRankAbbreviation = () => {
+        if (userRank?.abbreviation) {
+            return userRank.abbreviation;
+        }
+        if (user?.current_rank?.abbreviation) {
+            return user.current_rank.abbreviation;
+        }
+        return '';
     };
 
     // Function to handle Discord login
@@ -245,7 +291,7 @@ const HomePage = () => {
                                         className="user-avatar"
                                     />
                                     <span className="user-name">
-                                        {user?.current_rank?.abbreviation || ''} {user?.username || 'User'}
+                                        {getRankAbbreviation()} {user?.username || 'User'}
                                     </span>
                                     <ChevronDown size={16} className="dropdown-chevron" />
                                 </button>
@@ -586,7 +632,7 @@ const HomePage = () => {
                                         <div>
                                             <h2 className="welcome-title">Welcome back,</h2>
                                             <div className="welcome-name">
-                                                {user?.current_rank?.abbreviation || ''} {user?.username || 'Soldier'}
+                                                {getRankAbbreviation()} {user?.username || 'Soldier'}
                                             </div>
                                         </div>
                                     </div>
