@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Award, User, Calendar, Upload, Clock, Search } from 'lucide-react';
-import '../AdminModals.css';
+import './AdminModals.css';
 import api from "../../services/api";
 
 const IssueCertificateModal = ({ certificate, onClose, onIssue }) => {

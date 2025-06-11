@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Award, FileText, Clock, Shield } from 'lucide-react';
-import '../AdminModals.css';
+import './AdminModals.css';
 
 const EditCertificateModal = ({ certificate, branches, ranks, onClose, onUpdate }) => {
     const [formData, setFormData] = useState({

@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Award, User, Calendar, Clock, CheckCircle, XCircle, Download, AlertTriangle } from 'lucide-react';
-import '../AdminModals.css';
+import './AdminModals.css';
 
 const ViewIssuedCertificateModal = ({ issuedCert, onClose, onRevoke }) => {
     if (!issuedCert) return null;
