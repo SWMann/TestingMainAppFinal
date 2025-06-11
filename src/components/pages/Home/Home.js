@@ -101,6 +101,24 @@ const HomePage = () => {
         return '';
     };
 
+    // Get rank bubble class based on rank level
+    const getRankBubbleClass = () => {
+        if (!userRank) return '';
+
+        const level = userRank.level || 0;
+
+        // E1-E4: Junior Enlisted
+        if (level >= 1 && level <= 4) return 'enlisted';
+        // E5-E9: NCO
+        if (level >= 5 && level <= 9) return 'nco';
+        // W1-W5: Warrant Officers
+        if (level >= 10 && level <= 14) return 'warrant';
+        // O1-O10: Officers
+        if (level >= 15) return 'officer';
+
+        return '';
+    };
+
     // Function to handle Discord login
     const handleDiscordLogin = () => {
         try {
@@ -667,12 +685,29 @@ const HomePage = () => {
                             {isAuthenticated ? (
                                 <div className="panel">
                                     <div className="user-welcome">
-                                        <img
-                                            src={user?.avatar_url || '/api/placeholder/128/128'}
-                                            alt={user?.username || 'User'}
-                                            className="welcome-avatar"
-                                        />
-                                        <div>
+                                        <div className="welcome-avatar-container">
+                                            <img
+                                                src={user?.avatar_url || '/api/placeholder/128/128'}
+                                                alt={user?.username || 'User'}
+                                                className="welcome-avatar"
+                                            />
+                                            {userRank && (
+                                                <div className={`rank-bubble ${getRankBubbleClass()}`}>
+                                                    {userRank.icon_url ? (
+                                                        <img
+                                                            src={userRank.icon_url}
+                                                            alt={userRank.abbreviation}
+                                                            className="rank-icon"
+                                                        />
+                                                    ) : (
+                                                        <span className="rank-text">
+                                                            {userRank.abbreviation?.slice(0, 3) || 'PVT'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="welcome-info">
                                             <h2 className="welcome-title">Welcome back,</h2>
                                             <div className="welcome-name">
                                                 {getRankAbbreviation()} {user?.username || 'Soldier'}
@@ -705,66 +740,74 @@ const HomePage = () => {
                                 </div>
                             ) : (
                                 <div className="panel">
-                                    <h2 className="panel-title">
-                                        <Info size={20} className="panel-icon" />
-                                        Join the Regiment
-                                    </h2>
+                                    <div className="panel-header">
+                                        <h2 className="panel-title">
+                                            <Info size={20} className="panel-icon" />
+                                            Join the Regiment
+                                        </h2>
+                                    </div>
                                     <p className="join-text">
                                         Sign in with Discord to access training materials, operation schedules, and unit resources.
                                     </p>
-                                    <button onClick={handleDiscordLogin} className="discord-login-button-large">
-                                        <div className="discord-icon">
-                                            <svg width="20" height="15" viewBox="0 0 20 15" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M16.9308 1.25C15.6721 0.680556 14.3183 0.256945 12.9058 0C12.7354 0.294445 12.5404 0.693056 12.4075 1.01389C10.9079 0.774306 9.42208 0.774306 7.95125 1.01389C7.81833 0.693056 7.61958 0.294445 7.44792 0C6.03167 0.256945 4.67792 0.680556 3.42042 1.25C0.49125 5.63889 -0.301666 9.91667 0.0945838 14.1458C1.82542 15.4722 3.49958 16.25 5.14667 16.7569C5.55458 16.1944 5.91833 15.5972 6.23333 14.9653C5.63542 14.7292 5.06625 14.4319 4.52958 14.0833C4.6625 13.9861 4.79292 13.8819 4.91958 13.7778C8.19458 15.2431 11.8279 15.2431 15.0683 13.7778C15.195 13.8819 15.3254 13.9861 15.4571 14.0833C14.9204 14.4319 14.3513 14.7292 13.7546 14.9653C14.0696 15.5972 14.4321 16.1944 14.8413 16.7569C16.4883 16.25 18.1625 15.4722 19.8933 14.1458C20.3596 9.30556 19.0908 5.06945 16.9308 1.25ZM6.66667 11.5694C5.67917 11.5694 4.86875 10.6736 4.86875 9.58333C4.86875 8.49306 5.6625 7.59722 6.66667 7.59722C7.67083 7.59722 8.48125 8.49306 8.465 9.58333C8.465 10.6736 7.67083 11.5694 6.66667 11.5694ZM13.3333 11.5694C12.3458 11.5694 11.5354 10.6736 11.5354 9.58333C11.5354 8.49306 12.3292 7.59722 13.3333 7.59722C14.3375 7.59722 15.1479 8.49306 15.1317 9.58333C15.1317 10.6736 14.3375 11.5694 13.3333 11.5694Z" />
-                                            </svg>
-                                        </div>
-                                        LOGIN WITH DISCORD
-                                    </button>
+                                    <div className="join-button-container">
+                                        <button onClick={handleDiscordLogin} className="discord-login-button-large">
+                                            <div className="discord-icon">
+                                                <svg width="20" height="15" viewBox="0 0 20 15" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M16.9308 1.25C15.6721 0.680556 14.3183 0.256945 12.9058 0C12.7354 0.294445 12.5404 0.693056 12.4075 1.01389C10.9079 0.774306 9.42208 0.774306 7.95125 1.01389C7.81833 0.693056 7.61958 0.294445 7.44792 0C6.03167 0.256945 4.67792 0.680556 3.42042 1.25C0.49125 5.63889 -0.301666 9.91667 0.0945838 14.1458C1.82542 15.4722 3.49958 16.25 5.14667 16.7569C5.55458 16.1944 5.91833 15.5972 6.23333 14.9653C5.63542 14.7292 5.06625 14.4319 4.52958 14.0833C4.6625 13.9861 4.79292 13.8819 4.91958 13.7778C8.19458 15.2431 11.8279 15.2431 15.0683 13.7778C15.195 13.8819 15.3254 13.9861 15.4571 14.0833C14.9204 14.4319 14.3513 14.7292 13.7546 14.9653C14.0696 15.5972 14.4321 16.1944 14.8413 16.7569C16.4883 16.25 18.1625 15.4722 19.8933 14.1458C20.3596 9.30556 19.0908 5.06945 16.9308 1.25ZM6.66667 11.5694C5.67917 11.5694 4.86875 10.6736 4.86875 9.58333C4.86875 8.49306 5.6625 7.59722 6.66667 7.59722C7.67083 7.59722 8.48125 8.49306 8.465 9.58333C8.465 10.6736 7.67083 11.5694 6.66667 11.5694ZM13.3333 11.5694C12.3458 11.5694 11.5354 10.6736 11.5354 9.58333C11.5354 8.49306 12.3292 7.59722 13.3333 7.59722C14.3375 7.59722 15.1479 8.49306 15.1317 9.58333C15.1317 10.6736 14.3375 11.5694 13.3333 11.5694Z" />
+                                                </svg>
+                                            </div>
+                                            LOGIN WITH DISCORD
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Organization Stats */}
                             <div className="panel">
-                                <h2 className="panel-title">
-                                    <Info size={20} className="panel-icon" />
-                                    III Corps Stats
-                                </h2>
+                                <div className="panel-header">
+                                    <h2 className="panel-title">
+                                        <Info size={20} className="panel-icon" />
+                                        III Corps Stats
+                                    </h2>
+                                </div>
 
-                                <div className="stats-grid">
-                                    <div className="org-stat-box">
-                                        <div className="org-stat-icon">
-                                            <Users size={20} className="stat-icon" />
+                                <div className="org-stats-container">
+                                    <div className="org-stats-grid">
+                                        <div className="org-stat-box">
+                                            <div className="org-stat-icon">
+                                                <Users size={16} />
+                                            </div>
+                                            <div className="org-stat-content">
+                                                <div className="org-stat-value">{orgStats.memberCount}</div>
+                                                <div className="org-stat-label">PERSONNEL</div>
+                                            </div>
                                         </div>
-                                        <div className="org-stat-content">
-                                            <div className="org-stat-value">{orgStats.memberCount}</div>
-                                            <div className="org-stat-label">ACTIVE PERSONNEL</div>
+                                        <div className="org-stat-box">
+                                            <div className="org-stat-icon">
+                                                <Activity size={16} />
+                                            </div>
+                                            <div className="org-stat-content">
+                                                <div className="org-stat-value">{orgStats.activeOperations}</div>
+                                                <div className="org-stat-label">ACTIVE OPS</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="org-stat-box">
-                                        <div className="org-stat-icon">
-                                            <Activity size={20} className="stat-icon" />
+                                        <div className="org-stat-box">
+                                            <div className="org-stat-icon">
+                                                <Truck size={16} />
+                                            </div>
+                                            <div className="org-stat-content">
+                                                <div className="org-stat-value">{orgStats.vehicleCount}</div>
+                                                <div className="org-stat-label">MOTOR POOL</div>
+                                            </div>
                                         </div>
-                                        <div className="org-stat-content">
-                                            <div className="org-stat-value">{orgStats.activeOperations}</div>
-                                            <div className="org-stat-label">ACTIVE OPERATIONS</div>
-                                        </div>
-                                    </div>
-                                    <div className="org-stat-box">
-                                        <div className="org-stat-icon">
-                                            <Truck size={20} className="stat-icon" />
-                                        </div>
-                                        <div className="org-stat-content">
-                                            <div className="org-stat-value">{orgStats.vehicleCount}</div>
-                                            <div className="org-stat-label">MOTOR POOL</div>
-                                        </div>
-                                    </div>
-                                    <div className="org-stat-box">
-                                        <div className="org-stat-icon">
-                                            <Award size={20} className="stat-icon" />
-                                        </div>
-                                        <div className="org-stat-content">
-                                            <div className="org-stat-value">{orgStats.completedOperations}</div>
-                                            <div className="org-stat-label">OPS COMPLETED</div>
+                                        <div className="org-stat-box">
+                                            <div className="org-stat-icon">
+                                                <Award size={16} />
+                                            </div>
+                                            <div className="org-stat-content">
+                                                <div className="org-stat-value">{orgStats.completedOperations}</div>
+                                                <div className="org-stat-label">COMPLETED</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -772,10 +815,12 @@ const HomePage = () => {
 
                             {/* Featured Units */}
                             <div className="panel">
-                                <h2 className="panel-title">
-                                    <Shield size={20} className="panel-icon" />
-                                    Featured Units
-                                </h2>
+                                <div className="panel-header">
+                                    <h2 className="panel-title">
+                                        <Shield size={20} className="panel-icon" />
+                                        Featured Units
+                                    </h2>
+                                </div>
 
                                 <div className="units-list">
                                     {featuredUnits.length > 0 ? (
