@@ -281,20 +281,30 @@ const HomePage = () => {
                         {/* User dropdown */}
                         <div className="user-dropdown">
                             {isAuthenticated ? (
-                                <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="user-dropdown-button"
-                                >
-                                    <img
-                                        src={user?.avatar_url || '/api/placeholder/128/128'}
-                                        alt={user?.username || 'User'}
-                                        className="user-avatar"
-                                    />
-                                    <span className="user-name">
-                                        {getRankAbbreviation()} {user?.username || 'User'}
-                                    </span>
-                                    <ChevronDown size={16} className="dropdown-chevron" />
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                        className="user-dropdown-button"
+                                    >
+                                        <img
+                                            src={user?.avatar_url || '/api/placeholder/128/128'}
+                                            alt={user?.username || 'User'}
+                                            className="user-avatar"
+                                        />
+                                        <span className="user-name">
+                                            {getRankAbbreviation()} {user?.username || 'User'}
+                                        </span>
+                                        <ChevronDown size={16} className="dropdown-chevron" />
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="logout-button-header"
+                                        title="Logout"
+                                    >
+                                        <LogOut size={18} />
+                                        <span className="logout-text">Logout</span>
+                                    </button>
+                                </>
                             ) : (
                                 <button
                                     onClick={handleDiscordLogin}
@@ -651,6 +661,10 @@ const HomePage = () => {
                                     <Link to="/profile" className="dashboard-button">
                                         MY DASHBOARD
                                     </Link>
+                                    <button onClick={handleLogout} className="logout-panel-button">
+                                        <LogOut size={16} />
+                                        <span>LOGOUT</span>
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="panel">

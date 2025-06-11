@@ -1410,4 +1410,14 @@ body {
         border: 1px solid #ccc;
         page-break-inside: avoid;
     }
+
+    /* Hide logout text on mobile, show only icon */
+    .logout-text {
+        display: none;
+    }
+
+    .logout-button-header {
+        padding: 0.5rem;
+    }
+
 }
