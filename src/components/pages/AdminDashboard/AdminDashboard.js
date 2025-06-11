@@ -14,10 +14,10 @@ import RankManagement from "./sections/RankManagement";
 import UnitManagement from "./sections/UnitManagement";
 import EventManagement from "./sections/EventManagement";
 import OperationManagement from "./sections/OperationManagement";
+import TrainingManagement from "./sections/TrainingManagement";
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
-const TrainingManagement = () => <div>Training Management Section - To be implemented</div>;
 const OperationsManagement = () => <div>Operations Management Section - To be implemented</div>;
 const AnnouncementManagement = () => <div>Announcement Management Section - To be implemented</div>;
 const ForumManagement = () => <div>Forum Management Section - To be implemented</div>;
