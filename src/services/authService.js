@@ -1,5 +1,6 @@
+// authService.js - Fixed auth service with proper logout handling
 
-import api from './api';
+import api, { setLoggingOut } from './api';
 
 // Discord OAuth constants
 const DISCORD_CLIENT_ID = process.env.REACT_APP_DISCORD_CLIENT_ID;
@@ -37,12 +38,25 @@ const authService = {
     // Logout the user
     logout: async () => {
         try {
-            await api.post('/auth/logout/');
+            // Set the logging out flag to prevent token refresh attempts
+            setLoggingOut(true);
+
+            // Try to call logout endpoint (it might not exist or might fail)
+            try {
+                await api.post('/auth/logout/');
+            } catch (error) {
+                // Ignore errors from logout endpoint
+                console.log('Logout endpoint error (ignoring):', error.message);
+            }
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
+            // Always clear tokens and reset flag
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
+            setLoggingOut(false);
+
+            // NO REDIRECTS HERE - let React handle the UI update
         }
     },
 

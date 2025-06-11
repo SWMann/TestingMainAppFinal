@@ -1391,6 +1391,92 @@ body {
     /* Already optimized for dark mode */
 }
 
+
+/* Logout Button in Header */
+.logout-button-header {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.logout-button-header:hover {
+    background-color: var(--error-color);
+    color: white;
+    border-color: var(--error-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.logout-button-header:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.logout-button-header:disabled:hover {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+.logout-text {
+    display: inline;
+}
+
+/* Logout Button in Header */
+.logout-button-header {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.logout-button-header:hover {
+    background-color: var(--error-color);
+    color: white;
+    border-color: var(--error-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.logout-button-header:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.logout-button-header:disabled:hover {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+.logout-text {
+    display: inline;
+}
+
+
 /* Print styles */
 @media print {
     .header,
