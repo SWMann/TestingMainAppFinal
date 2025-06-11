@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     X, Briefcase, Star, Users, Hash
 } from 'lucide-react';
-import '../AdminModals.css';
+import './AdminModals.css';
 
 export const EditPositionModal = ({ position, units, ranks, onClose, onUpdate }) => {
     const [formData, setFormData] = useState({
