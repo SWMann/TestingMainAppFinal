@@ -71,13 +71,21 @@ const CreateCertificateModal = ({ branches, ranks, onClose, onCreate }) => {
         setLoading(true);
 
         // Prepare data for submission
+        const branchId = parseInt(formData.branch, 10);
         const submitData = {
             ...formData,
-            branch: parseInt(formData.branch),
+            branch: !isNaN(branchId) ? branchId : undefined,
             min_rank_requirement: formData.min_rank_requirement || null,
-            expiration_period: formData.expiration_period ? parseInt(formData.expiration_period) : null,
+            expiration_period: formData.expiration_period ? parseInt(formData.expiration_period, 10) : null,
             authorized_trainers: formData.authorized_trainers.length > 0 ? formData.authorized_trainers : null
         };
+
+        // Remove undefined values
+        Object.keys(submitData).forEach(key => {
+            if (submitData[key] === undefined) {
+                delete submitData[key];
+            }
+        });
 
         try {
             await onCreate(submitData);
