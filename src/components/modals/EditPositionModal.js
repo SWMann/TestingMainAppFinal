@@ -1,33 +1,40 @@
 import React, { useState } from 'react';
 import {
-    X, Briefcase, Star, Users, Hash
+    X, Briefcase, Star, Users, Hash, Tag
 } from 'lucide-react';
 import './AdminModals.css';
 
-export const EditPositionModal = ({ position, units, ranks, onClose, onUpdate }) => {
+export const EditPositionModal = ({ position, units, roles, onClose, onUpdate }) => {
     const [formData, setFormData] = useState({
-        title: position.title || '',
-        abbreviation: position.abbreviation || '',
+        role: position.role || '',
         unit: position.unit || '',
+        identifier: position.identifier || '',
+        title: position.title || '',
         parent_position: position.parent_position || '',
-        description: position.description || '',
-        min_rank: position.min_rank?.id || '',
-        max_rank: position.max_rank?.id || '',
-        is_command_position: position.is_command_position || false,
-        is_staff_position: position.is_staff_position || false,
-        responsibilities: position.responsibilities || '',
-        max_slots: position.max_slots || 1
+        override_min_rank: position.override_min_rank?.id || '',
+        override_max_rank: position.override_max_rank?.id || '',
+        additional_requirements: position.additional_requirements || '',
+        notes: position.notes || '',
+        is_active: position.is_active !== false,
+        is_vacant: position.is_vacant !== false
     });
+
+    const selectedRole = formData.role ? roles.find(r => r.id === parseInt(formData.role)) : null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
         const submitData = {
-            ...formData,
+            role: parseInt(formData.role),
             unit: parseInt(formData.unit),
+            identifier: formData.identifier || null,
+            title: formData.title || null,
             parent_position: formData.parent_position ? parseInt(formData.parent_position) : null,
-            min_rank: formData.min_rank ? parseInt(formData.min_rank) : null,
-            max_rank: formData.max_rank ? parseInt(formData.max_rank) : null,
-            max_slots: parseInt(formData.max_slots)
+            override_min_rank: formData.override_min_rank ? parseInt(formData.override_min_rank) : null,
+            override_max_rank: formData.override_max_rank ? parseInt(formData.override_max_rank) : null,
+            additional_requirements: formData.additional_requirements || null,
+            notes: formData.notes || null,
+            is_active: formData.is_active,
+            is_vacant: formData.is_vacant
         };
         onUpdate(submitData);
     };
@@ -46,7 +53,7 @@ export const EditPositionModal = ({ position, units, ranks, onClose, onUpdate })
                 <div className="modal-header">
                     <h2>
                         <Briefcase size={24} />
-                        Edit Position: {position.title}
+                        Edit Position: {position.display_title || position.role_name}
                     </h2>
                     <button className="close-btn" onClick={onClose}>
                         <X size={20} />
@@ -54,29 +61,47 @@ export const EditPositionModal = ({ position, units, ranks, onClose, onUpdate })
                 </div>
 
                 <form onSubmit={handleSubmit} className="modal-form">
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="title">Position Title *</label>
-                            <input
-                                type="text"
-                                id="title"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="abbreviation">Abbreviation</label>
-                            <input
-                                type="text"
-                                id="abbreviation"
-                                name="abbreviation"
-                                value={formData.abbreviation}
-                                onChange={handleChange}
-                            />
-                        </div>
+                    <div className="form-group">
+                        <label htmlFor="role">
+                            <Tag size={16} />
+                            Role Template *
+                        </label>
+                        <select
+                            id="role"
+                            name="role"
+                            value={formData.role}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="">Select Role</option>
+                            {roles.map(role => (
+                                <option key={role.id} value={role.id}>
+                                    {role.name} ({role.category})
+                                </option>
+                            ))}
+                        </select>
                     </div>
+
+                    {selectedRole && (
+                        <div className="role-info-box">
+                            <h4>Role Information</h4>
+                            <p>{selectedRole.description}</p>
+                            <div className="role-details">
+                                <div className="detail-item">
+                                    <span className="label">Category:</span>
+                                    <span className={`category-badge ${selectedRole.category}`}>
+                                        {selectedRole.category}
+                                    </span>
+                                </div>
+                                {selectedRole.min_rank && (
+                                    <div className="detail-item">
+                                        <span className="label">Min Rank:</span>
+                                        <span>{selectedRole.min_rank_details?.abbreviation}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="form-group">
                         <label htmlFor="unit">Assigned Unit *</label>
@@ -96,102 +121,95 @@ export const EditPositionModal = ({ position, units, ranks, onClose, onUpdate })
                         </select>
                     </div>
 
-                    <div className="form-group">
-                        <label htmlFor="description">Description</label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            rows="3"
-                        />
-                    </div>
-
                     <div className="form-row">
                         <div className="form-group">
-                            <label htmlFor="min_rank">Minimum Rank</label>
-                            <select
-                                id="min_rank"
-                                name="min_rank"
-                                value={formData.min_rank}
-                                onChange={handleChange}
-                            >
-                                <option value="">No minimum</option>
-                                {ranks.map(rank => (
-                                    <option key={rank.id} value={rank.id}>
-                                        {rank.abbreviation} - {rank.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="max_rank">Maximum Rank</label>
-                            <select
-                                id="max_rank"
-                                name="max_rank"
-                                value={formData.max_rank}
-                                onChange={handleChange}
-                            >
-                                <option value="">No maximum</option>
-                                {ranks.map(rank => (
-                                    <option key={rank.id} value={rank.id}>
-                                        {rank.abbreviation} - {rank.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="responsibilities">Responsibilities</label>
-                        <textarea
-                            id="responsibilities"
-                            name="responsibilities"
-                            value={formData.responsibilities}
-                            onChange={handleChange}
-                            rows="3"
-                        />
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="max_slots">
-                                <Hash size={16} />
-                                Maximum Slots
+                            <label htmlFor="identifier">
+                                Identifier
+                                <span className="field-hint">For multiple positions (e.g., "1st", "Alpha")</span>
                             </label>
                             <input
-                                type="number"
-                                id="max_slots"
-                                name="max_slots"
-                                value={formData.max_slots}
+                                type="text"
+                                id="identifier"
+                                name="identifier"
+                                value={formData.identifier}
                                 onChange={handleChange}
-                                min="1"
-                                max="99"
+                                placeholder="e.g., 1st, Alpha, Senior"
                             />
                         </div>
-                        <div className="form-group checkbox-group">
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    name="is_command_position"
-                                    checked={formData.is_command_position}
-                                    onChange={handleChange}
-                                />
-                                <Star size={16} />
-                                Command Position
+                        <div className="form-group">
+                            <label htmlFor="title">
+                                Custom Title
+                                <span className="field-hint">Override default title</span>
                             </label>
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    name="is_staff_position"
-                                    checked={formData.is_staff_position}
-                                    onChange={handleChange}
-                                />
-                                <Users size={16} />
-                                Staff Position
-                            </label>
+                            <input
+                                type="text"
+                                id="title"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleChange}
+                                placeholder="e.g., Senior Company Commander"
+                            />
                         </div>
                     </div>
+
+                    <div className="form-group checkbox-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="is_active"
+                                checked={formData.is_active}
+                                onChange={handleChange}
+                            />
+                            Position is Active
+                        </label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="is_vacant"
+                                checked={formData.is_vacant}
+                                onChange={handleChange}
+                            />
+                            Position is Vacant
+                        </label>
+                    </div>
+
+                    <details className="advanced-section">
+                        <summary>Advanced Options</summary>
+
+                        <div className="form-group">
+                            <label htmlFor="additional_requirements">Additional Requirements</label>
+                            <textarea
+                                id="additional_requirements"
+                                name="additional_requirements"
+                                value={formData.additional_requirements}
+                                onChange={handleChange}
+                                rows="2"
+                                placeholder="Any position-specific requirements..."
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="notes">Notes</label>
+                            <textarea
+                                id="notes"
+                                name="notes"
+                                value={formData.notes}
+                                onChange={handleChange}
+                                rows="2"
+                                placeholder="Internal notes about this position..."
+                            />
+                        </div>
+                    </details>
+
+                    {position.current_holder && (
+                        <div className="current-holder-info">
+                            <h4>Current Assignment</h4>
+                            <div className="holder-details">
+                                <span>Assigned to: {position.current_holder.rank} {position.current_holder.username}</span>
+                                <p className="hint-text">To change assignment, use the Assign/Vacate buttons in the position list.</p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="modal-actions">
                         <button type="button" className="btn secondary" onClick={onClose}>

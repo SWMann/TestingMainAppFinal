@@ -1364,3 +1364,459 @@ textarea.error {
         flex-direction: column;
     }
 }
+
+/* Add these styles to your ManagementSections.css file */
+
+/* Role Management Styles */
+.role-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.role-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.role-abbreviation {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.category-badge.command {
+    background: var(--warning-bg, #FFF3CD);
+    color: var(--warning-text, #856404);
+}
+
+.category-badge.staff {
+    background: var(--info-bg, #D1ECF1);
+    color: var(--info-text, #0C5460);
+}
+
+.category-badge.nco {
+    background: var(--primary-bg, #CCE5FF);
+    color: var(--primary-text, #004085);
+}
+
+.category-badge.specialist {
+    background: var(--secondary-bg, #E2E3E5);
+    color: var(--secondary-text, #383D41);
+}
+
+.category-badge.medical {
+    background: #FFE5E5;
+    color: #C41E3A;
+}
+
+.category-badge.infantry {
+    background: #E5F5E5;
+    color: #2D5A2D;
+}
+
+.category-badge.armor {
+    background: #F0E5FF;
+    color: #5A2D8C;
+}
+
+.role-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.badge.nco {
+    background: #4A5568;
+    color: white;
+}
+
+.badge.specialist {
+    background: #805AD5;
+    color: white;
+}
+
+.position-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.position-count .filled {
+    color: var(--success-color, #28a745);
+}
+
+.position-count .separator {
+    color: var(--text-secondary);
+}
+
+.position-count .total {
+    color: var(--text-primary);
+}
+
+/* Position with Role Styles */
+.position-identifier {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.role-info-box {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.role-info-box h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.role-info-box p {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+}
+
+.role-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-item .label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Advanced Options Section */
+.advanced-section {
+    margin-top: 20px;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 8px;
+    padding: 0;
+}
+
+.advanced-section summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.advanced-section summary::-webkit-details-marker {
+    display: none;
+}
+
+.advanced-section summary::after {
+    content: '▼';
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.advanced-section[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.advanced-section[open] summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.advanced-section[open] {
+    padding-bottom: 16px;
+}
+
+.advanced-section > *:not(summary) {
+    padding: 0 16px;
+}
+
+/* Field Hints */
+.field-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-weight: normal;
+}
+
+/* Role Form Sections */
+.form-section {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+}
+
+/* Checkbox Grid */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-item:hover {
+    background: var(--bg-secondary, #f8f9fa);
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Warning Banner */
+.warning-banner {
+    background: var(--warning-bg, #FFF3CD);
+    border: 1px solid var(--warning-border, #FFEAA7);
+    color: var(--warning-text, #856404);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.warning-banner p {
+    margin: 0;
+}
+
+/* Current Holder Info */
+.current-holder-info {
+    background: var(--info-bg, #D1ECF1);
+    border: 1px solid var(--info-border, #BEE5EB);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.current-holder-info h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--info-text, #0C5460);
+}
+
+.holder-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.holder-details .hint-text {
+    font-size: 0.875rem;
+    color: var(--info-text, #0C5460);
+    margin-top: 4px;
+}
+
+/* Assign Position Modal Styles */
+.position-details-box {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.user-filter-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.filter-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.filter-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.user-option.ineligible {
+    opacity: 0.6;
+}
+
+.user-option.ineligible:hover {
+    background: var(--bg-secondary, #f8f9fa);
+}
+
+.user-stage {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.user-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.eligible-badge {
+    background: var(--success-bg, #D4EDDA);
+    color: var(--success-text, #155724);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.rank-status {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.rank-status.below {
+    color: var(--warning-color, #FFC107);
+}
+
+.rank-status.above {
+    color: var(--danger-color, #DC3545);
+}
+
+.service-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Stats Grid in Unit Details */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 16px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color, #007bff);
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Updated Position Item in Unit Details */
+.position-item {
+    padding: 16px;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.position-item .position-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.position-item .identifier {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.position-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.position-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.position-info .holder,
+.position-info .vacant {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+}
+
+.position-info .vacant {
+    color: var(--text-secondary);
+    font-style: italic;
+}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     X, Edit, User, ChevronRight, MapPin, Calendar,
-    Users, Briefcase, Shield
+    Users, Briefcase, Shield, Star, Tag
 } from 'lucide-react';
 
 export const UnitDetailsPanel = ({ unit, onClose, onEdit, onAssignCommander, onRefresh }) => {
@@ -144,6 +144,32 @@ export const UnitDetailsPanel = ({ unit, onClose, onEdit, onAssignCommander, onR
                             )}
 
                             <div className="detail-section">
+                                <h4>Statistics</h4>
+                                <div className="stats-grid">
+                                    <div className="stat-item">
+                                        <span className="stat-value">{unit.personnel_count || 0}</span>
+                                        <span className="stat-label">Personnel</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{unit.positions?.filter(p => !p.is_vacant).length || 0}</span>
+                                        <span className="stat-label">Filled Positions</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{unit.positions?.filter(p => p.is_vacant).length || 0}</span>
+                                        <span className="stat-label">Vacant Positions</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">
+                                            {unit.positions?.length > 0
+                                                ? Math.round((unit.positions.filter(p => !p.is_vacant).length / unit.positions.length) * 100)
+                                                : 0}%
+                                        </span>
+                                        <span className="stat-label">Fill Rate</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="detail-section">
                                 <h4>Actions</h4>
                                 <div className="section-actions">
                                     <button className="section-action-btn" onClick={onEdit}>
@@ -174,10 +200,14 @@ export const UnitDetailsPanel = ({ unit, onClose, onEdit, onAssignCommander, onR
                                                 <div className="member-name">
                                                     {member.rank?.abbreviation} {member.username}
                                                 </div>
-                                                <div className="member-position">{member.position}</div>
+                                                <div className="member-position">
+                                                    {member.position || member.role}
+                                                </div>
                                             </div>
                                             <div className="member-meta">
-                                                {member.is_primary && <span className="primary-badge">Primary</span>}
+                                                {member.assignment_type === 'primary' && (
+                                                    <span className="primary-badge">Primary</span>
+                                                )}
                                                 <span className="status-text">{member.status}</span>
                                             </div>
                                         </div>
@@ -199,21 +229,43 @@ export const UnitDetailsPanel = ({ unit, onClose, onEdit, onAssignCommander, onR
                                     {unit.positions.map(position => (
                                         <div key={position.id} className="position-item">
                                             <div className="position-header">
-                                                <h5>{position.title}</h5>
-                                                {position.abbreviation && (
-                                                    <span className="abbreviation">({position.abbreviation})</span>
+                                                <h5>{position.display_title || position.role_name}</h5>
+                                                {position.identifier && (
+                                                    <span className="identifier">({position.identifier})</span>
                                                 )}
                                             </div>
-                                            <div className="position-badges">
-                                                {position.is_command_position && (
-                                                    <span className="badge command">Command</span>
-                                                )}
-                                                {position.is_staff_position && (
-                                                    <span className="badge staff">Staff</span>
-                                                )}
-                                                <span className="slots-badge">
-                                                    {position.max_slots} slot{position.max_slots !== 1 ? 's' : ''}
-                                                </span>
+                                            <div className="position-details">
+                                                <div className="position-info">
+                                                    <span className={`role-category ${position.role_category}`}>
+                                                        <Tag size={14} />
+                                                        {position.role_category}
+                                                    </span>
+                                                    {position.current_holder ? (
+                                                        <span className="holder">
+                                                            <User size={14} />
+                                                            {position.current_holder.rank} {position.current_holder.username}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="vacant">
+                                                            <User size={14} />
+                                                            Vacant
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="position-badges">
+                                                    {position.role_details?.is_command_role && (
+                                                        <span className="badge command">
+                                                            <Star size={14} />
+                                                            Command
+                                                        </span>
+                                                    )}
+                                                    {position.role_details?.is_staff_role && (
+                                                        <span className="badge staff">
+                                                            <Users size={14} />
+                                                            Staff
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

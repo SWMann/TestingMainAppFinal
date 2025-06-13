@@ -4,7 +4,7 @@ import {
     ChevronRight, MoreVertical, Calendar, MapPin, User,
     GitBranch, Briefcase, X, Check, AlertCircle, Eye,
     ChevronDown, ChevronUp, Flag, Award, FileText,
-    Star, Hash, Layers, UserCheck
+    Star, Hash, Layers, UserCheck, Tag
 } from 'lucide-react';
 import './ManagementSections.css';
 import api from "../../../../services/api";
@@ -14,6 +14,9 @@ import {AssignCommanderModal} from "../../../modals/AssignCommanderModal";
 import {UnitHierarchyModal} from "../../../modals/UnitHierarchyModal";
 import {CreatePositionModal} from "../../../modals/CreatePositionModal";
 import {EditPositionModal} from "../../../modals/EditPositionModal";
+import {CreateRoleModal} from "../../../modals/CreateRoleModal";
+import {EditRoleModal} from "../../../modals/EditRoleModal";
+import {AssignPositionModal} from "../../../modals/AssignPositionModal";
 import {UnitDetailsPanel} from "./UnitDetailsPanel";
 
 const UnitManagement = () => {
@@ -21,14 +24,17 @@ const UnitManagement = () => {
     const [units, setUnits] = useState([]);
     const [branches, setBranches] = useState([]);
     const [positions, setPositions] = useState([]);
+    const [roles, setRoles] = useState([]);
     const [ranks, setRanks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBy, setFilterBy] = useState('all');
     const [filterBranch, setFilterBranch] = useState('all');
+    const [filterCategory, setFilterCategory] = useState('all');
     const [sortBy, setSortBy] = useState('name');
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [selectedPosition, setSelectedPosition] = useState(null);
+    const [selectedRole, setSelectedRole] = useState(null);
     const [showUnitDetails, setShowUnitDetails] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -36,6 +42,9 @@ const UnitManagement = () => {
     const [showHierarchyModal, setShowHierarchyModal] = useState(false);
     const [showCreatePositionModal, setShowCreatePositionModal] = useState(false);
     const [showEditPositionModal, setShowEditPositionModal] = useState(false);
+    const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
+    const [showAssignPositionModal, setShowAssignPositionModal] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [expandedUnits, setExpandedUnits] = useState(new Set());
 
@@ -46,16 +55,18 @@ const UnitManagement = () => {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const [unitsResponse, branchesResponse, positionsResponse, ranksResponse] = await Promise.all([
+            const [unitsResponse, branchesResponse, positionsResponse, rolesResponse, ranksResponse] = await Promise.all([
                 api.get('/units/'),
                 api.get('/branches/'),
                 api.get('/positions/'),
+                api.get('/roles/'),
                 api.get('/ranks/')
             ]);
 
             setUnits(unitsResponse.data.results || unitsResponse.data);
             setBranches(branchesResponse.data.results || branchesResponse.data);
             setPositions(positionsResponse.data.results || positionsResponse.data);
+            setRoles(rolesResponse.data.results || rolesResponse.data);
             setRanks(ranksResponse.data.results || ranksResponse.data);
         } catch (error) {
             console.error('Error fetching initial data:', error);
@@ -113,6 +124,31 @@ const UnitManagement = () => {
         }
     };
 
+    const handleCreateRole = async (roleData) => {
+        try {
+            await api.post('/roles/', roleData);
+            await fetchInitialData();
+            setShowCreateRoleModal(false);
+            showNotification('Role created successfully', 'success');
+        } catch (error) {
+            console.error('Error creating role:', error);
+            showNotification('Failed to create role', 'error');
+        }
+    };
+
+    const handleUpdateRole = async (roleData) => {
+        try {
+            await api.put(`/roles/${selectedRole.id}/`, roleData);
+            await fetchInitialData();
+            setShowEditRoleModal(false);
+            setSelectedRole(null);
+            showNotification('Role updated successfully', 'success');
+        } catch (error) {
+            console.error('Error updating role:', error);
+            showNotification('Failed to update role', 'error');
+        }
+    };
+
     const handleCreatePosition = async (positionData) => {
         try {
             await api.post('/positions/', positionData);
@@ -150,6 +186,38 @@ const UnitManagement = () => {
         } catch (error) {
             console.error('Error deleting position:', error);
             showNotification('Failed to delete position. It may have assigned users.', 'error');
+        }
+    };
+
+    const handleAssignPosition = async (positionId, userId) => {
+        try {
+            await api.post(`/positions/${positionId}/assign/`, {
+                user_id: userId,
+                assignment_type: 'primary'
+            });
+
+            await fetchInitialData();
+            setShowAssignPositionModal(false);
+            setSelectedPosition(null);
+            showNotification('User assigned to position successfully', 'success');
+        } catch (error) {
+            console.error('Error assigning position:', error);
+            showNotification(error.response?.data?.error || 'Failed to assign position', 'error');
+        }
+    };
+
+    const handleVacatePosition = async (positionId) => {
+        if (!window.confirm('Are you sure you want to vacate this position?')) {
+            return;
+        }
+
+        try {
+            await api.post(`/positions/${positionId}/vacate/`);
+            await fetchInitialData();
+            showNotification('Position vacated successfully', 'success');
+        } catch (error) {
+            console.error('Error vacating position:', error);
+            showNotification('Failed to vacate position', 'error');
         }
     };
 
@@ -253,11 +321,25 @@ const UnitManagement = () => {
     // Filter positions
     const filteredPositions = positions.filter(position => {
         const matchesSearch =
-            position.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            position.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            position.display_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            position.role_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             position.unit_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
         return matchesSearch;
+    });
+
+    // Filter roles
+    const filteredRoles = roles.filter(role => {
+        const matchesSearch =
+            role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            role.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            role.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesCategory =
+            filterCategory === 'all' ||
+            role.category === filterCategory;
+
+        return matchesSearch && matchesCategory;
     });
 
     // Build hierarchical structure
@@ -402,48 +484,55 @@ const UnitManagement = () => {
                 <td>
                     <div className="position-info">
                         <div>
-                            <div className="position-title">{position.title}</div>
-                            {position.abbreviation && (
-                                <div className="position-abbreviation">{position.abbreviation}</div>
+                            <div className="position-title">{position.display_title || position.role_name}</div>
+                            {position.identifier && (
+                                <div className="position-identifier">{position.identifier}</div>
                             )}
                         </div>
                     </div>
                 </td>
                 <td>{position.unit_name || <span className="no-data">Not assigned</span>}</td>
                 <td>
-                    <div className="position-badges">
-                        {position.is_command_position && (
-                            <span className="badge command">
-                                <Star size={14} />
-                                Command
-                            </span>
-                        )}
-                        {position.is_staff_position && (
-                            <span className="badge staff">
-                                <Users size={14} />
-                                Staff
-                            </span>
-                        )}
+                    <div className="role-info">
+                        <span className="role-name">{position.role_name}</span>
+                        <span className={`role-category ${position.role_category}`}>
+                            {position.role_category}
+                        </span>
                     </div>
                 </td>
                 <td>
-                    {position.min_rank ? (
-                        <span className="rank-requirement">
-                            {position.min_rank.abbreviation}
-                            {position.max_rank && ` - ${position.max_rank.abbreviation}`}
-                        </span>
+                    {position.current_holder ? (
+                        <div className="holder-cell">
+                            <span>{position.current_holder.rank} {position.current_holder.username}</span>
+                        </div>
                     ) : (
-                        <span className="no-data">No requirement</span>
+                        <span className={`vacancy-badge ${position.is_vacant ? 'vacant' : 'filled'}`}>
+                            {position.is_vacant ? 'Vacant' : 'Filled'}
+                        </span>
                     )}
                 </td>
                 <td>
-                    <span className="slots-badge">
-                        <Hash size={14} />
-                        {position.max_slots} slot{position.max_slots !== 1 ? 's' : ''}
-                    </span>
-                </td>
-                <td>
                     <div className="action-cell">
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                setSelectedPosition(position);
+                                setShowAssignPositionModal(true);
+                            }}
+                            title="Assign User"
+                            disabled={!position.is_vacant}
+                        >
+                            <UserCheck size={16} />
+                        </button>
+                        {!position.is_vacant && (
+                            <button
+                                className="icon-btn"
+                                onClick={() => handleVacatePosition(position.id)}
+                                title="Vacate Position"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
                         <button
                             className="icon-btn"
                             onClick={() => {
@@ -467,6 +556,89 @@ const UnitManagement = () => {
         );
     };
 
+    const renderRoleRow = (role) => {
+        return (
+            <tr key={role.id}>
+                <td>
+                    <div className="role-info">
+                        <div>
+                            <div className="role-title">{role.name}</div>
+                            {role.abbreviation && (
+                                <div className="role-abbreviation">{role.abbreviation}</div>
+                            )}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span className={`category-badge ${role.category}`}>
+                        {role.category}
+                    </span>
+                </td>
+                <td>
+                    <div className="role-badges">
+                        {role.is_command_role && (
+                            <span className="badge command">
+                                <Star size={14} />
+                                Command
+                            </span>
+                        )}
+                        {role.is_staff_role && (
+                            <span className="badge staff">
+                                <Users size={14} />
+                                Staff
+                            </span>
+                        )}
+                        {role.is_nco_role && (
+                            <span className="badge nco">
+                                <Shield size={14} />
+                                NCO
+                            </span>
+                        )}
+                        {role.is_specialist_role && (
+                            <span className="badge specialist">
+                                <Award size={14} />
+                                Specialist
+                            </span>
+                        )}
+                    </div>
+                </td>
+                <td>
+                    <div className="position-count">
+                        <span className="filled">{role.filled_positions_count || 0}</span>
+                        <span className="separator">/</span>
+                        <span className="total">{role.positions_count || 0}</span>
+                    </div>
+                </td>
+                <td>
+                    <div className="action-cell">
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                setSelectedRole(role);
+                                setShowEditRoleModal(true);
+                            }}
+                            title="Edit Role"
+                        >
+                            <Edit size={16} />
+                        </button>
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                // View positions for this role
+                                setFilterBy('all');
+                                setSearchTerm(role.name);
+                                setActiveTab('positions');
+                            }}
+                            title="View Positions"
+                        >
+                            <Eye size={16} />
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        );
+    };
+
     return (
         <div className="management-section">
             <div className="section-container">
@@ -478,11 +650,17 @@ const UnitManagement = () => {
                                 <h2>Unit Management</h2>
                                 <span className="count-badge">{units.length} total</span>
                             </>
-                        ) : (
+                        ) : activeTab === 'positions' ? (
                             <>
                                 <Briefcase size={24} />
                                 <h2>Position Management</h2>
                                 <span className="count-badge">{positions.length} total</span>
+                            </>
+                        ) : (
+                            <>
+                                <Tag size={24} />
+                                <h2>Role Management</h2>
+                                <span className="count-badge">{roles.length} total</span>
                             </>
                         )}
                     </div>
@@ -504,13 +682,21 @@ const UnitManagement = () => {
                                     Create Unit
                                 </button>
                             </>
-                        ) : (
+                        ) : activeTab === 'positions' ? (
                             <button
                                 className="action-btn primary"
                                 onClick={() => setShowCreatePositionModal(true)}
                             >
                                 <Plus size={18} />
                                 Create Position
+                            </button>
+                        ) : (
+                            <button
+                                className="action-btn primary"
+                                onClick={() => setShowCreateRoleModal(true)}
+                            >
+                                <Plus size={18} />
+                                Create Role
                             </button>
                         )}
                     </div>
@@ -530,6 +716,13 @@ const UnitManagement = () => {
                     >
                         <Briefcase size={18} />
                         Positions
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'roles' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('roles')}
+                    >
+                        <Tag size={18} />
+                        Roles
                     </button>
                 </div>
 
@@ -577,6 +770,28 @@ const UnitManagement = () => {
                             </div>
                         </>
                     )}
+
+                    {activeTab === 'roles' && (
+                        <div className="filter-group">
+                            <Tag size={18} />
+                            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                                <option value="all">All Categories</option>
+                                <option value="command">Command</option>
+                                <option value="staff">Staff</option>
+                                <option value="nco">NCO</option>
+                                <option value="specialist">Specialist</option>
+                                <option value="trooper">Trooper</option>
+                                <option value="support">Support</option>
+                                <option value="medical">Medical</option>
+                                <option value="logistics">Logistics</option>
+                                <option value="intelligence">Intelligence</option>
+                                <option value="communications">Communications</option>
+                                <option value="aviation">Aviation</option>
+                                <option value="armor">Armor</option>
+                                <option value="infantry">Infantry</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <div className="data-table-container">
@@ -613,7 +828,7 @@ const UnitManagement = () => {
                                 </tbody>
                             </table>
                         )
-                    ) : (
+                    ) : activeTab === 'positions' ? (
                         filteredPositions.length === 0 ? (
                             <div className="empty-state">
                                 <Briefcase size={48} />
@@ -630,14 +845,40 @@ const UnitManagement = () => {
                                 <tr>
                                     <th>Position</th>
                                     <th>Unit</th>
-                                    <th>Type</th>
-                                    <th>Rank Requirements</th>
-                                    <th>Slots</th>
+                                    <th>Role</th>
+                                    <th>Current Holder</th>
                                     <th>Actions</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {filteredPositions.map(position => renderPositionRow(position))}
+                                </tbody>
+                            </table>
+                        )
+                    ) : (
+                        filteredRoles.length === 0 ? (
+                            <div className="empty-state">
+                                <Tag size={48} />
+                                <h3>No roles found</h3>
+                                <p>Try adjusting your search or filters</p>
+                                <button className="action-btn primary" onClick={() => setShowCreateRoleModal(true)}>
+                                    <Plus size={18} />
+                                    Create First Role
+                                </button>
+                            </div>
+                        ) : (
+                            <table className="data-table">
+                                <thead>
+                                <tr>
+                                    <th>Role</th>
+                                    <th>Category</th>
+                                    <th>Type</th>
+                                    <th>Positions</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {filteredRoles.map(role => renderRoleRow(role))}
                                 </tbody>
                             </table>
                         )
@@ -690,7 +931,7 @@ const UnitManagement = () => {
             {showCreatePositionModal && (
                 <CreatePositionModal
                     units={units}
-                    ranks={ranks}
+                    roles={roles}
                     onClose={() => setShowCreatePositionModal(false)}
                     onCreate={handleCreatePosition}
                 />
@@ -700,12 +941,45 @@ const UnitManagement = () => {
                 <EditPositionModal
                     position={selectedPosition}
                     units={units}
-                    ranks={ranks}
+                    roles={roles}
                     onClose={() => {
                         setShowEditPositionModal(false);
                         setSelectedPosition(null);
                     }}
                     onUpdate={handleUpdatePosition}
+                />
+            )}
+
+            {showCreateRoleModal && (
+                <CreateRoleModal
+                    branches={branches}
+                    ranks={ranks}
+                    onClose={() => setShowCreateRoleModal(false)}
+                    onCreate={handleCreateRole}
+                />
+            )}
+
+            {showEditRoleModal && selectedRole && (
+                <EditRoleModal
+                    role={selectedRole}
+                    branches={branches}
+                    ranks={ranks}
+                    onClose={() => {
+                        setShowEditRoleModal(false);
+                        setSelectedRole(null);
+                    }}
+                    onUpdate={handleUpdateRole}
+                />
+            )}
+
+            {showAssignPositionModal && selectedPosition && (
+                <AssignPositionModal
+                    position={selectedPosition}
+                    onClose={() => {
+                        setShowAssignPositionModal(false);
+                        setSelectedPosition(null);
+                    }}
+                    onAssign={handleAssignPosition}
                 />
             )}
 
