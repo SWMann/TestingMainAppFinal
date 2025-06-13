@@ -11,26 +11,26 @@ export const EditPositionModal = ({ position, units, roles, onClose, onUpdate })
         identifier: position.identifier || '',
         title: position.title || '',
         parent_position: position.parent_position || '',
-        override_min_rank: position.override_min_rank?.id || '',
-        override_max_rank: position.override_max_rank?.id || '',
+        override_min_rank: position.override_min_rank?.id || position.override_min_rank || '',
+        override_max_rank: position.override_max_rank?.id || position.override_max_rank || '',
         additional_requirements: position.additional_requirements || '',
         notes: position.notes || '',
         is_active: position.is_active !== false,
         is_vacant: position.is_vacant !== false
     });
 
-    const selectedRole = formData.role ? roles.find(r => r.id === parseInt(formData.role)) : null;
+    const selectedRole = formData.role ? roles.find(r => r.id === formData.role) : null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
         const submitData = {
-            role: parseInt(formData.role),
-            unit: parseInt(formData.unit),
+            role: formData.role || null,  // Keep as string/UUID
+            unit: formData.unit || null,  // Keep as string/UUID
             identifier: formData.identifier || null,
             title: formData.title || null,
-            parent_position: formData.parent_position ? parseInt(formData.parent_position) : null,
-            override_min_rank: formData.override_min_rank ? parseInt(formData.override_min_rank) : null,
-            override_max_rank: formData.override_max_rank ? parseInt(formData.override_max_rank) : null,
+            parent_position: formData.parent_position || null,  // Keep as string/UUID
+            override_min_rank: formData.override_min_rank || null,  // Keep as string/UUID
+            override_max_rank: formData.override_max_rank || null,  // Keep as string/UUID
             additional_requirements: formData.additional_requirements || null,
             notes: formData.notes || null,
             is_active: formData.is_active,

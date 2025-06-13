@@ -23,13 +23,13 @@ export const CreatePositionModal = ({ units, roles, onClose, onCreate }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         const submitData = {
-            role: parseInt(formData.role),
-            unit: parseInt(formData.unit),
+            role: formData.role || null,  // Keep as string/UUID
+            unit: formData.unit || null,  // Keep as string/UUID
             identifier: formData.identifier || null,
             title: formData.title || null,
-            parent_position: formData.parent_position ? parseInt(formData.parent_position) : null,
-            override_min_rank: formData.override_min_rank ? parseInt(formData.override_min_rank) : null,
-            override_max_rank: formData.override_max_rank ? parseInt(formData.override_max_rank) : null,
+            parent_position: formData.parent_position || null,  // Keep as string/UUID
+            override_min_rank: formData.override_min_rank || null,  // Keep as string/UUID
+            override_max_rank: formData.override_max_rank || null,  // Keep as string/UUID
             additional_requirements: formData.additional_requirements || null,
             notes: formData.notes || null,
             is_active: formData.is_active
@@ -46,13 +46,13 @@ export const CreatePositionModal = ({ units, roles, onClose, onCreate }) => {
 
         // Update selected role when role changes
         if (name === 'role' && value) {
-            const role = roles.find(r => r.id === parseInt(value));
+            const role = roles.find(r => r.id === value);  // Compare as string
             setSelectedRole(role);
         }
     };
 
     // Get the selected unit to filter positions for parent_position
-    const selectedUnit = formData.unit ? units.find(u => u.id === parseInt(formData.unit)) : null;
+    const selectedUnit = formData.unit ? units.find(u => u.id === formData.unit) : null;
 
     return (
         <div className="modal-overlay">
