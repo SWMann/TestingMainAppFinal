@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     X, Tag, Star, Users, Shield, Award, Hash
 } from 'lucide-react';
@@ -6,33 +6,66 @@ import './AdminModals.css';
 
 export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
     const [formData, setFormData] = useState({
-        name: role.name || '',
-        abbreviation: role.abbreviation || '',
-        description: role.description || '',
-        category: role.category || '',
-        is_command_role: role.is_command_role || false,
-        is_staff_role: role.is_staff_role || false,
-        is_nco_role: role.is_nco_role || false,
-        is_specialist_role: role.is_specialist_role || false,
-        parent_role: role.parent_role || '',
-        min_rank: role.min_rank || '',
-        max_rank: role.max_rank || '',
-        typical_rank: role.typical_rank || '',
-        allowed_branches: role.allowed_branches?.map(b => b.id) || [],
-        allowed_unit_types: role.allowed_unit_types || [],
-        min_time_in_service: role.min_time_in_service || 0,
-        min_time_in_grade: role.min_time_in_grade || 0,
-        min_operations_count: role.min_operations_count || 0,
-        responsibilities: role.responsibilities || '',
-        authorities: role.authorities || '',
-        icon_url: role.icon_url || '',
-        badge_url: role.badge_url || '',
-        color_code: role.color_code || '',
-        default_slots_per_unit: role.default_slots_per_unit || 1,
-        max_slots_per_unit: role.max_slots_per_unit || 1,
-        sort_order: role.sort_order || 100,
-        is_active: role.is_active !== false
+        name: '',
+        abbreviation: '',
+        description: '',
+        category: '',
+        is_command_role: false,
+        is_staff_role: false,
+        is_nco_role: false,
+        is_specialist_role: false,
+        parent_role: '',
+        min_rank: '',
+        max_rank: '',
+        typical_rank: '',
+        allowed_branches: [],
+        allowed_unit_types: [],
+        min_time_in_service: 0,
+        min_time_in_grade: 0,
+        min_operations_count: 0,
+        responsibilities: '',
+        authorities: '',
+        icon_url: '',
+        badge_url: '',
+        color_code: '',
+        default_slots_per_unit: 1,
+        max_slots_per_unit: 1,
+        sort_order: 100,
+        is_active: true
     });
+
+    useEffect(() => {
+        if (role) {
+            setFormData({
+                name: role.name || '',
+                abbreviation: role.abbreviation || '',
+                description: role.description || '',
+                category: role.category || '',
+                is_command_role: role.is_command_role || false,
+                is_staff_role: role.is_staff_role || false,
+                is_nco_role: role.is_nco_role || false,
+                is_specialist_role: role.is_specialist_role || false,
+                parent_role: role.parent_role || '',
+                min_rank: role.min_rank || '',
+                max_rank: role.max_rank || '',
+                typical_rank: role.typical_rank || '',
+                allowed_branches: role.allowed_branches?.map(b => b.id || b) || [],
+                allowed_unit_types: role.allowed_unit_types || [],
+                min_time_in_service: role.min_time_in_service || 0,
+                min_time_in_grade: role.min_time_in_grade || 0,
+                min_operations_count: role.min_operations_count || 0,
+                responsibilities: role.responsibilities || '',
+                authorities: role.authorities || '',
+                icon_url: role.icon_url || '',
+                badge_url: role.badge_url || '',
+                color_code: role.color_code || '',
+                default_slots_per_unit: role.default_slots_per_unit || 1,
+                max_slots_per_unit: role.max_slots_per_unit || 1,
+                sort_order: role.sort_order || 100,
+                is_active: role.is_active !== undefined ? role.is_active : true
+            });
+        }
+    }, [role]);
 
     const unitTypes = [
         'Corps', 'Division', 'Brigade', 'Regiment',
@@ -44,11 +77,11 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
         e.preventDefault();
         const submitData = {
             ...formData,
-            parent_role: formData.parent_role ? parseInt(formData.parent_role) : null,
-            min_rank: formData.min_rank ? parseInt(formData.min_rank) : null,
-            max_rank: formData.max_rank ? parseInt(formData.max_rank) : null,
-            typical_rank: formData.typical_rank ? parseInt(formData.typical_rank) : null,
-            allowed_branches: formData.allowed_branches.map(id => parseInt(id)),
+            parent_role: formData.parent_role || null,
+            min_rank: formData.min_rank || null,
+            max_rank: formData.max_rank || null,
+            typical_rank: formData.typical_rank || null,
+            allowed_branches: formData.allowed_branches, // Keep as array of strings/UUIDs
             min_time_in_service: parseInt(formData.min_time_in_service),
             min_time_in_grade: parseInt(formData.min_time_in_grade),
             min_operations_count: parseInt(formData.min_operations_count),
@@ -91,18 +124,12 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                 <div className="modal-header">
                     <h2>
                         <Tag size={24} />
-                        Edit Role: {role.name}
+                        Edit Role: {role?.name}
                     </h2>
                     <button className="close-btn" onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
-
-                {role.positions_count > 0 && (
-                    <div className="warning-banner">
-                        <p>This role has {role.positions_count} active positions. Changes will affect all of them.</p>
-                    </div>
-                )}
 
                 <form onSubmit={handleSubmit} className="modal-form">
                     <div className="form-section">
@@ -118,6 +145,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                                     value={formData.name}
                                     onChange={handleChange}
                                     required
+                                    placeholder="e.g., Company Commander"
                                 />
                             </div>
                             <div className="form-group">
@@ -128,6 +156,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                                     name="abbreviation"
                                     value={formData.abbreviation}
                                     onChange={handleChange}
+                                    placeholder="e.g., CO"
                                 />
                             </div>
                         </div>
@@ -166,6 +195,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                                 value={formData.description}
                                 onChange={handleChange}
                                 rows="3"
+                                placeholder="Brief description of the role..."
                             />
                         </div>
 
@@ -213,7 +243,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                             </label>
                         </div>
 
-                        <div className="form-group checkbox-group">
+                        <div className="form-group">
                             <label>
                                 <input
                                     type="checkbox"
@@ -221,7 +251,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                                     checked={formData.is_active}
                                     onChange={handleChange}
                                 />
-                                Role is Active
+                                Active Role
                             </label>
                         </div>
                     </div>
@@ -374,6 +404,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                                 value={formData.responsibilities}
                                 onChange={handleChange}
                                 rows="4"
+                                placeholder="Key responsibilities of this role..."
                             />
                         </div>
 
@@ -385,6 +416,7 @@ export const EditRoleModal = ({ role, branches, ranks, onClose, onUpdate }) => {
                                 value={formData.authorities}
                                 onChange={handleChange}
                                 rows="3"
+                                placeholder="What this role is authorized to do..."
                             />
                         </div>
                     </div>

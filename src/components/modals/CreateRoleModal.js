@@ -44,17 +44,19 @@ export const CreateRoleModal = ({ branches, ranks, onClose, onCreate }) => {
         e.preventDefault();
         const submitData = {
             ...formData,
-            parent_role: formData.parent_role ? parseInt(formData.parent_role) : null,
-            min_rank: formData.min_rank ? parseInt(formData.min_rank) : null,
-            max_rank: formData.max_rank ? parseInt(formData.max_rank) : null,
-            typical_rank: formData.typical_rank ? parseInt(formData.typical_rank) : null,
-            allowed_branches: formData.allowed_branches.map(id => parseInt(id)),
-            min_time_in_service: parseInt(formData.min_time_in_service),
-            min_time_in_grade: parseInt(formData.min_time_in_grade),
-            min_operations_count: parseInt(formData.min_operations_count),
-            default_slots_per_unit: parseInt(formData.default_slots_per_unit),
-            max_slots_per_unit: parseInt(formData.max_slots_per_unit),
-            sort_order: parseInt(formData.sort_order)
+            // Handle UUID fields - send as strings or null, never parseInt
+            parent_role: formData.parent_role || null,
+            min_rank: formData.min_rank || null,
+            max_rank: formData.max_rank || null,
+            typical_rank: formData.typical_rank || null,
+            allowed_branches: formData.allowed_branches, // Keep as array of UUID strings
+            // Only parseInt actual numeric fields
+            min_time_in_service: parseInt(formData.min_time_in_service) || 0,
+            min_time_in_grade: parseInt(formData.min_time_in_grade) || 0,
+            min_operations_count: parseInt(formData.min_operations_count) || 0,
+            default_slots_per_unit: parseInt(formData.default_slots_per_unit) || 1,
+            max_slots_per_unit: parseInt(formData.max_slots_per_unit) || 1,
+            sort_order: parseInt(formData.sort_order) || 100
         };
         onCreate(submitData);
     };
@@ -68,6 +70,7 @@ export const CreateRoleModal = ({ branches, ranks, onClose, onCreate }) => {
     };
 
     const handleBranchToggle = (branchId) => {
+        // Keep branchId as string, don't parseInt
         setFormData(prev => ({
             ...prev,
             allowed_branches: prev.allowed_branches.includes(branchId)
