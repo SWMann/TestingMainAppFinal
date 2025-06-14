@@ -10,6 +10,7 @@ import OrganizationChart from "./components/pages/OrganizationChart/Organization
 import UserProfile from "./components/pages/ProfilePage/ProfilePage";
 import UnitHierarchyEditorWrapper from "./components/pages/Test/Dashboard";
 import UnitHierarchyView from "./components/pages/UnitHierarchyPage/UnitHierarchyView"
+import OperationsManager from "./components/pages/OperationViewer/OperationManager";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -63,8 +64,10 @@ const routes = (isAuthenticated) => [
         children: [
             // Add protected routes here as you develop them
             // For example:
-            // { path: '/profile', element: <Profile /> },
-            // { path: '/settings', element: <Settings /> },
+            {
+                path: '/operations',
+                element: <OperationsManager />
+            },            // { path: '/settings', element: <Settings /> },
             // { path: '/events', element: <Events /> },
         ]
     },
