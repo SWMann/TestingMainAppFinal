@@ -231,5 +231,35 @@ export const hierarchyService = {
      */
     unsubscribeFromView: (viewId) => {
         return api.post(`/units/hierarchy/${viewId}/unsubscribe/`);
+    },
+
+    /**
+     * Create an edge/relationship in a view
+     */
+    createEdge: (viewId, edgeData) => {
+        return api.post(`/units/hierarchy/${viewId}/edges/`, edgeData);
+    },
+
+    /**
+     * Update an edge/relationship
+     */
+    updateEdge: (viewId, edgeId, updates) => {
+        return api.patch(`/units/hierarchy/${viewId}/edges/${edgeId}/`, updates);
+    },
+
+    /**
+     * Delete an edge/relationship
+     */
+    deleteEdge: (viewId, edgeId) => {
+        return api.delete(`/units/hierarchy/${viewId}/edges/${edgeId}/`);
+    },
+
+    /**
+     * Get edges for a view
+     */
+    getEdges: (viewId) => {
+        return api.get(`/units/hierarchy/${viewId}/edges/`);
     }
+
+
 };

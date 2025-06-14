@@ -72,8 +72,6 @@ const UnitHierarchyView = () => {
                         onFilterChange={setFilterConfig}
                         onFullscreen={toggleFullscreen}
                         isFullscreen={isFullscreen}
-                        viewId={currentViewId}
-                        isAdmin={user?.is_admin}
                     />
                 </div>
             </div>

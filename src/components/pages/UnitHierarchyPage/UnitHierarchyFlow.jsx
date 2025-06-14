@@ -6,7 +6,6 @@ import ReactFlow, {
     Background,
     useNodesState,
     useEdgesState,
-    useReactFlow,
     Panel,
     MarkerType,
 } from 'reactflow';
@@ -19,6 +18,7 @@ import SupportEdge from './SupportEdge';
 import CoordinationEdge from './CoordinationEdge';
 import EdgeMarkers from './EdgeMarkers';
 import EdgeContextMenu, { EdgeEditModal } from './EdgeContextMenu';
+import HierarchyToolbar from './HierarchyToolbar';
 
 // Import utilities
 import { hierarchyService } from './hierarchyService';
@@ -40,7 +40,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
     const [connectionType, setConnectionType] = useState('command');
     const [contextMenu, setContextMenu] = useState(null);
     const [editingEdge, setEditingEdge] = useState(null);
-    const reactFlowInstance = useReactFlow();
+    const [reactFlowInstance, setReactFlowInstance] = useState(null);
     const saveTimeoutRef = useRef(null);
 
     // Custom node types
@@ -145,7 +145,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
     }, [isAdmin, onNodesChange]);
 
     const savePositions = async () => {
-        if (!isAdmin || isSaving) return;
+        if (!isAdmin || isSaving || !reactFlowInstance) return;
 
         setIsSaving(true);
         const currentNodes = reactFlowInstance.getNodes();
@@ -402,6 +402,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                 onEdgeClick={onEdgeClick}
                 onEdgeContextMenu={onEdgeContextMenu}
                 onEdgesDelete={onEdgesDelete}
+                onInit={setReactFlowInstance}
 
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
@@ -435,6 +436,14 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                 />
 
                 <Controls />
+
+                {/* Toolbar with fit view, reset, export, and save */}
+                <HierarchyToolbar
+                    viewId={viewId}
+                    isAdmin={isAdmin}
+                    isSaving={isSaving}
+                    onSavingChange={setIsSaving}
+                />
 
                 {/* Connection type selector for admins */}
                 <ConnectionTypePanel />
@@ -517,4 +526,3 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 };
 
 export default UnitHierarchyFlow;
-
