@@ -18,7 +18,7 @@ import {
     getEdgeLabel
 } from './edgeUtils';
 import {useCallback, useEffect, useRef, useState} from "react";
-import {Controls, MiniMap, Panel, ReactFlow, useEdgesState, useNodesState} from "reactflow";
+import {Background, Controls, MiniMap, Panel, ReactFlow, useEdgesState, useNodesState} from "reactflow";
 import {toast} from "react-toastify";
 
 // Define node types outside component to prevent recreation on each render
