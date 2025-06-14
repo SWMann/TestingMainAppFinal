@@ -1,6 +1,6 @@
-// src/components/UnitHierarchy/Modals/ViewSettingsModal.jsx
+// src/components/pages/UnitHierarchyPage/ViewSettingsModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, EyeOff, Plus, Trash2 , ChevronDown, ChevronRight} from 'lucide-react';
+import { X, Save, Eye, EyeOff, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { hierarchyService } from './hierarchyService';
 import { unitService } from './unitService';
 import { toast } from 'react-toastify';
@@ -29,8 +29,18 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
     useEffect(() => {
         if (view) {
             setFormData({
-                ...view,
-                included_units: view.included_units || []
+                name: view.name || '',
+                description: view.description || '',
+                view_type: view.view_type || 'custom',
+                is_public: view.is_public !== undefined ? view.is_public : true,
+                is_default: view.is_default || false,
+                show_vacant_positions: view.show_vacant_positions !== undefined ? view.show_vacant_positions : true,
+                show_personnel_count: view.show_personnel_count !== undefined ? view.show_personnel_count : true,
+                included_units: view.included_units || [],
+                filter_config: {
+                    branch_ids: view.filter_config?.branch_ids || [],
+                    unit_types: view.filter_config?.unit_types || []
+                }
             });
         }
         loadAvailableData();
@@ -44,11 +54,36 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
                 unitService.getBranches()
             ]);
 
-            setAvailableUnits(unitsResponse.data);
-            setAvailableBranches(branchesResponse.data);
+            console.log('Units response:', unitsResponse);
+            console.log('Branches response:', branchesResponse);
+
+            // Handle different response formats for units
+            let unitsData = [];
+            if (Array.isArray(unitsResponse.data)) {
+                unitsData = unitsResponse.data;
+            } else if (unitsResponse.data && Array.isArray(unitsResponse.data.results)) {
+                unitsData = unitsResponse.data.results;
+            } else if (unitsResponse.data && Array.isArray(unitsResponse.data.units)) {
+                unitsData = unitsResponse.data.units;
+            }
+
+            // Handle different response formats for branches
+            let branchesData = [];
+            if (Array.isArray(branchesResponse.data)) {
+                branchesData = branchesResponse.data;
+            } else if (branchesResponse.data && Array.isArray(branchesResponse.data.results)) {
+                branchesData = branchesResponse.data.results;
+            } else if (branchesResponse.data && Array.isArray(branchesResponse.data.branches)) {
+                branchesData = branchesResponse.data.branches;
+            }
+
+            setAvailableUnits(unitsData);
+            setAvailableBranches(branchesData);
         } catch (error) {
             console.error('Failed to load data:', error);
             toast.error('Failed to load units and branches');
+            setAvailableUnits([]);
+            setAvailableBranches([]);
         } finally {
             setLoadingUnits(false);
         }
@@ -84,30 +119,38 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
     };
 
     const handleUnitToggle = (unitId) => {
-        setFormData(prev => ({
-            ...prev,
-            included_units: prev.included_units.includes(unitId)
-                ? prev.included_units.filter(id => id !== unitId)
-                : [...prev.included_units, unitId]
-        }));
+        setFormData(prev => {
+            const currentUnits = Array.isArray(prev.included_units) ? prev.included_units : [];
+            return {
+                ...prev,
+                included_units: currentUnits.includes(unitId)
+                    ? currentUnits.filter(id => id !== unitId)
+                    : [...currentUnits, unitId]
+            };
+        });
     };
 
     const handleBranchToggle = (branchId) => {
-        setFormData(prev => ({
-            ...prev,
-            filter_config: {
-                ...prev.filter_config,
-                branch_ids: prev.filter_config.branch_ids.includes(branchId)
-                    ? prev.filter_config.branch_ids.filter(id => id !== branchId)
-                    : [...prev.filter_config.branch_ids, branchId]
-            }
-        }));
+        setFormData(prev => {
+            const currentBranches = Array.isArray(prev.filter_config?.branch_ids)
+                ? prev.filter_config.branch_ids
+                : [];
+            return {
+                ...prev,
+                filter_config: {
+                    ...prev.filter_config,
+                    branch_ids: currentBranches.includes(branchId)
+                        ? currentBranches.filter(id => id !== branchId)
+                        : [...currentBranches, branchId]
+                }
+            };
+        });
     };
 
     const selectAllUnits = () => {
         setFormData(prev => ({
             ...prev,
-            included_units: availableUnits.map(unit => unit.id)
+            included_units: Array.isArray(availableUnits) ? availableUnits.map(unit => unit.id) : []
         }));
     };
 
@@ -243,15 +286,19 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
                         ) : (
                             <div className="units-selection">
                                 <div className="units-tree">
-                                    {availableUnits.filter(unit => !unit.parent_unit).map(topUnit => (
-                                        <UnitTreeItem
-                                            key={topUnit.id}
-                                            unit={topUnit}
-                                            allUnits={availableUnits}
-                                            selectedUnits={formData.included_units}
-                                            onToggle={handleUnitToggle}
-                                        />
-                                    ))}
+                                    {Array.isArray(availableUnits) && availableUnits.length > 0 ? (
+                                        availableUnits.filter(unit => !unit.parent_unit).map(topUnit => (
+                                            <UnitTreeItem
+                                                key={topUnit.id}
+                                                unit={topUnit}
+                                                allUnits={availableUnits}
+                                                selectedUnits={formData.included_units}
+                                                onToggle={handleUnitToggle}
+                                            />
+                                        ))
+                                    ) : (
+                                        <p>No units available</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -264,16 +311,23 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
                         <div className="form-group">
                             <label>Filter by Branch</label>
                             <div className="filter-options">
-                                {availableBranches.map(branch => (
-                                    <label key={branch.id} className="filter-option">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.filter_config.branch_ids.includes(branch.id)}
-                                            onChange={() => handleBranchToggle(branch.id)}
-                                        />
-                                        <span style={{ color: branch.color_code }}>{branch.name}</span>
-                                    </label>
-                                ))}
+                                {Array.isArray(availableBranches) && availableBranches.length > 0 ? (
+                                    availableBranches.map(branch => (
+                                        <label key={branch.id} className="filter-option">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    Array.isArray(formData.filter_config?.branch_ids) &&
+                                                    formData.filter_config.branch_ids.includes(branch.id)
+                                                }
+                                                onChange={() => handleBranchToggle(branch.id)}
+                                            />
+                                            <span style={{ color: branch.color_code }}>{branch.name}</span>
+                                        </label>
+                                    ))
+                                ) : (
+                                    <p>No branches available</p>
+                                )}
                             </div>
                         </div>
 
@@ -284,9 +338,14 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
                                     <label key={type} className="filter-option">
                                         <input
                                             type="checkbox"
-                                            checked={formData.filter_config.unit_types?.includes(type) || false}
+                                            checked={
+                                                Array.isArray(formData.filter_config?.unit_types) &&
+                                                formData.filter_config.unit_types.includes(type)
+                                            }
                                             onChange={(e) => {
-                                                const types = formData.filter_config.unit_types || [];
+                                                const types = Array.isArray(formData.filter_config?.unit_types)
+                                                    ? formData.filter_config.unit_types
+                                                    : [];
                                                 setFormData({
                                                     ...formData,
                                                     filter_config: {
@@ -333,9 +392,9 @@ const ViewSettingsModal = ({ view, onClose, onSave }) => {
 // Unit Tree Item Component
 const UnitTreeItem = ({ unit, allUnits, selectedUnits, onToggle, level = 0 }) => {
     const [expanded, setExpanded] = useState(true);
-    const subunits = allUnits.filter(u => u.parent_unit === unit.id);
+    const subunits = Array.isArray(allUnits) ? allUnits.filter(u => u.parent_unit === unit.id) : [];
     const hasSubunits = subunits.length > 0;
-    const isSelected = selectedUnits.includes(unit.id);
+    const isSelected = Array.isArray(selectedUnits) && selectedUnits.includes(unit.id);
 
     return (
         <div className="unit-tree-item" style={{ paddingLeft: `${level * 20}px` }}>
@@ -357,10 +416,10 @@ const UnitTreeItem = ({ unit, allUnits, selectedUnits, onToggle, level = 0 }) =>
                         onChange={() => onToggle(unit.id)}
                     />
                     <span className="unit-label">
-            <span className="unit-abbr">{unit.abbreviation}</span>
-            <span className="unit-name">{unit.name}</span>
-            <span className="unit-type">{unit.unit_type}</span>
-          </span>
+                        <span className="unit-abbr">{unit.abbreviation}</span>
+                        <span className="unit-name">{unit.name}</span>
+                        <span className="unit-type">{unit.unit_type}</span>
+                    </span>
                 </label>
             </div>
 

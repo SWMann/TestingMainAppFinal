@@ -1,4 +1,4 @@
-// src/components/UnitHierarchy/Controls/ViewSelector.jsx
+// src/components/pages/UnitHierarchyPage/ViewSelector.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
 import { hierarchyService } from './hierarchyService';
@@ -32,10 +32,28 @@ const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {
         try {
             setLoading(true);
             const response = await hierarchyService.getViews();
-            setViews(response.data);
+            console.log('Views response:', response); // Debug log
+
+            // Handle different response formats
+            let viewsData = [];
+            if (Array.isArray(response.data)) {
+                viewsData = response.data;
+            } else if (response.data && Array.isArray(response.data.results)) {
+                // Handle paginated response
+                viewsData = response.data.results;
+            } else if (response.data && Array.isArray(response.data.views)) {
+                // Handle nested views property
+                viewsData = response.data.views;
+            } else {
+                console.warn('Unexpected views response format:', response.data);
+            }
+
+            setViews(viewsData);
         } catch (error) {
             console.error('Failed to load views:', error);
             toast.error('Failed to load hierarchy views');
+            // Set empty array on error
+            setViews([]);
         } finally {
             setLoading(false);
         }
@@ -73,7 +91,7 @@ const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {
 
             // If deleted view was current, switch to default
             if (currentView === viewId) {
-                const defaultView = views.find(v => v.is_default);
+                const defaultView = Array.isArray(views) ? views.find(v => v.is_default) : null;
                 if (defaultView) {
                     onViewChange(defaultView.id);
                 }
@@ -86,10 +104,12 @@ const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {
 
     const handleViewSaved = (savedView) => {
         loadViews();
-        onViewChange(savedView.id);
+        if (savedView && savedView.id) {
+            onViewChange(savedView.id);
+        }
     };
 
-    const currentViewData = views.find(v => v.id === currentView);
+    const currentViewData = Array.isArray(views) ? views.find(v => v.id === currentView) : null;
 
     return (
         <>
@@ -102,8 +122,8 @@ const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {
                     <div className="selector-content">
                         <span className="selector-label">View:</span>
                         <span className="selector-value">
-              {loading ? 'Loading...' : (currentViewData?.name || 'Select a view')}
-            </span>
+                            {loading ? 'Loading...' : (currentViewData?.name || 'Select a view')}
+                        </span>
                     </div>
                     <ChevronDown
                         size={16}
@@ -127,7 +147,7 @@ const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {
                         </div>
 
                         <div className="view-list">
-                            {views.length > 0 ? (
+                            {Array.isArray(views) && views.length > 0 ? (
                                 views.map(view => (
                                     <div
                                         key={view.id}
@@ -148,24 +168,24 @@ const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {
                                                 <span className="view-type">{view.view_type}</span>
                                                 <span className="separator">•</span>
                                                 <span className="view-visibility">
-                          {view.is_public ? (
-                              <>
-                                  <Eye size={12} />
-                                  Public
-                              </>
-                          ) : (
-                              <>
-                                  <EyeOff size={12} />
-                                  Private
-                              </>
-                          )}
-                        </span>
-                                                {view.included_units_count !== 'All Units' && (
+                                                    {view.is_public ? (
+                                                        <>
+                                                            <Eye size={12} />
+                                                            Public
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <EyeOff size={12} />
+                                                            Private
+                                                        </>
+                                                    )}
+                                                </span>
+                                                {view.included_units_count !== undefined && view.included_units_count !== 'All Units' && (
                                                     <>
                                                         <span className="separator">•</span>
                                                         <span className="units-count">
-                              {view.included_units_count} units
-                            </span>
+                                                            {view.included_units_count} units
+                                                        </span>
                                                     </>
                                                 )}
                                             </div>

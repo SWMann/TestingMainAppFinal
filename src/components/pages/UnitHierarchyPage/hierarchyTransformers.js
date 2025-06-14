@@ -1,32 +1,41 @@
-// src/utils/hierarchyTransformers.js
+// src/components/pages/UnitHierarchyPage/hierarchyTransformers.js
 
 /**
  * Transform unit data from API to React Flow nodes format
  */
 export const transformNodesToReactFlow = (units, positions = {}) => {
-    return units.map(unit => {
-        const nodeId = unit.id.toString();
-        const position = positions[nodeId] || calculateDefaultPosition(unit, units);
+    // Ensure units is an array
+    const unitsArray = Array.isArray(units) ? units : [];
+
+    if (unitsArray.length === 0) {
+        console.warn('No units provided to transformNodesToReactFlow');
+        return [];
+    }
+
+    return unitsArray.map(unit => {
+        const nodeId = unit.id ? unit.id.toString() : '';
+        const position = positions[nodeId] || calculateDefaultPosition(unit, unitsArray);
 
         return {
             id: nodeId,
             type: 'unitNode',
             position: {
-                x: position.x,
-                y: position.y
+                x: position.x || 0,
+                y: position.y || 0
             },
             data: {
                 ...unit,
-                label: unit.name,
+                id: unit.id,
+                label: unit.name || 'Unnamed Unit',
                 // Transform positions to include current holder info
-                positions: unit.positions?.map(pos => ({
+                positions: Array.isArray(unit.positions) ? unit.positions.map(pos => ({
                     ...pos,
                     current_holder: pos.is_vacant ? null : {
                         id: pos.current_holder?.id,
                         username: pos.current_holder?.username,
                         rank: pos.current_holder?.rank
                     }
-                }))
+                })) : []
             },
             style: {
                 width: 320,
@@ -45,23 +54,31 @@ export const transformNodesToReactFlow = (units, positions = {}) => {
  * Transform edge data from API to React Flow edges format
  */
 export const transformEdgesToReactFlow = (edges) => {
-    return edges.map(edge => {
+    // Ensure edges is an array
+    const edgesArray = Array.isArray(edges) ? edges : [];
+
+    if (edgesArray.length === 0) {
+        console.warn('No edges provided to transformEdgesToReactFlow');
+        return [];
+    }
+
+    return edgesArray.map(edge => {
         const edgeType = edge.type || edge.relationship_type || 'command';
         return {
             ...edge,
             id: edge.id || `edge-${edge.source}-${edge.target}`,
-            source: edge.source.toString(),
-            target: edge.target.toString(),
+            source: edge.source ? edge.source.toString() : '',
+            target: edge.target ? edge.target.toString() : '',
             type: edgeType,
             animated: edge.animated || false,
             style: {
                 stroke: getEdgeColor(edgeType),
                 strokeWidth: 2,
-                ...edge.style
+                ...(edge.style || {})
             },
             data: {
                 label: edge.label || getEdgeLabel(edgeType),
-                ...edge.data
+                ...(edge.data || {})
             }
         };
     });
@@ -95,10 +112,10 @@ const getUnitLevel = (unit, allUnits) => {
     let level = 0;
     let currentUnit = unit;
 
-    while (currentUnit.parent_unit_id) {
+    while (currentUnit && currentUnit.parent_unit_id) {
         level++;
         currentUnit = allUnits.find(u => u.id === currentUnit.parent_unit_id);
-        if (!currentUnit) break;
+        if (!currentUnit || level > 10) break; // Prevent infinite loops
     }
 
     return level;
@@ -138,7 +155,10 @@ const getEdgeLabel = (type) => {
 export const buildHierarchyEdges = (units) => {
     const edges = [];
 
-    units.forEach(unit => {
+    // Ensure units is an array
+    const unitsArray = Array.isArray(units) ? units : [];
+
+    unitsArray.forEach(unit => {
         if (unit.parent_unit_id) {
             edges.push({
                 id: `e${unit.parent_unit_id}-${unit.id}`,
@@ -157,16 +177,20 @@ export const buildHierarchyEdges = (units) => {
  * Filter nodes based on filter configuration
  */
 export const filterNodes = (nodes, filterConfig) => {
+    if (!Array.isArray(nodes)) {
+        return [];
+    }
+
     return nodes.map(node => {
         let hidden = false;
 
         // Filter by unit type
-        if (filterConfig.unitTypes?.length > 0) {
+        if (filterConfig.unitTypes && filterConfig.unitTypes.length > 0) {
             hidden = !filterConfig.unitTypes.includes(node.data.unit_type);
         }
 
         // Filter by branch
-        if (!hidden && filterConfig.branches?.length > 0) {
+        if (!hidden && filterConfig.branches && filterConfig.branches.length > 0) {
             hidden = !filterConfig.branches.includes(node.data.branch_name);
         }
 
@@ -186,6 +210,10 @@ export const filterNodes = (nodes, filterConfig) => {
  * Calculate layout for nodes using different algorithms
  */
 export const calculateLayout = (nodes, edges, layoutType = 'hierarchical') => {
+    if (!Array.isArray(nodes) || !Array.isArray(edges)) {
+        return nodes || [];
+    }
+
     switch (layoutType) {
         case 'hierarchical':
             return calculateHierarchicalLayout(nodes, edges);
@@ -223,9 +251,13 @@ const calculateHierarchicalLayout = (nodes, edges) => {
 
     // Calculate levels using BFS
     const queue = roots.map(root => ({ id: root.id, level: 0 }));
+    const visited = new Set();
 
     while (queue.length > 0) {
         const { id, level } = queue.shift();
+
+        if (visited.has(id)) continue;
+        visited.add(id);
 
         if (!levels.has(level)) {
             levels.set(level, []);
@@ -234,7 +266,9 @@ const calculateHierarchicalLayout = (nodes, edges) => {
 
         const nodeChildren = children.get(id) || [];
         nodeChildren.forEach(childId => {
-            queue.push({ id: childId, level: level + 1 });
+            if (!visited.has(childId)) {
+                queue.push({ id: childId, level: level + 1 });
+            }
         });
     }
 
@@ -269,6 +303,7 @@ const calculateHierarchicalLayout = (nodes, edges) => {
 const calculateRadialLayout = (nodes, edges) => {
     // Implementation for radial layout
     // This would arrange nodes in concentric circles
+    console.log('Radial layout not yet implemented');
     return nodes;
 };
 
@@ -278,6 +313,7 @@ const calculateRadialLayout = (nodes, edges) => {
 const calculateForceLayout = (nodes, edges) => {
     // Implementation for force-directed layout
     // This would use physics simulation to position nodes
+    console.log('Force layout not yet implemented');
     return nodes;
 };
 
@@ -285,6 +321,10 @@ const calculateForceLayout = (nodes, edges) => {
  * Export hierarchy to different formats
  */
 export const exportHierarchy = (nodes, edges, format = 'json') => {
+    if (!Array.isArray(nodes) || !Array.isArray(edges)) {
+        return null;
+    }
+
     switch (format) {
         case 'json':
             return JSON.stringify({ nodes, edges }, null, 2);
@@ -304,10 +344,10 @@ const exportToCSV = (nodes) => {
     const headers = ['ID', 'Name', 'Abbreviation', 'Type', 'Branch', 'Personnel Count', 'Commander'];
     const rows = nodes.map(node => [
         node.id,
-        node.data.name,
-        node.data.abbreviation,
-        node.data.unit_type,
-        node.data.branch_name,
+        node.data.name || '',
+        node.data.abbreviation || '',
+        node.data.unit_type || '',
+        node.data.branch_name || '',
         node.data.personnel_count || 0,
         node.data.commander ? `${node.data.commander.rank} ${node.data.commander.username}` : 'Vacant'
     ]);
@@ -325,6 +365,7 @@ const exportToCSV = (nodes) => {
 const exportToGraphML = (nodes, edges) => {
     // Implementation for GraphML export
     // This would create an XML format suitable for other graph tools
+    console.log('GraphML export not yet implemented');
     return '';
 };
 
@@ -334,6 +375,11 @@ const exportToGraphML = (nodes, edges) => {
 export const validateHierarchy = (nodes, edges) => {
     const errors = [];
     const warnings = [];
+
+    if (!Array.isArray(nodes) || !Array.isArray(edges)) {
+        errors.push('Invalid nodes or edges data');
+        return { errors, warnings, isValid: false };
+    }
 
     // Check for cycles
     if (hasCycles(nodes, edges)) {
@@ -423,4 +469,97 @@ const findDuplicateEdges = (edges) => {
     });
 
     return duplicates;
+};
+
+/**
+ * Get nodes at a specific hierarchical level
+ */
+export const getNodesAtLevel = (nodes, edges, level) => {
+    if (!Array.isArray(nodes) || !Array.isArray(edges)) {
+        return [];
+    }
+
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const levelNodes = [];
+
+    nodes.forEach(node => {
+        if (getNodeLevel(node, edges, nodeMap) === level) {
+            levelNodes.push(node);
+        }
+    });
+
+    return levelNodes;
+};
+
+/**
+ * Get the level of a specific node
+ */
+const getNodeLevel = (node, edges, nodeMap) => {
+    let level = 0;
+    let currentNodeId = node.id;
+
+    while (currentNodeId) {
+        const parentEdge = edges.find(e => e.target === currentNodeId);
+        if (!parentEdge) break;
+
+        level++;
+        currentNodeId = parentEdge.source;
+
+        if (level > 20) break; // Prevent infinite loops
+    }
+
+    return level;
+};
+
+/**
+ * Find all descendants of a node
+ */
+export const findDescendants = (nodeId, edges) => {
+    if (!Array.isArray(edges)) {
+        return [];
+    }
+
+    const descendants = [];
+    const queue = [nodeId];
+    const visited = new Set();
+
+    while (queue.length > 0) {
+        const currentId = queue.shift();
+
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+
+        const children = edges
+            .filter(e => e.source === currentId)
+            .map(e => e.target);
+
+        descendants.push(...children);
+        queue.push(...children);
+    }
+
+    return descendants;
+};
+
+/**
+ * Find all ancestors of a node
+ */
+export const findAncestors = (nodeId, edges) => {
+    if (!Array.isArray(edges)) {
+        return [];
+    }
+
+    const ancestors = [];
+    let currentId = nodeId;
+
+    while (currentId) {
+        const parentEdge = edges.find(e => e.target === currentId);
+        if (!parentEdge) break;
+
+        ancestors.push(parentEdge.source);
+        currentId = parentEdge.source;
+
+        if (ancestors.length > 20) break; // Prevent infinite loops
+    }
+
+    return ancestors;
 };

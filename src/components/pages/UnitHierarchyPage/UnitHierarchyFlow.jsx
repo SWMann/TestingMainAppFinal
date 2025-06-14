@@ -1,4 +1,4 @@
-// src/components/UnitHierarchy/UnitHierarchyFlow.jsx
+// src/components/pages/UnitHierarchyPage/UnitHierarchyFlow.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactFlow, {
     MiniMap,
@@ -57,7 +57,9 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 
     // Load hierarchy data
     useEffect(() => {
-        loadHierarchyData(viewId);
+        if (viewId) {
+            loadHierarchyData(viewId);
+        }
     }, [viewId]);
 
     // Apply filters
@@ -70,26 +72,59 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
     const loadHierarchyData = async (id) => {
         try {
             setLoading(true);
+            console.log('Loading hierarchy data for view:', id);
+
             const response = await hierarchyService.getViewData(id);
-            const { nodes: nodeData, edges: edgeData, node_positions, view } = response.data;
+            console.log('Hierarchy data response:', response);
+
+            if (!response || !response.data) {
+                throw new Error('Invalid response format');
+            }
+
+            const {
+                nodes: nodeData = [],
+                edges: edgeData = [],
+                node_positions = {},
+                view = null
+            } = response.data;
+
+            // Validate data
+            if (!Array.isArray(nodeData)) {
+                console.error('Nodes data is not an array:', nodeData);
+                setNodes([]);
+                setEdges([]);
+                toast.error('Invalid nodes data received');
+                return;
+            }
+
+            if (!Array.isArray(edgeData)) {
+                console.error('Edges data is not an array:', edgeData);
+            }
 
             // Transform nodes for React Flow
             const flowNodes = transformNodesToReactFlow(nodeData, node_positions);
+            console.log('Transformed nodes:', flowNodes);
 
             // Transform edges with custom markers and styles
-            const flowEdges = edgeData.map(edge => ({
-                ...edge,
-                id: edge.id || `edge-${edge.source}-${edge.target}`,
-                source: edge.source.toString(),
-                target: edge.target.toString(),
-                type: edge.type || 'command',
-                markerEnd: getEdgeMarker(edge.type || 'command', false),
-                style: getEdgeStyle(edge.type || 'command', false),
-                data: {
-                    label: edge.data?.label || getEdgeLabel(edge.type || 'command'),
-                    ...edge.data
-                }
-            }));
+            const flowEdges = Array.isArray(edgeData) ? edgeData.map(edge => {
+                if (!edge) return null;
+
+                return {
+                    ...edge,
+                    id: edge.id || `edge-${edge.source}-${edge.target}`,
+                    source: edge.source ? edge.source.toString() : '',
+                    target: edge.target ? edge.target.toString() : '',
+                    type: edge.type || 'command',
+                    markerEnd: getEdgeMarker(edge.type || 'command', false),
+                    style: getEdgeStyle(edge.type || 'command', false),
+                    data: {
+                        label: edge.data?.label || getEdgeLabel(edge.type || 'command'),
+                        ...(edge.data || {})
+                    }
+                };
+            }).filter(Boolean) : [];
+
+            console.log('Transformed edges:', flowEdges);
 
             setNodes(flowNodes);
             setEdges(flowEdges);
@@ -97,25 +132,35 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
         } catch (error) {
             console.error('Failed to load hierarchy data:', error);
             toast.error('Failed to load hierarchy data');
+            // Set empty states on error
+            setNodes([]);
+            setEdges([]);
+            setSelectedView(null);
         } finally {
             setLoading(false);
         }
     };
 
     const applyFilters = () => {
-        setNodes(nodes => nodes.map(node => ({
-            ...node,
-            hidden: !shouldShowNode(node),
-            data: {
-                ...node.data,
-                showVacant: filterConfig.showVacant,
-                showPersonnelCount: filterConfig.showPersonnelCount
-            }
-        })));
+        setNodes(nodes => {
+            if (!Array.isArray(nodes)) return [];
+
+            return nodes.map(node => ({
+                ...node,
+                hidden: !shouldShowNode(node),
+                data: {
+                    ...node.data,
+                    showVacant: filterConfig.showVacant,
+                    showPersonnelCount: filterConfig.showPersonnelCount
+                }
+            }));
+        });
     };
 
     const shouldShowNode = (node) => {
-        const { unitTypes, branches } = filterConfig;
+        if (!node || !node.data) return true;
+
+        const { unitTypes = [], branches = [] } = filterConfig || {};
 
         if (unitTypes.length > 0 && !unitTypes.includes(node.data.unit_type)) {
             return false;
@@ -130,10 +175,10 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 
     // Handle node position changes
     const handleNodesChange = useCallback((changes) => {
-        if (isAdmin) {
-            onNodesChange(changes);
+        onNodesChange(changes);
 
-            // Auto-save positions after 2 seconds of inactivity
+        // Auto-save positions after 2 seconds of inactivity (admin only)
+        if (isAdmin && changes.some(change => change.type === 'position' && !change.dragging)) {
             if (saveTimeoutRef.current) {
                 clearTimeout(saveTimeoutRef.current);
             }
@@ -150,11 +195,18 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
         setIsSaving(true);
         const currentNodes = reactFlowInstance.getNodes();
 
+        if (!Array.isArray(currentNodes)) {
+            setIsSaving(false);
+            return;
+        }
+
         const positions = currentNodes.reduce((acc, node) => {
-            acc[node.id] = {
-                x: node.position.x,
-                y: node.position.y
-            };
+            if (node && node.id && node.position) {
+                acc[node.id] = {
+                    x: node.position.x || 0,
+                    y: node.position.y || 0
+                };
+            }
             return acc;
         }, {});
 
@@ -171,18 +223,22 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 
     // Handle edge selection
     const onEdgeClick = useCallback((event, edge) => {
+        if (!edge) return;
+
         setEdges((eds) =>
-            eds.map((e) => ({
+            Array.isArray(eds) ? eds.map((e) => ({
                 ...e,
                 selected: e.id === edge.id,
                 markerEnd: getEdgeMarker(e.type || 'command', e.id === edge.id),
                 style: getEdgeStyle(e.type || 'command', e.id === edge.id),
-            }))
+            })) : []
         );
     }, [setEdges]);
 
     // Handle edge right-click
     const onEdgeContextMenu = useCallback((event, edge) => {
+        if (!edge) return;
+
         event.preventDefault();
         event.stopPropagation();
 
@@ -199,9 +255,19 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
             return;
         }
 
+        if (!params || !params.source || !params.target) {
+            toast.error('Invalid connection parameters');
+            return;
+        }
+
         // Validate connection
-        const sourceNode = nodes.find(n => n.id === params.source);
-        const targetNode = nodes.find(n => n.id === params.target);
+        const sourceNode = Array.isArray(nodes) ? nodes.find(n => n.id === params.source) : null;
+        const targetNode = Array.isArray(nodes) ? nodes.find(n => n.id === params.target) : null;
+
+        if (!sourceNode || !targetNode) {
+            toast.error('Invalid source or target node');
+            return;
+        }
 
         if (!validateEdgeConnection(sourceNode, targetNode, connectionType)) {
             toast.error('Invalid connection for this relationship type');
@@ -219,14 +285,22 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                 }
             });
 
+            if (!response || !response.data) {
+                throw new Error('Invalid response from server');
+            }
+
             // Add edge to local state with proper styling
             const newEdge = {
                 ...response.data,
+                id: response.data.id || `edge-${params.source}-${params.target}`,
+                source: params.source.toString(),
+                target: params.target.toString(),
+                type: connectionType,
                 style: getEdgeStyle(connectionType),
                 markerEnd: getEdgeMarker(connectionType),
             };
 
-            setEdges((eds) => [...eds, newEdge]);
+            setEdges((eds) => Array.isArray(eds) ? [...eds, newEdge] : [newEdge]);
             toast.success(`${connectionType} relationship created`);
         } catch (error) {
             toast.error('Failed to create relationship');
@@ -241,20 +315,26 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
             return;
         }
 
-        deletedEdges.forEach(edge => {
-            toast.info(`Removed ${edge.type || 'command'} relationship`);
-        });
+        if (Array.isArray(deletedEdges)) {
+            deletedEdges.forEach(edge => {
+                if (edge) {
+                    toast.info(`Removed ${edge.type || 'command'} relationship`);
+                }
+            });
+        }
     }, [isAdmin]);
 
     // Handle edge type change
     const handleChangeEdgeType = useCallback(async (edgeId, newType) => {
+        if (!edgeId || !newType) return;
+
         try {
             await hierarchyService.updateEdge(viewId, edgeId, {
                 type: newType
             });
 
             setEdges((edges) =>
-                edges.map((edge) =>
+                Array.isArray(edges) ? edges.map((edge) =>
                     edge.id === edgeId
                         ? {
                             ...edge,
@@ -267,7 +347,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                             },
                         }
                         : edge
-                )
+                ) : []
             );
             toast.success(`Changed relationship type to ${newType}`);
         } catch (error) {
@@ -278,9 +358,11 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 
     // Handle edge deletion from context menu
     const handleDeleteEdge = useCallback(async (edgeId) => {
+        if (!edgeId) return;
+
         try {
             await hierarchyService.deleteEdge(viewId, edgeId);
-            setEdges((edges) => edges.filter((edge) => edge.id !== edgeId));
+            setEdges((edges) => Array.isArray(edges) ? edges.filter((edge) => edge.id !== edgeId) : []);
             toast.success('Relationship deleted');
         } catch (error) {
             toast.error('Failed to delete relationship');
@@ -290,19 +372,23 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 
     // Handle edge edit
     const handleEditEdge = useCallback((edge) => {
-        setEditingEdge(edge);
-        setContextMenu(null);
+        if (edge) {
+            setEditingEdge(edge);
+            setContextMenu(null);
+        }
     }, []);
 
     // Save edge changes
     const handleSaveEdgeChanges = useCallback(async (edgeId, updates) => {
+        if (!edgeId || !updates) return;
+
         try {
             await hierarchyService.updateEdge(viewId, edgeId, {
                 data: updates
             });
 
             setEdges((edges) =>
-                edges.map((edge) =>
+                Array.isArray(edges) ? edges.map((edge) =>
                     edge.id === edgeId
                         ? {
                             ...edge,
@@ -318,7 +404,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                             className: updates.priority === 'high' ? 'edge-priority-high' : '',
                         }
                         : edge
-                )
+                ) : []
             );
             toast.success('Relationship updated');
             setEditingEdge(null);
@@ -348,14 +434,14 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                     display: 'flex',
                     gap: '0.5rem',
                 }}>
-          <span style={{
-              fontSize: '0.875rem',
-              color: '#999',
-              alignSelf: 'center',
-              marginRight: '0.5rem',
-          }}>
-            Connection Type:
-          </span>
+                    <span style={{
+                        fontSize: '0.875rem',
+                        color: '#999',
+                        alignSelf: 'center',
+                        marginRight: '0.5rem',
+                    }}>
+                        Connection Type:
+                    </span>
                     {connectionTypes.map(type => (
                         <button
                             key={type.value}
@@ -378,6 +464,15 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
             </Panel>
         );
     };
+
+    // Cleanup save timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, []);
 
     if (loading) {
         return (
@@ -425,7 +520,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
                 />
 
                 <MiniMap
-                    nodeColor={(node) => node.data.branch_color || '#4a5d23'}
+                    nodeColor={(node) => node.data?.branch_color || '#4a5d23'}
                     style={{
                         height: 120,
                         backgroundColor: '#0d0d0d',
