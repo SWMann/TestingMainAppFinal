@@ -1,0 +1,234 @@
+/* src/components/UnitHierarchy/styles/EdgeStyles.css */
+/* Add this to your UnitHierarchy.css or import separately */
+
+/* Edge Label Styles */
+.command-edge-label,
+.support-edge-label,
+.coordination-edge-label {
+    user-select: none;
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.command-edge-label:hover > div,
+.support-edge-label:hover > div,
+.coordination-edge-label:hover > div {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Edge interaction area */
+.react-flow__edge-interaction {
+    cursor: pointer;
+}
+
+.react-flow__edge-interaction:hover {
+    stroke-width: 30;
+}
+
+/* Edge selection */
+.react-flow__edge.selected {
+    z-index: 10;
+}
+
+/* Connection line style while dragging */
+.react-flow__connection {
+    stroke: #666;
+    stroke-dasharray: 5;
+    animation: dashdraw 0.5s linear infinite;
+}
+
+.react-flow__connection-path {
+    stroke: #666;
+    stroke-width: 2;
+}
+
+@keyframes dashdraw {
+    from {
+        stroke-dashoffset: 10;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Connection type panel */
+.connection-type-panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.connection-type-panel button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Edge legend panel */
+.edge-legend {
+    background: transparent !important;
+    border: none !important;
+    margin-bottom: 10px;
+}
+
+/* Edge type specific animations */
+.react-flow__edge-path.support {
+    animation: supportPulse 3s ease-in-out infinite;
+}
+
+@keyframes supportPulse {
+    0%, 100% {
+        stroke-opacity: 1;
+    }
+    50% {
+        stroke-opacity: 0.7;
+    }
+}
+
+/* Operational edge animation */
+.react-flow__edge-path.operational {
+    stroke-dasharray: 16 4;
+    animation: operationalFlow 20s linear infinite;
+}
+
+@keyframes operationalFlow {
+    from {
+        stroke-dashoffset: 0;
+    }
+    to {
+        stroke-dashoffset: -40;
+    }
+}
+
+/* Edge hover effects */
+.react-flow__edge:hover .react-flow__edge-path {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 3px currentColor);
+}
+
+/* Custom edge tooltips */
+.edge-tooltip {
+    position: absolute;
+    background: #0d0d0d;
+    border: 1px solid #2d2d2d;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    color: #fff;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.edge-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #2d2d2d;
+}
+
+/* Edge context menu */
+.edge-context-menu {
+    position: absolute;
+    background: #0d0d0d;
+    border: 1px solid #2d2d2d;
+    border-radius: 6px;
+    padding: 0.5rem 0;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.edge-context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.edge-context-menu-item:hover {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.edge-context-menu-item.danger {
+    color: #ef4444;
+}
+
+.edge-context-menu-item.danger:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+.edge-context-menu-divider {
+    height: 1px;
+    background: #2d2d2d;
+    margin: 0.25rem 0;
+}
+
+/* Edge priority indicators */
+.edge-priority-high {
+    filter: drop-shadow(0 0 4px #ef4444);
+}
+
+.edge-priority-medium {
+    filter: drop-shadow(0 0 3px #f59e0b);
+}
+
+/* Bidirectional edge styling */
+.react-flow__edge.bidirectional .react-flow__edge-path {
+    stroke-width: 3;
+}
+
+.react-flow__edge.bidirectional::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    stroke: inherit;
+    stroke-width: 3;
+    stroke-dasharray: 5 5;
+    opacity: 0.5;
+}
+
+/* Edge strength variations */
+.react-flow__edge[data-strength="weak"] .react-flow__edge-path {
+    opacity: 0.5;
+    stroke-width: 1.5;
+}
+
+.react-flow__edge[data-strength="strong"] .react-flow__edge-path {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 2px currentColor);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .connection-type-panel {
+        transform: scale(0.9);
+        transform-origin: top left;
+    }
+
+    .edge-legend {
+        transform: scale(0.85);
+        transform-origin: bottom left;
+    }
+
+    .react-flow__edge-interaction {
+        stroke-width: 30;
+    }
+}
