@@ -57,17 +57,17 @@ const routes = (isAuthenticated) => [
         path: '/units/hierarchy/:viewId',
         element: <UnitHierarchyView />
     },
-
+    {
+        path: '/operations',
+        element: <OperationsManager />
+    },
     // Protected routes
     {
         element: <ProtectedRoute isAuthenticated={isAuthenticated} />,
         children: [
             // Add protected routes here as you develop them
             // For example:
-            {
-                path: '/operations',
-                element: <OperationsManager />
-            },            // { path: '/settings', element: <Settings /> },
+    // { path: '/settings', element: <Settings /> },
             // { path: '/events', element: <Events /> },
         ]
     },
