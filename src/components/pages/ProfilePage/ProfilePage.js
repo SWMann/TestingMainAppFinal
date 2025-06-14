@@ -160,12 +160,10 @@ const UserProfile = () => {
 
     const handlePositionAssignment = async (positionData) => {
         try {
-            await api.post('/user-positions/', {
-                user: profileData.user.id,
-                position: positionData.position,
-                unit: positionData.unit,
-                is_primary: positionData.is_primary,
-                status: 'Active'
+            await api.post(`/units/positions/${positionData.position}/assign/`, {
+                user_id: profileData.user.id,
+                status: 'active',
+                assignment_type: positionData.is_primary ? 'primary' : 'secondary'
             });
             await fetchProfileData();
             setShowPositionModal(false);
@@ -500,25 +498,25 @@ const UserProfile = () => {
                             {positions.length > 0 ? (
                                 <div className="positions-timeline">
                                     {positions.map((pos, index) => (
-                                        <div key={pos.id} className={`timeline-item ${pos.is_primary ? 'primary' : ''}`}>
+                                        <div key={pos.id} className={`timeline-item ${pos.assignment_type === 'primary' ? 'primary' : ''}`}>
                                             <div className="timeline-marker">
                                                 <div className="marker-dot"></div>
                                                 {index < positions.length - 1 && <div className="marker-line"></div>}
                                             </div>
                                             <div className="timeline-content">
                                                 <div className="position-header">
-                                                    <h4>{pos.position.title}</h4>
-                                                    {pos.is_primary && <span className="primary-badge">PRIMARY</span>}
+                                                    <h4>{pos.position_details?.display_title || 'Unknown Position'}</h4>
+                                                    {pos.assignment_type === 'primary' && <span className="primary-badge">PRIMARY</span>}
                                                     <span className={`status-badge ${pos.status.toLowerCase()}`}>{pos.status}</span>
                                                 </div>
                                                 <div className="position-details">
-                                                    <span><Building size={14} /> {pos.unit.name}</span>
+                                                    <span><Building size={14} /> {pos.unit_details?.name || 'Unknown Unit'}</span>
                                                     <span><Calendar size={14} /> {formatDate(pos.assignment_date)}</span>
                                                 </div>
-                                                {pos.position.is_command_position && (
+                                                {pos.position_details?.role?.is_command_role && (
                                                     <span className="command-badge">Command Position</span>
                                                 )}
-                                                {pos.position.is_staff_position && (
+                                                {pos.position_details?.role?.is_staff_role && (
                                                     <span className="staff-badge">Staff Position</span>
                                                 )}
                                             </div>
