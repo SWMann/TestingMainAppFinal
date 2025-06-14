@@ -1,16 +1,3 @@
-// src/components/pages/UnitHierarchyPage/UnitHierarchyFlow.jsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import ReactFlow, {
-    MiniMap,
-    Controls,
-    Background,
-    useNodesState,
-    useEdgesState,
-    Panel,
-    MarkerType,
-} from 'reactflow';
-import { toast } from 'react-toastify';
-
 // Import custom components
 import UnitNode from './UnitNode';
 import CommandEdge from './CommandEdge';
@@ -30,6 +17,21 @@ import {
     validateEdgeConnection,
     getEdgeLabel
 } from './edgeUtils';
+import {useCallback, useEffect, useRef, useState} from "react";
+import {Controls, MiniMap, Panel, ReactFlow, useEdgesState, useNodesState} from "reactflow";
+import {toast} from "react-toastify";
+
+// Define node types outside component to prevent recreation on each render
+const nodeTypes = {
+    unitNode: UnitNode,
+};
+
+// Define edge types outside component to prevent recreation on each render
+const edgeTypes = {
+    command: CommandEdge,
+    support: SupportEdge,
+    coordination: CoordinationEdge,
+};
 
 const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -44,16 +46,7 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
     const saveTimeoutRef = useRef(null);
 
     // Custom node types
-    const nodeTypes = {
-        unitNode: UnitNode,
-    };
 
-    // Custom edge types
-    const edgeTypes = {
-        command: CommandEdge,
-        support: SupportEdge,
-        coordination: CoordinationEdge,
-    };
 
     // Load hierarchy data
     useEffect(() => {
