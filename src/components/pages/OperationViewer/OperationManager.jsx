@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Calendar, Clock, MapPin, Users, Filter, Search, ChevronRight, AlertCircle,
     Grid, List, FileText, Shield, ChevronLeft, CheckCircle, XCircle,
@@ -35,39 +35,88 @@ const OperationsManager = () => {
         const [dateFilter, setDateFilter] = useState('upcoming');
         const [sortBy, setSortBy] = useState('start_time');
         const [showFilters, setShowFilters] = useState(false);
+        const [isFetching, setIsFetching] = useState(false);
+        const isInitialMount = useRef(true);
 
         useEffect(() => {
-            fetchEvents();
+            // Skip the effect on initial mount if needed
+            if (isInitialMount.current) {
+                isInitialMount.current = false;
+                // Fetch immediately on first mount
+                fetchEvents();
+                return;
+            }
+
+            // Add abort controller to cancel in-flight requests
+            const abortController = new AbortController();
+
+            // Add a small delay to debounce rapid filter changes
+            const timeoutId = setTimeout(() => {
+                fetchEvents(abortController.signal);
+            }, 300);
+
+            // Cleanup function
+            return () => {
+                clearTimeout(timeoutId);
+                abortController.abort();
+            };
         }, [eventTypeFilter, statusFilter, dateFilter, sortBy]);
 
-        const fetchEvents = async () => {
+        const fetchEvents = async (signal) => {
+            // Don't fetch if already fetching
+            if (isFetching) return;
+
             try {
+                setIsFetching(true);
                 setLoading(true);
                 let url = '/api/events/';
                 const params = new URLSearchParams();
 
-                if (eventTypeFilter !== 'all') params.append('event_type', eventTypeFilter);
-                if (statusFilter !== 'all') params.append('status', statusFilter);
+                // Build URL based on filters
                 if (dateFilter === 'upcoming') {
                     url = '/api/events/upcoming/';
+                } else if (dateFilter === 'past') {
+                    // Add filter for past events
+                    const now = new Date().toISOString();
+                    params.append('end_time__lt', now);
                 }
+
+                // Add other filters only if not using upcoming endpoint
+                if (dateFilter !== 'upcoming') {
+                    if (eventTypeFilter !== 'all') params.append('event_type', eventTypeFilter);
+                    if (statusFilter !== 'all') params.append('status', statusFilter);
+                }
+
+                // Add ordering
+                params.append('ordering', sortBy === 'start_time' ? 'start_time' : sortBy);
 
                 const queryString = params.toString();
                 if (queryString) url += '?' + queryString;
 
-                const response = await fetch(url);
+                const response = await fetch(url, signal ? { signal } : {});
                 if (!response.ok) throw new Error('Failed to fetch events');
 
                 const data = await response.json();
                 setEvents(Array.isArray(data) ? data : data.results || []);
+                setError(null);
             } catch (err) {
-                setError(err.message);
+                // Ignore abort errors
+                if (err.name !== 'AbortError') {
+                    setError(err.message);
+                    console.error('Error fetching events:', err);
+                }
             } finally {
+                setIsFetching(false);
                 setLoading(false);
             }
         };
 
-        const handleRSVP = async (eventId, status) => {
+        const handleRSVP = async (eventId, status, e) => {
+            // Prevent event bubbling to parent card
+            if (e) {
+                e.stopPropagation();
+            }
+
             try {
                 const response = await fetch(`/api/events/${eventId}/attend/`, {
                     method: 'POST',
@@ -76,9 +125,19 @@ const OperationsManager = () => {
                 });
 
                 if (!response.ok) throw new Error('Failed to update RSVP');
-                fetchEvents();
+
+                // Update only the specific event in the list instead of refetching all
+                const updatedEvent = await response.json();
+                setEvents(prevEvents =>
+                    prevEvents.map(event =>
+                        event.id === eventId
+                            ? { ...event, attendees_count: (event.attendees_count || 0) + 1 }
+                            : event
+                    )
+                );
             } catch (err) {
                 console.error('RSVP error:', err);
+                // Could show a toast notification here
             }
         };
 
@@ -350,7 +409,7 @@ const OperationsManager = () => {
                                             {event.status === 'Scheduled' && (
                                                 <button
                                                     className="rsvp-button-small"
-                                                    onClick={() => handleRSVP(event.id, 'Attending')}
+                                                    onClick={(e) => handleRSVP(event.id, 'Attending', e)}
                                                 >
                                                     RSVP
                                                 </button>
@@ -420,7 +479,7 @@ const OperationsManager = () => {
                                                 {event.status === 'Scheduled' && (
                                                     <button
                                                         className="table-button"
-                                                        onClick={() => handleRSVP(event.id, 'Attending')}
+                                                        onClick={(e) => handleRSVP(event.id, 'Attending', e)}
                                                     >
                                                         RSVP
                                                     </button>
@@ -888,6 +947,8 @@ const OperationsManager = () => {
             </>
         );
     };
+
+
 
     // Main render
     return (
