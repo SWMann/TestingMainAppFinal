@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
     X, Shield, Building, FileText, MapPin, Calendar, Flag,
@@ -26,10 +25,17 @@ export const CreateUnitModal = ({ branches, units, onClose, onCreate }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate branch is selected
+        if (!formData.branch) {
+            alert('Please select a branch');
+            return;
+        }
+
         const submitData = {
             ...formData,
-            branch: parseInt(formData.branch),
-            parent_unit: formData.parent_unit ? parseInt(formData.parent_unit) : null
+            branch: formData.branch, // Keep as string UUID
+            parent_unit: formData.parent_unit || null // Keep as string UUID or null
         };
         onCreate(submitData);
     };

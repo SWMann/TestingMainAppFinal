@@ -298,7 +298,7 @@ const UnitManagement = () => {
 
         const matchesBranch =
             filterBranch === 'all' ||
-            unit.branch === parseInt(filterBranch);
+            unit.branch === filterBranch;
 
         return matchesSearch && matchesStatus && matchesBranch;
     });

@@ -25,10 +25,17 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate branch is selected
+        if (!formData.branch) {
+            alert('Please select a branch');
+            return;
+        }
+
         const submitData = {
             ...formData,
-            branch: parseInt(formData.branch),
-            parent_unit: formData.parent_unit ? parseInt(formData.parent_unit) : null
+            branch: formData.branch, // Keep as string UUID
+            parent_unit: formData.parent_unit || null // Keep as string UUID or null
         };
         onUpdate(submitData);
     };
@@ -65,6 +72,7 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                                 value={formData.name}
                                 onChange={handleChange}
                                 required
+                                placeholder="e.g., 1st Infantry Division"
                             />
                         </div>
                         <div className="form-group">
@@ -76,6 +84,7 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                                 value={formData.abbreviation}
                                 onChange={handleChange}
                                 required
+                                placeholder="e.g., 1ID"
                             />
                         </div>
                     </div>
@@ -145,6 +154,7 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                             value={formData.description}
                             onChange={handleChange}
                             rows="3"
+                            placeholder="Enter unit description..."
                         />
                     </div>
 
@@ -160,6 +170,7 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                                 name="motto"
                                 value={formData.motto}
                                 onChange={handleChange}
+                                placeholder="e.g., No Mission Too Difficult"
                             />
                         </div>
                         <div className="form-group">
@@ -173,6 +184,7 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                                 name="location"
                                 value={formData.location}
                                 onChange={handleChange}
+                                placeholder="e.g., Fort Bragg, NC"
                             />
                         </div>
                     </div>
@@ -186,6 +198,7 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                                 name="emblem_url"
                                 value={formData.emblem_url}
                                 onChange={handleChange}
+                                placeholder="https://..."
                             />
                         </div>
                         <div className="form-group">
