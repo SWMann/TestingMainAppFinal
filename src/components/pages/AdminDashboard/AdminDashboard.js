@@ -15,6 +15,7 @@ import UnitManagement from "./sections/UnitManagement";
 import EventManagement from "./sections/EventManagement";
 import OperationManagement from "./sections/OperationManagement";
 import TrainingManagement from "./sections/TrainingManagement";
+import UnitsHierarchyView from '../UnitHierarchyPage/UnitHierarchyView';
 // Import section components
 // Note: Create these components in the admin/sections directory
 // For now, we'll use placeholders
@@ -150,7 +151,7 @@ const AdminDashboard = ({ user }) => {
             case 'operations':
                 return <OperationManagement />;
             case 'announcements':
-                return <AnnouncementManagement />;
+                return <UnitsHierarchyView />;
             case 'forums':
                 return <ForumManagement />;
             case 'standards':
