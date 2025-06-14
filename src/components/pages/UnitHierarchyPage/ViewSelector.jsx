@@ -1,8 +1,8 @@
 // src/components/UnitHierarchy/Controls/ViewSelector.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
-import { hierarchyService } from '../../../services/hierarchyService';
-import ViewSettingsModal from '../Modals/ViewSettingsModal';
+import { hierarchyService } from './hierarchyService';
+import ViewSettingsModal from './ViewSettingsModal';
 import { toast } from 'react-toastify';
 
 const ViewSelector = ({ currentView, onViewChange, isAdmin }) => {

@@ -1,5 +1,6 @@
 // src/services/positionService.js
-import api from './api';
+
+import api from "../../../services/api";
 
 export const positionService = {
     /**
