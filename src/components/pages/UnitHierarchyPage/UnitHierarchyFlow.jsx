@@ -518,4 +518,3 @@ const UnitHierarchyFlow = ({ viewId, filterConfig, isAdmin }) => {
 
 export default UnitHierarchyFlow;
 
-export default UnitHierarchyFlow;

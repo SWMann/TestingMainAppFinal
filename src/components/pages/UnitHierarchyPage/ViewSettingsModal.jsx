@@ -1,6 +1,6 @@
 // src/components/UnitHierarchy/Modals/ViewSettingsModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Eye, EyeOff, Plus, Trash2 , ChevronDown, ChevronRight} from 'lucide-react';
 import { hierarchyService } from './hierarchyService';
 import { unitService } from './unitService';
 import { toast } from 'react-toastify';
