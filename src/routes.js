@@ -9,7 +9,7 @@ import ProfilePage from "./components/pages/ProfilePage/ProfilePage";
 import OrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
 import UserProfile from "./components/pages/ProfilePage/ProfilePage";
 import UnitHierarchyEditorWrapper from "./components/pages/Test/Dashboard";
-
+import UnitHierarchyView from "./components/pages/UnitHierarchyPage/UnitHierarchyView"
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -48,6 +48,15 @@ const routes = (isAuthenticated) => [
         path: '/organization-chart',
         element: <OrganizationChart />
     },
+    {
+        path: '/units/hierarchy',
+        element: <UnitHierarchyView />
+    },
+    {
+        path: '/units/hierarchy/:viewId',
+        element: <UnitHierarchyView />
+    },
+
     // Protected routes
     {
         element: <ProtectedRoute isAuthenticated={isAuthenticated} />,
