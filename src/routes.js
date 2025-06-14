@@ -8,6 +8,7 @@ import AdminDashboard from "./components/pages/AdminDashboard/AdminDashboard";
 import ProfilePage from "./components/pages/ProfilePage/ProfilePage";
 import OrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
 import UserProfile from "./components/pages/ProfilePage/ProfilePage";
+import UnitHierarchyEditorWrapper from "./components/pages/Test/Dashboard";
 
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
@@ -30,6 +31,10 @@ const routes = (isAuthenticated) => [
     {
         path: '/AdminDashboard',
         element: <AdminDashboard />
+    },
+    {
+        path: '/Chart',
+        element: <UnitHierarchyEditorWrapper />
     },
     {
         path: '/profile',
