@@ -27,6 +27,21 @@ const App = () => {
     dispatch(loadUser());
   }, [dispatch]);
 
+    // Suppress ResizeObserver loop errors
+    const resizeObserverErrorHandler = (e) => {
+        // Ignore ResizeObserver errors that don't affect functionality
+        if (e.message === 'ResizeObserver loop completed with undelivered notifications.' ||
+            e.message === 'ResizeObserver loop limit exceeded') {
+            // Prevent error from reaching the console
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return true;
+        }
+    };
+
+// Add error handler
+    window.addEventListener('error', resizeObserverErrorHandler);
+
   return (
       <Router>
         <div className="app-container">
