@@ -53,12 +53,12 @@ const routes = (isAuthenticated) => [
         element: <OrganizationChart />
     },
     {
-        path: '/units/hierarchy',
+        path: '/units/:unitId/orbat',
         element: <ORBATViewer />
     },
     {
-        path: '/units/hierarchy/:viewId',
-        element: <UnitHierarchyView />
+        path: '/orbat',  // Default ORBAT view without specific unit
+        element: <ORBATViewer />
     },
     {
         path: '/operations',
