@@ -24,6 +24,9 @@ const ORBATStatisticsPanel = ({ orbatData, unit }) => {
             standard: nodes.filter(n => n.position_type === 'standard').length
         };
 
+        // Calculate vacant command positions
+        const vacantCommandPositions = nodes.filter(n => n.position_type === 'command' && n.is_vacant).length;
+
         // Rank distribution
         const rankDistribution = {};
         nodes.filter(n => !n.is_vacant && n.current_holder?.rank?.abbreviation).forEach(n => {
@@ -44,6 +47,7 @@ const ORBATStatisticsPanel = ({ orbatData, unit }) => {
             vacant,
             fillRate,
             positionTypes,
+            vacantCommandPositions,
             rankDistribution,
             unitBreakdown
         };
@@ -222,13 +226,12 @@ const ORBATStatisticsPanel = ({ orbatData, unit }) => {
                                 <span>Unit is below 75% strength</span>
                             </div>
                         )}
-                        {statistics.positionTypes.command > 0 &&
-                            nodes.filter(n => n.position_type === 'command' && n.is_vacant).length > 0 && (
-                                <div className="insight-item critical">
-                                    <Crown size={16} />
-                                    <span>Command positions vacant</span>
-                                </div>
-                            )}
+                        {statistics.vacantCommandPositions > 0 && (
+                            <div className="insight-item critical">
+                                <Crown size={16} />
+                                <span>{statistics.vacantCommandPositions} command position{statistics.vacantCommandPositions > 1 ? 's' : ''} vacant</span>
+                            </div>
+                        )}
                         {statistics.vacant > statistics.filled && (
                             <div className="insight-item warning">
                                 <Activity size={16} />
