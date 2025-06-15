@@ -46,6 +46,7 @@ const App = () => {
       <Router>
         <div className="app-container">
           <main className="main-content">
+              <Header />
             <AppRoutes />
           </main>
         </div>

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import './AdminModals.css';
 
-const CreateEventModal = ({ units, onClose, onCreate }) => {
+const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -19,7 +19,8 @@ const CreateEventModal = ({ units, onClose, onCreate }) => {
         max_participants: '',
         is_mandatory: false,
         is_public: true,
-        briefing_url: ''
+        briefing_url: '',
+        creator: currentUser?.id || ''
     });
     const [errors, setErrors] = useState({});
 
@@ -67,6 +68,14 @@ const CreateEventModal = ({ units, onClose, onCreate }) => {
             newErrors.max_participants = 'Must be at least 1';
         }
 
+        if (formData.image_url && formData.image_url.length > 200) {
+            newErrors.image_url = 'URL must be less than 200 characters';
+        }
+
+        if (formData.briefing_url && formData.briefing_url.length > 200) {
+            newErrors.briefing_url = 'URL must be less than 200 characters';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -77,8 +86,9 @@ const CreateEventModal = ({ units, onClose, onCreate }) => {
         if (validateForm()) {
             const submitData = {
                 ...formData,
-                host_unit: parseInt(formData.host_unit),
-                max_participants: formData.max_participants ? parseInt(formData.max_participants) : null
+                host_unit: formData.host_unit, // Keep as UUID string
+                max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+                creator: currentUser?.id || formData.creator
             };
             onCreate(submitData);
         }
@@ -257,7 +267,9 @@ const CreateEventModal = ({ units, onClose, onCreate }) => {
                                 value={formData.briefing_url}
                                 onChange={handleChange}
                                 placeholder="https://..."
+                                className={errors.briefing_url ? 'error' : ''}
                             />
+                            {errors.briefing_url && <span className="error-message">{errors.briefing_url}</span>}
                         </div>
                     </div>
 
@@ -272,7 +284,9 @@ const CreateEventModal = ({ units, onClose, onCreate }) => {
                             value={formData.image_url}
                             onChange={handleChange}
                             placeholder="https://..."
+                            className={errors.image_url ? 'error' : ''}
                         />
+                        {errors.image_url && <span className="error-message">{errors.image_url}</span>}
                     </div>
 
                     <div className="form-row">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    X, FileText, Search, Link, Calendar, User, Shield, CheckCircle
+    X, FileText, Link, Search, Shield
 } from 'lucide-react';
 import './AdminModals.css';
 import api from "../../services/api";
@@ -9,7 +9,7 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
     const [opords, setOpords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedOpord, setSelectedOpord] = useState(null);
+    const [selectedOpord, setSelectedOpord] = useState(event.operation_order || '');
 
     useEffect(() => {
         fetchOpords();
@@ -18,11 +18,7 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
     const fetchOpords = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/operations/', {
-                params: {
-                    approval_status: 'Approved'
-                }
-            });
+            const response = await api.get('/operation-orders/');
             setOpords(response.data.results || response.data);
         } catch (error) {
             console.error('Error fetching OPORDs:', error);
@@ -34,13 +30,13 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (selectedOpord) {
-            onLink(event.id, selectedOpord.id);
+            onLink(event.id, selectedOpord);
         }
     };
 
     const filteredOpords = opords.filter(opord =>
         opord.operation_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opord.creator_username.toLowerCase().includes(searchTerm.toLowerCase())
+        opord.classification.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const getClassificationColor = (classification) => {
@@ -48,18 +44,27 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
             case 'Top Secret': return 'top-secret';
             case 'Secret': return 'secret';
             case 'Confidential': return 'confidential';
-            case 'Unclassified': return 'unclassified';
+            default: return 'unclassified';
+        }
+    };
+
+    const getApprovalColor = (status) => {
+        switch (status) {
+            case 'Approved': return 'approved';
+            case 'Pending': return 'pending';
+            case 'Draft': return 'draft';
+            case 'Rejected': return 'rejected';
             default: return '';
         }
     };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content medium" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>
                         <Link size={20} />
-                        Link OPORD to Event
+                        Link Operation Order
                     </h2>
                     <button className="close-button" onClick={onClose}>
                         <X size={20} />
@@ -68,38 +73,25 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
 
                 <form onSubmit={handleSubmit} className="modal-form">
                     <div className="current-event-info">
-                        <h4>Linking OPORD to:</h4>
-                        <div className="event-summary">
-                            <div className="event-title">{event.title}</div>
-                            <div className="event-meta">
-                                <Calendar size={14} />
-                                {new Date(event.start_time).toLocaleDateString()}
-                            </div>
-                        </div>
+                        <h4>Event: {event.title}</h4>
+                        {event.operation_order_name && (
+                            <p className="current-opord">
+                                Currently linked to: <strong>{event.operation_order_name}</strong>
+                            </p>
+                        )}
                     </div>
 
-                    {event.operation_order && (
-                        <div className="warning-message">
-                            <FileText size={16} />
-                            This event already has an OPORD linked. Selecting a new one will replace it.
-                        </div>
-                    )}
-
-                    <div className="form-group">
-                        <label>Search OPORDs</label>
-                        <div className="search-box">
-                            <Search size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search by operation name or creator..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
+                    <div className="search-box">
+                        <Search size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search OPORDs..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
 
-                    <div className="form-group">
-                        <label>Select OPORD</label>
+                    <div className="opord-list">
                         {loading ? (
                             <div className="loading-state">
                                 <div className="spinner"></div>
@@ -107,67 +99,61 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
                             </div>
                         ) : filteredOpords.length === 0 ? (
                             <div className="empty-state">
-                                <FileText size={48} />
-                                <p>No approved OPORDs found</p>
+                                <FileText size={32} />
+                                <p>No OPORDs found</p>
                             </div>
                         ) : (
-                            <div className="opord-list">
-                                {filteredOpords.map(opord => (
-                                    <div
-                                        key={opord.id}
-                                        className={`opord-option ${selectedOpord?.id === opord.id ? 'selected' : ''}`}
-                                        onClick={() => setSelectedOpord(opord)}
-                                    >
-                                        <div className="opord-header">
-                                            <h5>{opord.operation_name}</h5>
-                                            <span className={`classification-badge ${getClassificationColor(opord.classification)}`}>
-                                                {opord.classification}
-                                            </span>
-                                        </div>
-                                        <div className="opord-details">
-                                            <div className="opord-meta">
-                                                <User size={14} />
-                                                {opord.creator_username}
-                                            </div>
-                                            <div className="opord-meta">
-                                                <Calendar size={14} />
-                                                {new Date(opord.created_at).toLocaleDateString()}
-                                            </div>
-                                            <div className="opord-meta">
-                                                v{opord.version}
-                                            </div>
-                                        </div>
-                                        {opord.event_title && opord.id !== event.operation_order && (
-                                            <div className="opord-warning">
-                                                <Shield size={14} />
-                                                Already linked to: {opord.event_title}
-                                            </div>
-                                        )}
-                                        {selectedOpord?.id === opord.id && (
-                                            <div className="selected-indicator">
-                                                <CheckCircle size={20} />
-                                            </div>
-                                        )}
+                            <div className="opord-options">
+                                <label className="opord-option">
+                                    <input
+                                        type="radio"
+                                        name="opord"
+                                        value=""
+                                        checked={selectedOpord === ''}
+                                        onChange={(e) => setSelectedOpord(e.target.value)}
+                                    />
+                                    <div className="opord-content">
+                                        <span className="opord-name">No OPORD</span>
+                                        <span className="opord-description">Remove OPORD link</span>
                                     </div>
+                                </label>
+
+                                {filteredOpords.map(opord => (
+                                    <label key={opord.id} className="opord-option">
+                                        <input
+                                            type="radio"
+                                            name="opord"
+                                            value={opord.id}
+                                            checked={selectedOpord === opord.id}
+                                            onChange={(e) => setSelectedOpord(e.target.value)}
+                                        />
+                                        <div className="opord-content">
+                                            <div className="opord-header">
+                                                <span className="opord-name">{opord.operation_name}</span>
+                                                <div className="opord-badges">
+                                                    <span className={`classification-badge ${getClassificationColor(opord.classification)}`}>
+                                                        <Shield size={12} />
+                                                        {opord.classification}
+                                                    </span>
+                                                    <span className={`status-badge ${getApprovalColor(opord.approval_status)}`}>
+                                                        {opord.approval_status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="opord-meta">
+                                                <span>Version {opord.version}</span>
+                                                <span>•</span>
+                                                <span>Created {new Date(opord.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            {opord.mission && (
+                                                <p className="opord-mission">{opord.mission.substring(0, 100)}...</p>
+                                            )}
+                                        </div>
+                                    </label>
                                 ))}
                             </div>
                         )}
                     </div>
-
-                    {selectedOpord && (
-                        <div className="selected-opord-preview">
-                            <h4>Selected OPORD</h4>
-                            <div className="preview-content">
-                                <div className="preview-title">{selectedOpord.operation_name}</div>
-                                <div className="preview-meta">
-                                    <span>Version {selectedOpord.version}</span>
-                                    <span className={`classification-badge ${getClassificationColor(selectedOpord.classification)}`}>
-                                        {selectedOpord.classification}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     <div className="modal-actions">
                         <button type="button" className="cancel-button" onClick={onClose}>
@@ -176,8 +162,9 @@ const LinkOpordModal = ({ event, onClose, onLink }) => {
                         <button
                             type="submit"
                             className="submit-button"
-                            disabled={!selectedOpord}
+                            disabled={selectedOpord === event.operation_order}
                         >
+                            <Link size={16} />
                             Link OPORD
                         </button>
                     </div>

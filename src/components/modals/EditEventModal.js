@@ -97,6 +97,14 @@ const EditEventModal = ({ event, units, onClose, onUpdate }) => {
             newErrors.max_participants = 'Must be at least 1';
         }
 
+        if (formData.image_url && formData.image_url.length > 200) {
+            newErrors.image_url = 'URL must be less than 200 characters';
+        }
+
+        if (formData.briefing_url && formData.briefing_url.length > 200) {
+            newErrors.briefing_url = 'URL must be less than 200 characters';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -107,7 +115,7 @@ const EditEventModal = ({ event, units, onClose, onUpdate }) => {
         if (validateForm()) {
             const submitData = {
                 ...formData,
-                host_unit: parseInt(formData.host_unit),
+                host_unit: formData.host_unit, // Keep as UUID string
                 max_participants: formData.max_participants ? parseInt(formData.max_participants) : null
             };
             onUpdate(event.id, submitData);
@@ -307,7 +315,9 @@ const EditEventModal = ({ event, units, onClose, onUpdate }) => {
                                 value={formData.briefing_url}
                                 onChange={handleChange}
                                 placeholder="https://..."
+                                className={errors.briefing_url ? 'error' : ''}
                             />
+                            {errors.briefing_url && <span className="error-message">{errors.briefing_url}</span>}
                         </div>
                     </div>
 
@@ -322,7 +332,9 @@ const EditEventModal = ({ event, units, onClose, onUpdate }) => {
                             value={formData.image_url}
                             onChange={handleChange}
                             placeholder="https://..."
+                            className={errors.image_url ? 'error' : ''}
                         />
+                        {errors.image_url && <span className="error-message">{errors.image_url}</span>}
                     </div>
 
                     <div className="form-row">

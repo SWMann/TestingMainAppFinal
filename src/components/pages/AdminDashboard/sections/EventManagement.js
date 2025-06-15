@@ -12,7 +12,7 @@ import EventDetailsModal from "../../../modals/EventDetailsModal";
 import EventAttendanceModal from "../../../modals/EventAttendanceModal";
 import LinkOpordModal from "../../../modals/LinkOpordModal";
 
-const EventManagement = () => {
+const EventManagement = ({ currentUser }) => {
     const [events, setEvents] = useState([]);
     const [units, setUnits] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -144,7 +144,7 @@ const EventManagement = () => {
 
         const matchesType = filterType === 'all' || event.event_type === filterType;
         const matchesStatus = filterStatus === 'all' || event.status === filterStatus;
-        const matchesUnit = filterUnit === 'all' || event.host_unit === parseInt(filterUnit);
+        const matchesUnit = filterUnit === 'all' || event.host_unit === filterUnit;
 
         return matchesSearch && matchesType && matchesStatus && matchesUnit;
     });
@@ -489,6 +489,7 @@ const EventManagement = () => {
             {showCreateModal && (
                 <CreateEventModal
                     units={units}
+                    currentUser={currentUser}
                     onClose={() => setShowCreateModal(false)}
                     onCreate={handleCreateEvent}
                 />
