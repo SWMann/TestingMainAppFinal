@@ -13,6 +13,9 @@ import EventAttendanceModal from "../../../modals/EventAttendanceModal";
 import LinkOpordModal from "../../../modals/LinkOpordModal";
 
 const EventManagement = ({ currentUser }) => {
+    // Debug: Log the currentUser to see what we're receiving
+    console.log('Current User in EventManagement:', currentUser);
+
     const [events, setEvents] = useState([]);
     const [units, setUnits] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -28,10 +31,23 @@ const EventManagement = ({ currentUser }) => {
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [showLinkOpordModal, setShowLinkOpordModal] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     useEffect(() => {
         fetchInitialData();
+        fetchCurrentUser();
     }, []);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await api.get('/auth/user/');
+            const userId = response.data.id || response.data.user_id || response.data.pk;
+            setCurrentUserId(userId);
+            console.log('Fetched current user ID:', userId);
+        } catch (error) {
+            console.error('Error fetching current user:', error);
+        }
+    };
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -70,12 +86,31 @@ const EventManagement = ({ currentUser }) => {
 
     const handleCreateEvent = async (eventData) => {
         try {
+            // Ensure creator is set
+            if (!eventData.creator && currentUserId) {
+                eventData.creator = currentUserId;
+            }
+
+            // If creator is still missing, try to get it from the API
+            if (!eventData.creator) {
+                try {
+                    const userResponse = await api.get('/auth/user/');
+                    eventData.creator = userResponse.data.id || userResponse.data.user_id || userResponse.data.pk;
+                    console.log('Fetched user ID from API:', eventData.creator);
+                } catch (error) {
+                    console.error('Failed to fetch current user:', error);
+                }
+            }
+
+            console.log('Final event data being sent:', eventData);
+
             await api.post('/events/', eventData);
             await fetchInitialData();
             setShowCreateModal(false);
             showNotification('Event created successfully', 'success');
         } catch (error) {
             console.error('Error creating event:', error);
+            console.error('Error response:', error.response?.data);
             showNotification('Failed to create event', 'error');
         }
     };
@@ -489,7 +524,7 @@ const EventManagement = ({ currentUser }) => {
             {showCreateModal && (
                 <CreateEventModal
                     units={units}
-                    currentUser={currentUser}
+                    currentUser={currentUser || { id: currentUserId }}
                     onClose={() => setShowCreateModal(false)}
                     onCreate={handleCreateEvent}
                 />

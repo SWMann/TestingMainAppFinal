@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     X, Calendar, MapPin, Clock, Users, Flag, AlertCircle,
     FileText, ExternalLink, Building
 } from 'lucide-react';
 import './AdminModals.css';
+import api from "../../services/api";
 
 const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
+    // Debug: Log the currentUser to see what fields it has
+    console.log('Current User in CreateEventModal:', currentUser);
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -20,9 +24,30 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
         is_mandatory: false,
         is_public: true,
         briefing_url: '',
-        creator: currentUser?.id || ''
+        // Try different possible field names for the user ID
+        creator: currentUser?.id || currentUser?.user_id || currentUser?.pk || ''
     });
     const [errors, setErrors] = useState({});
+    const [fetchingUser, setFetchingUser] = useState(false);
+
+    // Fetch current user if not provided
+    useEffect(() => {
+        if (!formData.creator && !fetchingUser) {
+            setFetchingUser(true);
+            api.get('/auth/user/')
+                .then(response => {
+                    const userId = response.data.id || response.data.user_id || response.data.pk;
+                    console.log('Fetched user from API:', response.data);
+                    setFormData(prev => ({ ...prev, creator: userId }));
+                })
+                .catch(error => {
+                    console.error('Failed to fetch current user:', error);
+                })
+                .finally(() => {
+                    setFetchingUser(false);
+                });
+        }
+    }, [formData.creator, fetchingUser]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -42,6 +67,10 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
 
         if (!formData.title.trim()) {
             newErrors.title = 'Event title is required';
+        }
+
+        if (!formData.creator) {
+            newErrors.creator = 'Creator is required';
         }
 
         if (!formData.start_time) {
@@ -88,8 +117,12 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
                 ...formData,
                 host_unit: formData.host_unit, // Keep as UUID string
                 max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
-                creator: currentUser?.id || formData.creator
+                creator: formData.creator || currentUser?.id || currentUser?.user_id || currentUser?.pk
             };
+
+            // Debug: Log the data being submitted
+            console.log('Submitting event data:', submitData);
+
             onCreate(submitData);
         }
     };
@@ -114,6 +147,21 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="modal-form">
+                    {/* Debug info - remove in production */}
+                    {!formData.creator && !fetchingUser && (
+                        <div className="warning-message">
+                            <AlertCircle size={16} />
+                            Warning: No user ID found. Make sure your API has an endpoint at /auth/user/ that returns the current user with an 'id' field.
+                        </div>
+                    )}
+
+                    {fetchingUser && (
+                        <div className="info-message">
+                            <Clock size={16} />
+                            Fetching user information...
+                        </div>
+                    )}
+
                     <div className="form-group">
                         <label>Event Title*</label>
                         <input
@@ -329,6 +377,23 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
                                     e.target.style.display = 'none';
                                 }}
                             />
+                        </div>
+                    )}
+
+                    {/* Temporary debug field - remove in production */}
+                    {!formData.creator && (
+                        <div className="form-group">
+                            <label>Creator ID (Debug)*</label>
+                            <input
+                                type="text"
+                                name="creator"
+                                value={formData.creator}
+                                onChange={handleChange}
+                                placeholder="Enter your user UUID"
+                                className={errors.creator ? 'error' : ''}
+                            />
+                            {errors.creator && <span className="error-message">{errors.creator}</span>}
+                            <span className="field-help">Temporarily visible for debugging. Enter your user UUID.</span>
                         </div>
                     )}
 
