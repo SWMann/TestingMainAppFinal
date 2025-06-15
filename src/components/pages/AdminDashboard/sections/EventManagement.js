@@ -13,9 +13,6 @@ import EventAttendanceModal from "../../../modals/EventAttendanceModal";
 import LinkOpordModal from "../../../modals/LinkOpordModal";
 
 const EventManagement = ({ currentUser }) => {
-    // Debug: Log the currentUser to see what we're receiving
-    console.log('Current User in EventManagement:', currentUser);
-
     const [events, setEvents] = useState([]);
     const [units, setUnits] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,12 +37,11 @@ const EventManagement = ({ currentUser }) => {
 
     const fetchCurrentUser = async () => {
         try {
-            const response = await api.get('/auth/user/');
+            const response = await api.get('/users/me/');
             const userId = response.data.id || response.data.user_id || response.data.pk;
             setCurrentUserId(userId);
-            console.log('Fetched current user ID:', userId);
         } catch (error) {
-            console.error('Error fetching current user:', error);
+            console.error('Error fetching current user from /api/users/me/:', error);
         }
     };
 
@@ -94,15 +90,12 @@ const EventManagement = ({ currentUser }) => {
             // If creator is still missing, try to get it from the API
             if (!eventData.creator) {
                 try {
-                    const userResponse = await api.get('/auth/user/');
+                    const userResponse = await api.get('/users/me/');
                     eventData.creator = userResponse.data.id || userResponse.data.user_id || userResponse.data.pk;
-                    console.log('Fetched user ID from API:', eventData.creator);
                 } catch (error) {
-                    console.error('Failed to fetch current user:', error);
+                    console.error('Failed to fetch current user from /api/users/me/:', error);
                 }
             }
-
-            console.log('Final event data being sent:', eventData);
 
             await api.post('/events/', eventData);
             await fetchInitialData();

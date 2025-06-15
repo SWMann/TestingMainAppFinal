@@ -72,7 +72,7 @@ const Header = () => {
                 {/* Logo Section */}
                 <div className="header-logo">
                     <Link to="/" className="logo-link">
-                        <Shield className="logo-icon" size={32} />
+                        <Shield className="logo-icon" size={28} />
                         <div className="logo-text">
                             <span className="logo-primary">3RD CORPS</span>
                             <span className="logo-secondary">US ARMY MILSIM</span>
@@ -90,7 +90,7 @@ const Header = () => {
                                 to={item.path}
                                 className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
                             >
-                                <Icon size={18} />
+                                <Icon size={16} />
                                 <span>{item.label}</span>
                             </Link>
                         );
@@ -108,7 +108,7 @@ const Header = () => {
                                         to={item.path}
                                         className={`nav-item admin-item ${isActive(item.path) ? 'active' : ''}`}
                                     >
-                                        <Icon size={18} />
+                                        <Icon size={16} />
                                         <span>{item.label}</span>
                                     </Link>
                                 );
@@ -130,15 +130,18 @@ const Header = () => {
                                     {user.avatar_url ? (
                                         <img src={user.avatar_url} alt={user.username} />
                                     ) : (
-                                        <User size={20} />
+                                        <User size={16} />
                                     )}
                                 </div>
                                 <div className="profile-info">
                                     <div className="profile-name">
-                                        {user.current_rank?.abbreviation} {user.username}
+                                        {user.current_rank?.abbreviation && (
+                                            <span className="rank-abbr">{user.current_rank.abbreviation}</span>
+                                        )}
+                                        <span>{user.username}</span>
                                     </div>
                                     <div className="profile-details">
-                                        <Hash size={12} />
+                                        <Hash size={10} />
                                         <span>{user.service_number || 'No SN'}</span>
                                     </div>
                                 </div>
@@ -150,7 +153,7 @@ const Header = () => {
                                     />
                                 )}
                                 <ChevronDown
-                                    size={16}
+                                    size={14}
                                     className={`dropdown-icon ${profileDropdownOpen ? 'open' : ''}`}
                                 />
                             </button>
@@ -199,7 +202,7 @@ const Header = () => {
                         </div>
                     ) : (
                         <Link to="/login" className="login-button">
-                            <User size={18} />
+                            <User size={16} />
                             <span>Login</span>
                         </Link>
                     )}
@@ -215,7 +218,7 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Mobile Navigation - Outside header container */}
             {mobileMenuOpen && (
                 <nav className="mobile-nav">
                     {navigationItems.map(item => {

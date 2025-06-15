@@ -7,9 +7,6 @@ import './AdminModals.css';
 import api from "../../services/api";
 
 const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
-    // Debug: Log the currentUser to see what fields it has
-    console.log('Current User in CreateEventModal:', currentUser);
-
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -24,7 +21,6 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
         is_mandatory: false,
         is_public: true,
         briefing_url: '',
-        // Try different possible field names for the user ID
         creator: currentUser?.id || currentUser?.user_id || currentUser?.pk || ''
     });
     const [errors, setErrors] = useState({});
@@ -34,14 +30,13 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
     useEffect(() => {
         if (!formData.creator && !fetchingUser) {
             setFetchingUser(true);
-            api.get('/auth/user/')
+            api.get('/users/me/')
                 .then(response => {
                     const userId = response.data.id || response.data.user_id || response.data.pk;
-                    console.log('Fetched user from API:', response.data);
                     setFormData(prev => ({ ...prev, creator: userId }));
                 })
                 .catch(error => {
-                    console.error('Failed to fetch current user:', error);
+                    console.error('Failed to fetch current user from /api/users/me/:', error);
                 })
                 .finally(() => {
                     setFetchingUser(false);
@@ -117,11 +112,8 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
                 ...formData,
                 host_unit: formData.host_unit, // Keep as UUID string
                 max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
-                creator: formData.creator || currentUser?.id || currentUser?.user_id || currentUser?.pk
+                creator: formData.creator
             };
-
-            // Debug: Log the data being submitted
-            console.log('Submitting event data:', submitData);
 
             onCreate(submitData);
         }
@@ -151,7 +143,7 @@ const CreateEventModal = ({ units, onClose, onCreate, currentUser }) => {
                     {!formData.creator && !fetchingUser && (
                         <div className="warning-message">
                             <AlertCircle size={16} />
-                            Warning: No user ID found. Make sure your API has an endpoint at /auth/user/ that returns the current user with an 'id' field.
+                            Warning: No user ID found. Make sure your API has an endpoint at /api/users/me/ that returns the current user with an 'id' field.
                         </div>
                     )}
 
