@@ -1,0 +1,544 @@
+/* OperationDetailPage.css - Military-themed operation detail styles */
+
+/* Base Container */
+.operation-detail-container {
+    min-height: 100vh;
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+/* Loading & Error States */
+.operation-detail-loading,
+.operation-detail-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 1rem;
+    color: #cccccc;
+}
+
+.operation-detail-error {
+    color: #ef4444;
+}
+
+.operation-detail-error button {
+    background-color: #4a5d23;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.operation-detail-error button:hover {
+    background-color: #5a6d33;
+}
+
+/* Header Section */
+.operation-detail-header {
+    position: relative;
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #404040;
+}
+
+.header-background {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+}
+
+.header-background img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.header-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.8) 100%);
+}
+
+.header-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2rem;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(74, 93, 35, 0.8);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.back-button:hover {
+    background-color: #5a6d33;
+    transform: translateX(-4px);
+}
+
+.operation-title-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.operation-icon-large {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(26, 26, 26, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+}
+
+.operation-title-section h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.operation-meta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Content Grid */
+.operation-detail-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+}
+
+/* Detail Cards */
+.detail-card {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffd700;
+    margin: 0 0 1rem 0;
+}
+
+.details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #404040;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.detail-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #999999;
+    font-size: 0.875rem;
+}
+
+.detail-label svg {
+    color: #ffd700;
+}
+
+.detail-value {
+    color: #ffffff;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.creator-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.coordinates {
+    color: #999999;
+    font-size: 0.75rem;
+}
+
+/* Description */
+.operation-description {
+    color: #cccccc;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* Resources */
+.resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #cccccc;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a.resource-item:hover {
+    color: #ffd700;
+}
+
+.resource-item svg {
+    color: #ffd700;
+}
+
+/* RSVP Card */
+.rsvp-card {
+    border: 2px solid #ffd700;
+}
+
+.current-rsvp {
+    background-color: #1a1a1a;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rsvp-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.attendance-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.attendance-status.attending {
+    background-color: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+.attendance-status.declined {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.attendance-status.maybe {
+    background-color: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.attendance-status.excused {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.rsvp-time {
+    color: #999999;
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+.no-rsvp {
+    color: #999999;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* RSVP Buttons */
+.rsvp-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.rsvp-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rsvp-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.rsvp-button.attending {
+    background-color: #22c55e;
+    color: white;
+}
+
+.rsvp-button.attending:hover:not(:disabled) {
+    background-color: #16a34a;
+}
+
+.rsvp-button.maybe {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.rsvp-button.maybe:hover:not(:disabled) {
+    background-color: #d97706;
+}
+
+.rsvp-button.declined {
+    background-color: #ef4444;
+    color: white;
+}
+
+.rsvp-button.declined:hover:not(:disabled) {
+    background-color: #dc2626;
+}
+
+/* Feedback Form */
+.feedback-form {
+    margin-top: 1rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.feedback-form textarea {
+    width: 100%;
+    background-color: #1a1a1a;
+    border: 1px solid #404040;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    resize: vertical;
+    margin-bottom: 0.75rem;
+}
+
+.feedback-form textarea:focus {
+    outline: none;
+    border-color: #ffd700;
+}
+
+.feedback-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.cancel-button,
+.submit-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-button {
+    background-color: transparent;
+    color: #999999;
+    border: 1px solid #404040;
+}
+
+.cancel-button:hover {
+    background-color: #404040;
+}
+
+.submit-button {
+    background-color: #4a5d23;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.submit-button:hover:not(:disabled) {
+    background-color: #5a6d33;
+}
+
+/* Attendance Summary */
+.attendance-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.attendance-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.attendance-group-header .count {
+    color: #999999;
+    font-weight: 400;
+}
+
+.attendance-users {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-left: 1.5rem;
+}
+
+.attendance-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.user-avatar-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.performance-stars {
+    display: flex;
+    gap: 0.125rem;
+    margin-left: auto;
+}
+
+.performance-stars svg {
+    color: #404040;
+}
+
+.performance-stars svg.filled {
+    color: #ffd700;
+}
+
+.more-users {
+    color: #999999;
+    font-size: 0.75rem;
+    font-style: italic;
+    margin: 0.5rem 0 0 0;
+}
+
+/* Badges (reuse from operations page) */
+.type-badge,
+.mandatory-badge,
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-column {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .operation-title-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .operation-icon-large {
+        width: 60px;
+        height: 60px;
+    }
+
+    .operation-title-section h1 {
+        font-size: 1.75rem;
+    }
+
+    .operation-detail-content {
+        padding: 1rem;
+    }
+
+    .detail-card {
+        padding: 1rem;
+    }
+
+    .detail-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .rsvp-buttons {
+        grid-template-columns: 1fr;
+    }
+}
