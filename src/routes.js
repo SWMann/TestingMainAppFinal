@@ -62,6 +62,12 @@ const routes = (isAuthenticated) => [
         path: '/operations',
         element: <OperationsPage />
     },
+    {
+        path: '/operations/:id',
+        element: <OperationDetailPage />
+    },
+
+
     // Protected routes
     {
         element: <ProtectedRoute isAuthenticated={isAuthenticated} />,
