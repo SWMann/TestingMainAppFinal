@@ -8,11 +8,12 @@ import AdminDashboard from "./components/pages/AdminDashboard/AdminDashboard";
 import ProfilePage from "./components/pages/ProfilePage/ProfilePage";
 import OrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
 import UserProfile from "./components/pages/ProfilePage/ProfilePage";
-import UnitHierarchyEditorWrapper from "./components/pages/Test/Dashboard";
+import UnitHierarchyEditorWrapper from "./components/pages/Test/ORBATViewer";
 import UnitHierarchyView from "./components/pages/UnitHierarchyPage/UnitHierarchyView"
 import OperationsManager from "./components/pages/OperationViewer/OperationsPage";
 import OperationsPage from "./components/pages/OperationViewer/OperationsPage";
 import OperationDetailPage from "./components/pages/OperationViewer/OperationDetailPage";
+import ORBATViewer from "./components/pages/Test/ORBATViewer";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -53,7 +54,7 @@ const routes = (isAuthenticated) => [
     },
     {
         path: '/units/hierarchy',
-        element: <UnitHierarchyView />
+        element: <ORBATViewer />
     },
     {
         path: '/units/hierarchy/:viewId',
