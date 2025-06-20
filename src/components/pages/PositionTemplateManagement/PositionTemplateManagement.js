@@ -1,4 +1,4 @@
-// Create new file: src/components/pages/PositionTemplateManagement/PositionTemplateManagement.js
+// src/components/pages/PositionTemplateManagement/PositionTemplateManagement.js
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -7,6 +7,7 @@ import {
     AlertCircle, Check, X, GitBranch, Building
 } from 'lucide-react';
 import api from '../../../services/api';
+import { CreateEditTemplateModal } from '../../modals/CreateEditTemplateModal';
 import './PositionTemplateManagement.css';
 
 const PositionTemplateManagement = () => {
@@ -179,9 +180,10 @@ const PositionTemplateManagement = () => {
             )}
 
             {showCreateModal && (
-                <CreateTemplateModal
+                <CreateEditTemplateModal
+                    template={null}
                     onClose={() => setShowCreateModal(false)}
-                    onCreate={() => {
+                    onSave={() => {
                         setShowCreateModal(false);
                         fetchTemplates();
                     }}
@@ -189,13 +191,13 @@ const PositionTemplateManagement = () => {
             )}
 
             {showEditModal && selectedTemplate && (
-                <EditTemplateModal
+                <CreateEditTemplateModal
                     template={selectedTemplate}
                     onClose={() => {
                         setShowEditModal(false);
                         setSelectedTemplate(null);
                     }}
-                    onUpdate={() => {
+                    onSave={() => {
                         setShowEditModal(false);
                         setSelectedTemplate(null);
                         fetchTemplates();
@@ -207,7 +209,19 @@ const PositionTemplateManagement = () => {
 };
 
 const TemplateCard = ({ template, onEdit, onDelete, onDuplicate, onPreview }) => {
-    const positionCount = template.position_count || 0;
+    const positionCount = template.position_count ||
+        (template.template_positions ? template.template_positions.length : 0);
+
+    const getTemplateIcon = (type) => {
+        const icons = {
+            'squad': <Users size={16} />,
+            'platoon': <Shield size={16} />,
+            'company': <Building size={16} />,
+            'battalion': <GitBranch size={16} />,
+            'custom': <Package size={16} />
+        };
+        return icons[type] || <FileText size={16} />;
+    };
 
     return (
         <div className="template-card">
@@ -289,73 +303,6 @@ const TemplateCard = ({ template, onEdit, onDelete, onDuplicate, onPreview }) =>
             </div>
         </div>
     );
-};
-
-// Placeholder for Create/Edit modals - these would be more complex in practice
-const CreateTemplateModal = ({ onClose, onCreate }) => {
-    // Implementation would include form for creating template
-    return (
-        <div className="modal-overlay">
-            <div className="modal-container">
-                <div className="modal-header">
-                    <h2>Create Position Template</h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="modal-content">
-                    <p>Template creation form would go here...</p>
-                </div>
-                <div className="modal-actions">
-                    <button className="btn secondary" onClick={onClose}>
-                        Cancel
-                    </button>
-                    <button className="btn primary" onClick={onCreate}>
-                        Create Template
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const EditTemplateModal = ({ template, onClose, onUpdate }) => {
-    // Implementation would include form for editing template
-    return (
-        <div className="modal-overlay">
-            <div className="modal-container">
-                <div className="modal-header">
-                    <h2>Edit Template: {template.name}</h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="modal-content">
-                    <p>Template editing form would go here...</p>
-                </div>
-                <div className="modal-actions">
-                    <button className="btn secondary" onClick={onClose}>
-                        Cancel
-                    </button>
-                    <button className="btn primary" onClick={onUpdate}>
-                        Update Template
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Helper function
-const getTemplateIcon = (type) => {
-    const icons = {
-        'squad': <Users size={16} />,
-        'platoon': <Shield size={16} />,
-        'company': <Building size={16} />,
-        'battalion': <GitBranch size={16} />,
-        'custom': <Package size={16} />
-    };
-    return icons[type] || <FileText size={16} />;
 };
 
 export default PositionTemplateManagement;
