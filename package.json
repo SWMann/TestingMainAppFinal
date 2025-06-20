@@ -11,6 +11,7 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^5.26.0",
     "axios": "^1.10.0",
+    "claude": "^0.1.2",
     "dagre": "^0.8.5",
     "date-fns": "^4.1.0",
     "html-to-image": "^1.11.13",

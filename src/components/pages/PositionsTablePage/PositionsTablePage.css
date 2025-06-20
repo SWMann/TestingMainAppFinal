@@ -712,3 +712,76 @@
         border: 2px solid black;
     }
 }
+
+/* Add these styles to PositionsTablePage.css */
+
+/* Unit Action Buttons */
+.unit-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    padding: 0 1rem;
+}
+
+.unit-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: #3a3a3a;
+    border: 1px solid #404040;
+    border-radius: 0.25rem;
+    color: #cccccc;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.unit-action-btn:hover {
+    background-color: #4a5d23;
+    border-color: #5a6d33;
+    color: #ffffff;
+}
+
+.unit-action-btn:active {
+    transform: scale(0.95);
+}
+
+.unit-action-btn svg {
+    transition: transform 0.2s;
+}
+
+.unit-action-btn:hover svg {
+    transform: scale(1.1);
+}
+
+/* Adjust unit header to accommodate action buttons */
+.unit-header {
+    position: relative;
+}
+
+.unit-actions {
+    position: absolute;
+    right: 8rem; /* Adjust based on position count width */
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Media query for smaller screens */
+@media (max-width: 1200px) {
+    .unit-actions {
+        position: static;
+        transform: none;
+        margin-left: 0.5rem;
+    }
+
+    .unit-header {
+        flex-wrap: wrap;
+    }
+
+    .position-count {
+        order: 10;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}

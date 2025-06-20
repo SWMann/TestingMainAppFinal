@@ -4,17 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import {
     ChevronRight, ChevronDown, Users, Shield, Search,
     Filter, Download, Maximize2, User, Building,
-    AlertCircle, Hash, MapPin, Calendar, Star, Target
+    AlertCircle, Hash, MapPin, Calendar, Star, Target,
+    Package, Plus
 } from 'lucide-react';
 import './PositionsTablePage.css';
 import api from "../../../services/api";
+import { ApplyPositionTemplateModal } from '../../modals/ApplyPositionTemplateModal';
+import { CreatePositionModal } from '../../modals/CreatePositionModal';
 
 const PositionsTablePage = () => {
     const { user: currentUser } = useSelector(state => state.auth);
     const navigate = useNavigate();
-
-    // Log initial user state
-    console.log('PositionsTablePage mounted. Current user:', currentUser);
 
     // State
     const [units, setUnits] = useState([]);
@@ -30,12 +30,19 @@ const PositionsTablePage = () => {
     const [isHighlighting, setIsHighlighting] = useState(false);
     const [isFetchingUserPosition, setIsFetchingUserPosition] = useState(false);
 
+    // New state for modals
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [showCreatePositionModal, setShowCreatePositionModal] = useState(false);
+    const [selectedUnit, setSelectedUnit] = useState(null);
+    const [roles, setRoles] = useState([]);
+
     // Refs for scrolling
     const tableRef = useRef(null);
     const highlightedRowRef = useRef(null);
 
     useEffect(() => {
         fetchData();
+        fetchRoles();
     }, []);
 
     useEffect(() => {
@@ -44,7 +51,7 @@ const PositionsTablePage = () => {
             console.log('CurrentUser available and positions loaded, fetching user position...');
             fetchUserPosition();
         }
-    }, [currentUser, positions.length]); // Add positions.length as dependency
+    }, [currentUser, positions.length]);
 
     useEffect(() => {
         // Auto-scroll to highlighted position after data loads
@@ -157,13 +164,6 @@ const PositionsTablePage = () => {
             const branchesResponse = await api.get('/units/branches/');
             const branchesData = branchesResponse.data.results || branchesResponse.data;
 
-            // Debug logging
-            console.log('Current user from Redux:', currentUser);
-            console.log('User ID:', currentUser?.id);
-
-            // Don't try to fetch user position on initial load if user isn't available yet
-            // The useEffect will handle it when currentUser becomes available
-
             setUnits(unitsData);
             setPositions(processedPositions);
             setBranches(branchesData);
@@ -172,6 +172,15 @@ const PositionsTablePage = () => {
             setError('Failed to load positions data');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchRoles = async () => {
+        try {
+            const response = await api.get('/units/roles/');
+            setRoles(response.data.results || response.data);
+        } catch (error) {
+            console.error('Error fetching roles:', error);
         }
     };
 
@@ -382,6 +391,38 @@ const PositionsTablePage = () => {
         });
     };
 
+    // Handle template application
+    const handleTemplateApply = (createdPositions) => {
+        console.log('Positions created from template:', createdPositions);
+
+        // Refresh the positions data
+        fetchData();
+
+        // Show success message
+        alert(`Successfully created ${createdPositions.length} positions from template`);
+    };
+
+    // Handle individual position creation
+    const handlePositionCreate = (positionData) => {
+        console.log('Position created:', positionData);
+
+        // Refresh the positions data
+        fetchData();
+
+        // Show success message
+        alert('Position created successfully');
+    };
+
+    const openTemplateModal = (unit) => {
+        setSelectedUnit(unit);
+        setShowTemplateModal(true);
+    };
+
+    const openCreatePositionModal = (unit) => {
+        setSelectedUnit(unit);
+        setShowCreatePositionModal(true);
+    };
+
     const renderUnit = (unit, level = 0) => {
         const isExpanded = expandedUnits.has(unit.id);
         const hasChildren = unit.children.length > 0;
@@ -427,6 +468,25 @@ const PositionsTablePage = () => {
                                     </span>
                                 )}
                             </span>
+                            {/* Unit action buttons */}
+                            {currentUser?.is_admin && (
+                                <span className="unit-actions" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        className="unit-action-btn"
+                                        onClick={() => openTemplateModal(unit)}
+                                        title="Apply position template"
+                                    >
+                                        <Package size={14} />
+                                    </button>
+                                    <button
+                                        className="unit-action-btn"
+                                        onClick={() => openCreatePositionModal(unit)}
+                                        title="Add position"
+                                    >
+                                        <Plus size={14} />
+                                    </button>
+                                </span>
+                            )}
                         </div>
                     </td>
                 </tr>
@@ -707,6 +767,30 @@ const PositionsTablePage = () => {
                     <span>{positions.filter(p => p.is_vacant).length} Vacant</span>
                 </div>
             </div>
+
+            {/* Modals */}
+            {showTemplateModal && selectedUnit && (
+                <ApplyPositionTemplateModal
+                    unit={selectedUnit}
+                    onClose={() => {
+                        setShowTemplateModal(false);
+                        setSelectedUnit(null);
+                    }}
+                    onApply={handleTemplateApply}
+                />
+            )}
+
+            {showCreatePositionModal && selectedUnit && (
+                <CreatePositionModal
+                    units={[selectedUnit]}
+                    roles={roles}
+                    onClose={() => {
+                        setShowCreatePositionModal(false);
+                        setSelectedUnit(null);
+                    }}
+                    onCreate={handlePositionCreate}
+                />
+            )}
         </div>
     );
 };
