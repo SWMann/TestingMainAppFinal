@@ -30,26 +30,86 @@ export const CreateEditTemplateModal = ({ template, onClose, onSave }) => {
     useEffect(() => {
         fetchInitialData();
         if (template) {
+            // Transform template positions to include proper IDs
+            const transformedPositions = (template.template_positions || []).map((pos, index) => ({
+                ...pos,
+                id: pos.id || `existing_${index}_${Date.now()}`
+            }));
+
             setFormData({
                 name: template.name || '',
                 description: template.description || '',
                 template_type: template.template_type || 'squad',
                 applicable_unit_types: template.applicable_unit_types || [],
-                template_positions: template.template_positions || []
+                template_positions: transformedPositions
             });
+
+            // Expand first few positions by default in edit mode
+            const initialExpanded = {};
+            transformedPositions.slice(0, 3).forEach(pos => {
+                initialExpanded[pos.id] = true;
+            });
+            setExpandedPositions(initialExpanded);
         }
     }, [template]);
 
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const [rolesResponse, unitTypesResponse] = await Promise.all([
-                api.get('/personnel/roles/'),
-                api.get('/units/unit-types/')
-            ]);
+            // Try multiple possible endpoints for roles
+            let rolesData = [];
+            let unitTypesData = [];
 
-            setAvailableRoles(rolesResponse.data.results || rolesResponse.data);
-            setAvailableUnitTypes(unitTypesResponse.data.results || unitTypesResponse.data);
+            try {
+                // Try the primary endpoint
+                const rolesResponse = await api.get('/personnel/roles/');
+                rolesData = rolesResponse.data.results || rolesResponse.data || [];
+            } catch (error) {
+                console.error('Error fetching from /personnel/roles/, trying alternate endpoints...', error);
+
+                // Try alternate endpoints
+                try {
+                    const altResponse = await api.get('/api/personnel/roles/');
+                    rolesData = altResponse.data.results || altResponse.data || [];
+                } catch (altError) {
+                    try {
+                        const altResponse2 = await api.get('/roles/');
+                        rolesData = altResponse2.data.results || altResponse2.data || [];
+                    } catch (altError2) {
+                        console.error('Could not fetch roles from any endpoint');
+                        // Provide some default roles as fallback
+                        rolesData = [
+                            { id: 1, name: 'Squad Leader', abbreviation: 'SL' },
+                            { id: 2, name: 'Team Leader', abbreviation: 'TL' },
+                            { id: 3, name: 'Rifleman', abbreviation: 'R' },
+                            { id: 4, name: 'Automatic Rifleman', abbreviation: 'AR' },
+                            { id: 5, name: 'Grenadier', abbreviation: 'GR' },
+                            { id: 6, name: 'Medic', abbreviation: 'M' },
+                        ];
+                    }
+                }
+            }
+
+            try {
+                const unitTypesResponse = await api.get('/units/unit-types/');
+                unitTypesData = unitTypesResponse.data.results || unitTypesResponse.data || [];
+            } catch (error) {
+                console.error('Error fetching unit types:', error);
+                // Provide default unit types
+                unitTypesData = [
+                    { id: 1, name: 'Infantry' },
+                    { id: 2, name: 'Mechanized' },
+                    { id: 3, name: 'Armored' },
+                    { id: 4, name: 'Artillery' },
+                    { id: 5, name: 'Support' }
+                ];
+            }
+
+            console.log('Loaded roles:', rolesData);
+            console.log('Loaded unit types:', unitTypesData);
+
+            setAvailableRoles(rolesData);
+            setAvailableUnitTypes(unitTypesData);
         } catch (error) {
             console.error('Error fetching initial data:', error);
         } finally {
@@ -83,7 +143,7 @@ export const CreateEditTemplateModal = ({ template, onClose, onSave }) => {
 
     const addPosition = () => {
         const newPosition = {
-            id: Date.now(), // Temporary ID for frontend tracking
+            id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // More unique ID
             role: availableRoles[0]?.id || '',
             quantity: 1,
             is_leadership: false,
@@ -292,18 +352,30 @@ export const CreateEditTemplateModal = ({ template, onClose, onSave }) => {
 
                         <div className="form-group">
                             <label>Applicable Unit Types</label>
-                            <div className="unit-types-grid">
-                                {availableUnitTypes.map(unitType => (
-                                    <label key={unitType.id || unitType} className="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.applicable_unit_types.includes(unitType.name || unitType)}
-                                            onChange={() => handleUnitTypeToggle(unitType.name || unitType)}
-                                        />
-                                        <span>{unitType.name || unitType}</span>
-                                    </label>
-                                ))}
-                            </div>
+                            {availableUnitTypes.length === 0 ? (
+                                <div style={{
+                                    padding: '1rem',
+                                    textAlign: 'center',
+                                    color: '#999',
+                                    background: '#1a1a1a',
+                                    borderRadius: '0.375rem'
+                                }}>
+                                    No unit types available
+                                </div>
+                            ) : (
+                                <div className="unit-types-grid">
+                                    {availableUnitTypes.map(unitType => (
+                                        <label key={unitType.id || unitType} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.applicable_unit_types.includes(unitType.name || unitType)}
+                                                onChange={() => handleUnitTypeToggle(unitType.name || unitType)}
+                                            />
+                                            <span>{unitType.name || unitType}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
