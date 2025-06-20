@@ -1047,3 +1047,20 @@
         gap: 0.25rem;
     }
 }
+
+.unit-info {
+    flex: 1;
+    min-width: 0; /* Prevents flex items from overflowing */
+}
+
+.unit-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+    color: #ffffff;
+}
+
+.unit-info p {
+    color: #999;
+    font-size: 0.85rem;
+    font-style: italic;
+}
