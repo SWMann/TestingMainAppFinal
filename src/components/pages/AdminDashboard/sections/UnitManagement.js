@@ -230,11 +230,12 @@ const UnitManagement = () => {
         }
     };
 
-    const handleAssignPosition = async (positionId, userId) => {
+    const handleAssignPosition = async (positionId, userId, force = false) => {
         try {
             await api.post(`/positions/${positionId}/assign/`, {
                 user_id: userId,
-                assignment_type: 'primary'
+                assignment_type: 'primary',
+                force: force
             });
 
             await fetchInitialData();
@@ -243,6 +244,12 @@ const UnitManagement = () => {
             showNotification('User assigned to position successfully', 'success');
         } catch (error) {
             console.error('Error assigning position:', error);
+
+            // If the error includes requirement failures and force wasn't used, throw it back to the modal
+            if (error.response?.data?.requirement_failures && !force) {
+                throw error;
+            }
+
             showNotification(error.response?.data?.error || 'Failed to assign position', 'error');
         }
     };
