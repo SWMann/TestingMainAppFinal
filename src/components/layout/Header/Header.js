@@ -199,7 +199,7 @@ const Header = () => {
     };
     let rank;
     rank = rankInfo()
-    print(rank);
+    console.log(rank)
     // Check if user data is still loading
     if (isAuthenticated && !userData) {
         return (
