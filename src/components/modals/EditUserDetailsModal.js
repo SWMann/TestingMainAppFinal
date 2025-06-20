@@ -118,6 +118,7 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
             await onSave(formData);
         } catch (error) {
             console.error('Error saving user details:', error);
+            // Don't close the modal on error
         } finally {
             setLoading(false);
         }

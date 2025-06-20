@@ -177,7 +177,42 @@ const UserManagement = () => {
 
     const handleEditUserDetails = async (formData) => {
         try {
-            await api.patch(`/users/${selectedUser.id}/`, formData);
+            // First, update the main user fields that are allowed
+            const mainUserFields = {
+                username: formData.username,
+                email: formData.email || '',
+                bio: formData.bio || '',
+                timezone: formData.timezone || '',
+                discord_notifications: formData.discord_notifications,
+                email_notifications: formData.email_notifications,
+                service_number: formData.service_number || '',
+                onboarding_status: formData.onboarding_status || ''
+            };
+
+            // Update main user fields
+            await api.patch(`/users/${selectedUser.id}/`, mainUserFields);
+
+            // Update sensitive fields through the sensitive-fields endpoint
+            const sensitiveFields = {
+                recruit_status: formData.recruit_status,
+                officer_candidate: formData.officer_candidate,
+                warrant_officer_candidate: formData.warrant_officer_candidate
+            };
+
+            await api.put(`/users/${selectedUser.id}/sensitive-fields/`, sensitiveFields);
+
+            // Handle admin fields separately using individual calls (matching existing toggle pattern)
+            if (formData.is_active !== selectedUser.is_active) {
+                await api.patch(`/users/${selectedUser.id}/`, { is_active: formData.is_active });
+            }
+
+            if (formData.is_staff !== selectedUser.is_staff) {
+                await api.patch(`/users/${selectedUser.id}/`, { is_staff: formData.is_staff });
+            }
+
+            if (formData.is_admin !== selectedUser.is_admin) {
+                await api.patch(`/users/${selectedUser.id}/`, { is_admin: formData.is_admin });
+            }
 
             // Refresh user data
             await fetchUsers();
@@ -187,8 +222,8 @@ const UserManagement = () => {
             showNotification('User details updated successfully', 'success');
         } catch (error) {
             console.error('Error updating user details:', error);
-            showNotification('Failed to update user details', 'error');
-            throw error; // Re-throw to handle in modal
+            showNotification('Failed to update some user details', 'error');
+            // Don't throw the error so the modal can close
         }
     };
 
