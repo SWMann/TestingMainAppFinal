@@ -13,6 +13,9 @@ const PositionsTablePage = () => {
     const { user: currentUser } = useSelector(state => state.auth);
     const navigate = useNavigate();
 
+    // Log initial user state
+    console.log('PositionsTablePage mounted. Current user:', currentUser);
+
     // State
     const [units, setUnits] = useState([]);
     const [positions, setPositions] = useState([]);
@@ -25,6 +28,7 @@ const PositionsTablePage = () => {
     const [branches, setBranches] = useState([]);
     const [currentUserPositionId, setCurrentUserPositionId] = useState(null);
     const [isHighlighting, setIsHighlighting] = useState(false);
+    const [isFetchingUserPosition, setIsFetchingUserPosition] = useState(false);
 
     // Refs for scrolling
     const tableRef = useRef(null);
@@ -33,6 +37,14 @@ const PositionsTablePage = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        // Re-fetch user position when currentUser becomes available
+        if (currentUser && currentUser.id && !currentUserPositionId && !isFetchingUserPosition && positions.length > 0) {
+            console.log('CurrentUser available and positions loaded, fetching user position...');
+            fetchUserPosition();
+        }
+    }, [currentUser, positions.length]); // Add positions.length as dependency
 
     useEffect(() => {
         // Auto-scroll to highlighted position after data loads
@@ -45,6 +57,82 @@ const PositionsTablePage = () => {
             }, 500);
         }
     }, [isLoading, currentUserPositionId]);
+
+    const fetchUserPosition = async () => {
+        if (!currentUser || !currentUser.id || isFetchingUserPosition) return;
+
+        setIsFetchingUserPosition(true);
+        console.log('Fetching position for user:', currentUser.id);
+
+        try {
+            // Try the positions endpoint first
+            let userPositions = [];
+
+            try {
+                const userPositionsResponse = await api.get(`/users/${currentUser.id}/positions/`);
+                console.log('User positions response:', userPositionsResponse.data);
+                userPositions = Array.isArray(userPositionsResponse.data)
+                    ? userPositionsResponse.data
+                    : userPositionsResponse.data.results || [];
+            } catch (error) {
+                console.log('positions/ endpoint failed, trying position_assignments/');
+                // Try alternative endpoint
+                try {
+                    const altResponse = await api.get(`/users/${currentUser.id}/position_assignments/`);
+                    console.log('Position assignments response:', altResponse.data);
+                    userPositions = Array.isArray(altResponse.data)
+                        ? altResponse.data
+                        : altResponse.data.results || [];
+                } catch (altError) {
+                    console.error('Both endpoints failed:', altError);
+                }
+            }
+
+            // Find primary active position
+            const primaryPosition = userPositions.find(up =>
+                up.status === 'active' && up.assignment_type === 'primary'
+            );
+
+            console.log('Primary position found:', primaryPosition);
+
+            if (primaryPosition) {
+                // Handle different response structures
+                const positionId = primaryPosition.position?.id || primaryPosition.position_id;
+                if (positionId) {
+                    setCurrentUserPositionId(positionId);
+
+                    // Auto-expand units to show user's position
+                    const position = positions.find(p => p.id === positionId);
+                    if (position) {
+                        expandUnitHierarchy(position.unit, units);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching user position:', error);
+
+            // Alternative: Check if user has position data in their profile
+            if (currentUser.position_assignments || currentUser.positions) {
+                console.log('Checking user object for position data...');
+                const assignments = currentUser.position_assignments || currentUser.positions || [];
+                const primary = assignments.find(a =>
+                    a.status === 'active' && a.assignment_type === 'primary'
+                );
+                if (primary) {
+                    const positionId = primary.position?.id || primary.position_id;
+                    if (positionId) {
+                        setCurrentUserPositionId(positionId);
+                        const position = positions.find(p => p.id === positionId);
+                        if (position) {
+                            expandUnitHierarchy(position.unit, units);
+                        }
+                    }
+                }
+            }
+        } finally {
+            setIsFetchingUserPosition(false);
+        }
+    };
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -80,26 +168,12 @@ const PositionsTablePage = () => {
             const branchesResponse = await api.get('/units/branches/');
             const branchesData = branchesResponse.data.results || branchesResponse.data;
 
-            // Find current user's position
-            if (currentUser) {
-                const userPositionsResponse = await api.get(`/users/${currentUser.id}/positions/`);
-                const userPositions = userPositionsResponse.data;
+            // Debug logging
+            console.log('Current user from Redux:', currentUser);
+            console.log('User ID:', currentUser?.id);
 
-                // Find primary active position
-                const primaryPosition = userPositions.find(up =>
-                    up.status === 'active' && up.assignment_type === 'primary'
-                );
-
-                if (primaryPosition) {
-                    setCurrentUserPositionId(primaryPosition.position.id);
-
-                    // Auto-expand units to show user's position
-                    const position = processedPositions.find(p => p.id === primaryPosition.position.id);
-                    if (position) {
-                        expandUnitHierarchy(position.unit, unitsData);
-                    }
-                }
-            }
+            // Don't try to fetch user position on initial load if user isn't available yet
+            // The useEffect will handle it when currentUser becomes available
 
             setUnits(unitsData);
             setPositions(processedPositions);
@@ -154,10 +228,23 @@ const PositionsTablePage = () => {
         setExpandedUnits(new Set());
     };
 
-    const findMyPosition = () => {
-        if (!currentUserPositionId) {
-            alert('You do not currently have an assigned position.\n\nIf you believe this is an error, please contact your unit administrator.');
+    const findMyPosition = async () => {
+        if (!currentUser) {
+            alert('You must be logged in to find your position.');
             return;
+        }
+
+        // If we don't have the position ID yet, try to fetch it
+        if (!currentUserPositionId) {
+            setIsHighlighting(true);
+            await fetchUserPosition();
+
+            // Check again after fetching
+            if (!currentUserPositionId) {
+                setIsHighlighting(false);
+                alert('You do not currently have an assigned position.\n\nIf you believe this is an error, please contact your unit administrator.');
+                return;
+            }
         }
 
         setIsHighlighting(true);
@@ -182,6 +269,9 @@ const PositionsTablePage = () => {
                     highlightedRowRef.current?.classList.remove('highlight-flash');
                     setIsHighlighting(false);
                 }, 2000);
+            } else {
+                setIsHighlighting(false);
+                console.error('Could not find position element to scroll to');
             }
         }, 300);
     };
@@ -555,12 +645,12 @@ const PositionsTablePage = () => {
                         {currentUser && (
                             <button
                                 onClick={findMyPosition}
-                                className={`btn-primary ${isHighlighting ? 'highlighting' : ''} ${!currentUserPositionId ? 'no-position' : ''}`}
-                                disabled={isHighlighting}
-                                title={!currentUserPositionId ? 'You do not have an assigned position' : 'Find and highlight your position'}
+                                className={`btn-primary ${isHighlighting || isFetchingUserPosition ? 'highlighting' : ''} ${!currentUserPositionId ? 'no-position' : ''}`}
+                                disabled={isHighlighting || isFetchingUserPosition}
+                                title={!currentUserPositionId ? 'Click to find your position' : 'Find and highlight your position'}
                             >
                                 <Target size={16} />
-                                Find My Position
+                                {isFetchingUserPosition ? 'Loading...' : 'Find My Position'}
                             </button>
                         )}
                         <button onClick={expandAll} className="btn-secondary">
