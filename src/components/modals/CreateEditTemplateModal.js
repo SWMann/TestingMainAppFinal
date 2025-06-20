@@ -145,10 +145,14 @@ export const CreateEditTemplateModal = ({ template, onClose, onSave }) => {
         const newPosition = {
             id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // More unique ID
             role: availableRoles[0]?.id || '',
+            naming_pattern: '{unit_name} {role_name}',
+            identifier_pattern: '',
             quantity: 1,
-            is_leadership: false,
-            is_required: true,
-            notes: ''
+            parent_template_position: null,
+            display_order: formData.template_positions.length,
+            override_min_rank: null,
+            override_max_rank: null,
+            additional_config: {}
         };
 
         setFormData(prev => ({

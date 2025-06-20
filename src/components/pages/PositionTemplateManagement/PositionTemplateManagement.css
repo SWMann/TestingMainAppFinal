@@ -14,7 +14,27 @@
     padding: 1rem;
     animation: fadeIn 0.2s ease-out;
 }
+.field-error {
+    margin-top: 0.25rem;
+    color: #ef4444;
+    font-size: 0.75rem;
+}
 
+.help-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #999999;
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+small.help-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #999999;
+    font-size: 0.75rem;
+    font-style: italic;
+}
 @keyframes fadeIn {
     from {
         opacity: 0;
