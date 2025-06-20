@@ -15,15 +15,16 @@ const Header = () => {
     const location = useLocation();
     const dispatch = useDispatch();
 
-
-
     const { isAuthenticated, user } = useSelector(state => state.auth);
     const [menuOpen, setMenuOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [rankData, setRankData] = useState(null);
+    const [rankLoading, setRankLoading] = useState(false);
     const profileRef = useRef(null);
 
     // Get user data - check if it's nested
     const userData = user?.user || user;
+
     // Debug logging for user data
     useEffect(() => {
         if (user) {
@@ -36,6 +37,38 @@ const Header = () => {
             }
         }
     }, [user, userData]);
+
+    // Fetch rank details when user has a current_rank
+    // This fetches the complete rank object including abbreviation, insignia_image_url, etc.
+    useEffect(() => {
+        const fetchRankData = async () => {
+            if (userData?.current_rank) {
+                // Reset rank data if current_rank changed
+                if (rankData && rankData.id !== userData.current_rank) {
+                    setRankData(null);
+                }
+
+                if (!rankData || rankData.id !== userData.current_rank) {
+                    setRankLoading(true);
+                    try {
+                        console.log('Fetching rank data for:', userData.current_rank);
+                        const response = await api.get(`/units/ranks/${userData.current_rank}/`);
+                        console.log('Rank data response:', response.data);
+                        setRankData(response.data);
+                    } catch (error) {
+                        console.error('Failed to fetch rank data:', error);
+                    } finally {
+                        setRankLoading(false);
+                    }
+                }
+            } else {
+                // Clear rank data if user has no current_rank
+                setRankData(null);
+            }
+        };
+
+        fetchRankData();
+    }, [userData?.current_rank]);
 
     // Fetch complete user profile if needed
     useEffect(() => {
@@ -120,10 +153,7 @@ const Header = () => {
             document.body.classList.remove('nav-open');
         };
     }, [menuOpen]);
-    const rankInfo = async () => {
-        api.get(`/units/ranks/${userData.current_rank}/`)
 
-    }
     const handleLogout = async () => {
         try {
             // Set logging out flag to prevent token refresh during logout
@@ -197,10 +227,8 @@ const Header = () => {
         }
         return null;
     };
-    let rank;
-    rank = rankInfo()
-    console.log(rank)
-    // Check if user data is still loading
+
+    // Check if user data is still loading (but don't wait for rank data)
     if (isAuthenticated && !userData) {
         return (
             <div className="header-wrapper">
@@ -280,11 +308,9 @@ const Header = () => {
                                         />
                                     </div>
                                     <div className="profile-info">
-                                        <div className={`profile-rank ${!rank?.abbreviation && !rank?.abbreviation ? 'no-rank' : ''}`}>
-                                            {rank?.abbreviation ? (
-                                                <span className="rank-abbr">{rank.abbreviation}</span>
-                                            ) : rank?.abbreviation ? (
-                                                <span className="rank-abbr">{rank.abbreviation}</span>
+                                        <div className={`profile-rank ${!rankData?.abbreviation ? 'no-rank' : ''}`}>
+                                            {rankData?.abbreviation ? (
+                                                <span className="rank-abbr">{rankData.abbreviation}</span>
                                             ) : null}
                                             <span>{userData.username || 'Unknown'}</span>
                                         </div>
@@ -292,10 +318,10 @@ const Header = () => {
                                             {userData.service_number || userData.serviceNumber || 'NO-SN'}
                                         </div>
                                     </div>
-                                    {(rank?.insignia_image_url || rank?.insignia_image_url) && (
+                                    {rankData?.insignia_image_url && (
                                         <img
-                                            src={rank.insignia_image_url || rank.insignia_image_url}
-                                            alt={rank?.name || rank?.name || 'Rank insignia'}
+                                            src={rankData.insignia_image_url}
+                                            alt={rankData.name || 'Rank insignia'}
                                             className="rank-insignia-small"
                                         />
                                     )}
@@ -305,7 +331,7 @@ const Header = () => {
                                 <div className={`profile-dropdown ${profileDropdownOpen ? 'open' : ''}`}>
                                     <div className="dropdown-header">
                                         <div className="dropdown-username">
-                                            {rank?.abbreviation || rank?.abbreviation || ''} {userData.username}
+                                            {rankData?.abbreviation || ''} {userData.username}
                                         </div>
                                         <div className="dropdown-unit">
                                             {userData.primary_unit?.name || userData.unit?.name || 'No Unit Assignment'}
