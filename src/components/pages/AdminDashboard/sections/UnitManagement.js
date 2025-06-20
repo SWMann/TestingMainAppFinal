@@ -4,7 +4,8 @@ import {
     ChevronRight, MoreVertical, Calendar, MapPin, User,
     GitBranch, Briefcase, X, Check, AlertCircle, Eye,
     ChevronDown, ChevronUp, Flag, Award, FileText,
-    Star, Hash, Layers, UserCheck, Tag
+    Star, Hash, Layers, UserCheck, Tag, Target, TrendingUp,
+    Info, Lock, Unlock, UserPlus
 } from 'lucide-react';
 import './ManagementSections.css';
 import api from "../../../../services/api";
@@ -18,6 +19,11 @@ import {CreateRoleModal} from "../../../modals/CreateRoleModal";
 import {EditRoleModal} from "../../../modals/EditRoleModal";
 import {AssignPositionModal} from "../../../modals/AssignPositionModal";
 import {UnitDetailsPanel} from "./UnitDetailsPanel";
+import {
+    CreateRecruitmentSlotModal,
+    EditRecruitmentSlotModal,
+    UnitRecruitmentStatusModal
+} from "../../../modals/RecruitmentModals";
 
 const UnitManagement = () => {
     const [activeTab, setActiveTab] = useState('units');
@@ -26,15 +32,18 @@ const UnitManagement = () => {
     const [positions, setPositions] = useState([]);
     const [roles, setRoles] = useState([]);
     const [ranks, setRanks] = useState([]);
+    const [recruitmentSlots, setRecruitmentSlots] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBy, setFilterBy] = useState('all');
     const [filterBranch, setFilterBranch] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [filterRecruitmentStatus, setFilterRecruitmentStatus] = useState('all');
     const [sortBy, setSortBy] = useState('name');
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [selectedPosition, setSelectedPosition] = useState(null);
     const [selectedRole, setSelectedRole] = useState(null);
+    const [selectedSlot, setSelectedSlot] = useState(null);
     const [showUnitDetails, setShowUnitDetails] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -45,12 +54,21 @@ const UnitManagement = () => {
     const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
     const [showEditRoleModal, setShowEditRoleModal] = useState(false);
     const [showAssignPositionModal, setShowAssignPositionModal] = useState(false);
+    const [showCreateSlotModal, setShowCreateSlotModal] = useState(false);
+    const [showEditSlotModal, setShowEditSlotModal] = useState(false);
+    const [showRecruitmentStatusModal, setShowRecruitmentStatusModal] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [expandedUnits, setExpandedUnits] = useState(new Set());
 
     useEffect(() => {
         fetchInitialData();
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'recruitment') {
+            fetchRecruitmentData();
+        }
+    }, [activeTab]);
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -76,20 +94,43 @@ const UnitManagement = () => {
         }
     };
 
+    const fetchRecruitmentData = async () => {
+        try {
+            const [slotsResponse, unitsWithRecruitment] = await Promise.all([
+                api.get('/units/recruitment/slots/'),
+                api.get('/units/recruitment/units/status/')
+            ]);
+
+            setRecruitmentSlots(slotsResponse.data.results || slotsResponse.data);
+
+            // Update units with recruitment data
+            const updatedUnits = units.map(unit => {
+                const recruitmentData = unitsWithRecruitment.data.find(ru => ru.id === unit.id);
+                return recruitmentData ? { ...unit, ...recruitmentData } : unit;
+            });
+            setUnits(updatedUnits);
+        } catch (error) {
+            console.error('Error fetching recruitment data:', error);
+            showNotification('Failed to load recruitment data', 'error');
+        }
+    };
+
     const fetchUnitDetails = async (unitId) => {
         try {
-            const [unitRes, membersRes, positionsRes, eventsRes] = await Promise.all([
+            const [unitRes, membersRes, positionsRes, eventsRes, recruitmentRes] = await Promise.all([
                 api.get(`/units/${unitId}/`),
                 api.get(`/units/${unitId}/members/`),
                 api.get(`/units/${unitId}/positions/`),
-                api.get(`/units/${unitId}/events/`)
+                api.get(`/units/${unitId}/events/`),
+                api.get(`/units/recruitment/units/status/?unit_id=${unitId}`)
             ]);
 
             setSelectedUnit({
                 ...unitRes.data,
                 members: membersRes.data,
                 positions: positionsRes.data,
-                events: eventsRes.data
+                events: eventsRes.data,
+                recruitment_data: recruitmentRes.data
             });
 
             setShowUnitDetails(true);
@@ -270,6 +311,76 @@ const UnitManagement = () => {
         }
     };
 
+    // Recruitment handlers
+    const handleCreateRecruitmentSlot = async (slotData) => {
+        try {
+            await api.post('/units/recruitment/slots/', slotData);
+            await fetchRecruitmentData();
+            setShowCreateSlotModal(false);
+            showNotification('Recruitment slot created successfully', 'success');
+        } catch (error) {
+            console.error('Error creating recruitment slot:', error);
+            showNotification(error.response?.data?.non_field_errors?.[0] || 'Failed to create recruitment slot', 'error');
+        }
+    };
+
+    const handleUpdateRecruitmentSlot = async (slotId, slotData) => {
+        try {
+            await api.patch(`/units/recruitment/slots/${slotId}/`, slotData);
+            await fetchRecruitmentData();
+            setShowEditSlotModal(false);
+            setSelectedSlot(null);
+            showNotification('Recruitment slot updated successfully', 'success');
+        } catch (error) {
+            console.error('Error updating recruitment slot:', error);
+            showNotification('Failed to update recruitment slot', 'error');
+        }
+    };
+
+    const handleDeleteRecruitmentSlot = async (slotId) => {
+        if (!window.confirm('Are you sure you want to delete this recruitment slot?')) {
+            return;
+        }
+
+        try {
+            await api.delete(`/units/recruitment/slots/${slotId}/`);
+            await fetchRecruitmentData();
+            showNotification('Recruitment slot deleted successfully', 'success');
+        } catch (error) {
+            console.error('Error deleting recruitment slot:', error);
+            showNotification('Failed to delete recruitment slot', 'error');
+        }
+    };
+
+    const handleUpdateRecruitmentStatus = async (unitId, statusData) => {
+        try {
+            await api.patch(`/units/recruitment/units/${unitId}/update_status/`, statusData);
+            await fetchInitialData();
+            await fetchRecruitmentData();
+            setShowRecruitmentStatusModal(false);
+            setSelectedUnit(null);
+            showNotification('Recruitment status updated successfully', 'success');
+        } catch (error) {
+            console.error('Error updating recruitment status:', error);
+            showNotification('Failed to update recruitment status', 'error');
+        }
+    };
+
+    const handleInitializeSlots = async (unitId) => {
+        if (!window.confirm('Initialize recruitment slots based on unit positions? This will create slots for all active positions.')) {
+            return;
+        }
+
+        try {
+            const response = await api.post(`/units/recruitment/units/${unitId}/initialize_slots/`);
+            await fetchRecruitmentData();
+            showNotification(response.data.message, 'success');
+        } catch (error) {
+            console.error('Error initializing slots:', error);
+            showNotification('Failed to initialize recruitment slots', 'error');
+        }
+    };
+
     const toggleUnitExpansion = (unitId) => {
         const newExpanded = new Set(expandedUnits);
         if (newExpanded.has(unitId)) {
@@ -300,7 +411,11 @@ const UnitManagement = () => {
             filterBranch === 'all' ||
             unit.branch === filterBranch;
 
-        return matchesSearch && matchesStatus && matchesBranch;
+        const matchesRecruitmentStatus =
+            filterRecruitmentStatus === 'all' ||
+            unit.recruitment_status === filterRecruitmentStatus;
+
+        return matchesSearch && matchesStatus && matchesBranch && matchesRecruitmentStatus;
     });
 
     const sortedUnits = [...filteredUnits].sort((a, b) => {
@@ -340,6 +455,16 @@ const UnitManagement = () => {
             role.category === filterCategory;
 
         return matchesSearch && matchesCategory;
+    });
+
+    // Filter recruitment slots
+    const filteredSlots = recruitmentSlots.filter(slot => {
+        const matchesSearch =
+            slot.unit_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            slot.role_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            slot.career_track?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesSearch;
     });
 
     // Build hierarchical structure
@@ -639,6 +764,194 @@ const UnitManagement = () => {
         );
     };
 
+    const renderRecruitmentRow = (unit) => {
+        const totalSlots = unit.total_slots || 0;
+        const totalFilled = unit.total_filled || 0;
+        const totalAvailable = unit.total_available || 0;
+        const fillRate = unit.fill_rate || 0;
+
+        const getStatusBadgeClass = (status) => {
+            switch (status) {
+                case 'open': return 'success';
+                case 'limited': return 'warning';
+                case 'closed': return 'danger';
+                case 'frozen': return 'info';
+                default: return 'default';
+            }
+        };
+
+        return (
+            <tr key={unit.id}>
+                <td>
+                    <div className="unit-info">
+                        {unit.emblem_url && (
+                            <img
+                                src={unit.emblem_url}
+                                alt={unit.name}
+                                className="unit-emblem"
+                            />
+                        )}
+                        <div>
+                            <div className="unit-name">{unit.name}</div>
+                            <div className="unit-abbreviation">{unit.abbreviation}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span className={`status-badge ${getStatusBadgeClass(unit.recruitment_status)}`}>
+                        {unit.recruitment_status?.replace('_', ' ') || 'Not Set'}
+                    </span>
+                </td>
+                <td>
+                    <div className="strength-info">
+                        <div className="strength-current">{unit.max_personnel || 0}</div>
+                        <div className="strength-target">Target: {unit.target_personnel || 0}</div>
+                    </div>
+                </td>
+                <td>
+                    <div className="slots-info">
+                        <div className="slots-summary">
+                            <span className="filled">{totalFilled}</span>
+                            <span className="separator">/</span>
+                            <span className="total">{totalSlots}</span>
+                        </div>
+                        <div className="slots-available">
+                            {totalAvailable > 0 ? (
+                                <span className="positive">{totalAvailable} available</span>
+                            ) : (
+                                <span className="zero">No slots available</span>
+                            )}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div className="fill-rate">
+                        <div className="fill-rate-value">{fillRate}%</div>
+                        <div className="fill-rate-bar">
+                            <div className="fill-rate-progress" style={{ width: `${fillRate}%` }}></div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div className="action-cell">
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                setSelectedUnit(unit);
+                                setShowRecruitmentStatusModal(true);
+                            }}
+                            title="Edit Recruitment Status"
+                        >
+                            <Edit size={16} />
+                        </button>
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                setSelectedUnit(unit);
+                                fetchUnitRecruitmentSlots(unit.id);
+                            }}
+                            title="View Slots"
+                        >
+                            <Eye size={16} />
+                        </button>
+                        <button
+                            className="icon-btn"
+                            onClick={() => handleInitializeSlots(unit.id)}
+                            title="Initialize Slots from Positions"
+                        >
+                            <Target size={16} />
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        );
+    };
+
+    const fetchUnitRecruitmentSlots = async (unitId) => {
+        try {
+            const response = await api.get(`/units/recruitment/slots/by_unit/?unit_id=${unitId}`);
+            // Handle displaying the slots - could open a modal or expand the row
+            console.log('Unit recruitment slots:', response.data);
+        } catch (error) {
+            console.error('Error fetching unit recruitment slots:', error);
+            showNotification('Failed to fetch recruitment slots', 'error');
+        }
+    };
+
+    const renderRecruitmentSlotRow = (slot) => {
+        const availableSlots = slot.available_slots || 0;
+        const fillRate = slot.total_slots > 0
+            ? Math.round((slot.filled_slots / slot.total_slots) * 100)
+            : 0;
+
+        return (
+            <tr key={slot.id}>
+                <td>{slot.unit_name}</td>
+                <td>
+                    <div className="role-info">
+                        <span className="role-name">{slot.role_name}</span>
+                        <span className={`role-category ${slot.role_category}`}>
+                            {slot.role_category}
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    <span className={`career-track-badge ${slot.career_track}`}>
+                        {slot.career_track}
+                    </span>
+                </td>
+                <td>
+                    <div className="slots-breakdown">
+                        <div className="slot-counts">
+                            <span className="total">Total: {slot.total_slots}</span>
+                            <span className="filled">Filled: {slot.filled_slots}</span>
+                            <span className="reserved">Reserved: {slot.reserved_slots}</span>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span className={`available-count ${availableSlots > 0 ? 'positive' : 'zero'}`}>
+                        {availableSlots}
+                    </span>
+                </td>
+                <td>
+                    <div className="fill-rate">
+                        <div className="fill-rate-value">{fillRate}%</div>
+                        <div className="fill-rate-bar small">
+                            <div className="fill-rate-progress" style={{ width: `${fillRate}%` }}></div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span className={`status-badge ${slot.is_active ? 'active' : 'inactive'}`}>
+                        {slot.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td>
+                    <div className="action-cell">
+                        <button
+                            className="icon-btn"
+                            onClick={() => {
+                                setSelectedSlot(slot);
+                                setShowEditSlotModal(true);
+                            }}
+                            title="Edit Slot"
+                        >
+                            <Edit size={16} />
+                        </button>
+                        <button
+                            className="icon-btn danger"
+                            onClick={() => handleDeleteRecruitmentSlot(slot.id)}
+                            title="Delete Slot"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        );
+    };
+
     return (
         <div className="management-section">
             <div className="section-container">
@@ -656,11 +969,17 @@ const UnitManagement = () => {
                                 <h2>Position Management</h2>
                                 <span className="count-badge">{positions.length} total</span>
                             </>
-                        ) : (
+                        ) : activeTab === 'roles' ? (
                             <>
                                 <Tag size={24} />
                                 <h2>Role Management</h2>
                                 <span className="count-badge">{roles.length} total</span>
+                            </>
+                        ) : (
+                            <>
+                                <Target size={24} />
+                                <h2>Recruitment Management</h2>
+                                <span className="count-badge">{recruitmentSlots.length} slots</span>
                             </>
                         )}
                     </div>
@@ -690,13 +1009,21 @@ const UnitManagement = () => {
                                 <Plus size={18} />
                                 Create Position
                             </button>
-                        ) : (
+                        ) : activeTab === 'roles' ? (
                             <button
                                 className="action-btn primary"
                                 onClick={() => setShowCreateRoleModal(true)}
                             >
                                 <Plus size={18} />
                                 Create Role
+                            </button>
+                        ) : (
+                            <button
+                                className="action-btn primary"
+                                onClick={() => setShowCreateSlotModal(true)}
+                            >
+                                <Plus size={18} />
+                                Create Recruitment Slot
                             </button>
                         )}
                     </div>
@@ -723,6 +1050,13 @@ const UnitManagement = () => {
                     >
                         <Tag size={18} />
                         Roles
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'recruitment' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('recruitment')}
+                    >
+                        <Target size={18} />
+                        Recruitment
                     </button>
                 </div>
 
@@ -792,6 +1126,22 @@ const UnitManagement = () => {
                             </select>
                         </div>
                     )}
+
+                    {activeTab === 'recruitment' && (
+                        <div className="filter-group">
+                            <Filter size={18} />
+                            <select
+                                value={filterRecruitmentStatus}
+                                onChange={(e) => setFilterRecruitmentStatus(e.target.value)}
+                            >
+                                <option value="all">All Statuses</option>
+                                <option value="open">Open</option>
+                                <option value="limited">Limited</option>
+                                <option value="closed">Closed</option>
+                                <option value="frozen">Frozen</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <div className="data-table-container">
@@ -855,7 +1205,7 @@ const UnitManagement = () => {
                                 </tbody>
                             </table>
                         )
-                    ) : (
+                    ) : activeTab === 'roles' ? (
                         filteredRoles.length === 0 ? (
                             <div className="empty-state">
                                 <Tag size={48} />
@@ -882,6 +1232,120 @@ const UnitManagement = () => {
                                 </tbody>
                             </table>
                         )
+                    ) : (
+                        // Recruitment tab
+                        <>
+                            <div className="recruitment-overview">
+                                <div className="overview-cards">
+                                    <div className="overview-card">
+                                        <div className="card-icon">
+                                            <Users size={24} />
+                                        </div>
+                                        <div className="card-content">
+                                            <h4>Total Slots</h4>
+                                            <p className="card-value">
+                                                {recruitmentSlots.reduce((sum, slot) => sum + slot.total_slots, 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="overview-card">
+                                        <div className="card-icon">
+                                            <UserCheck size={24} />
+                                        </div>
+                                        <div className="card-content">
+                                            <h4>Filled Slots</h4>
+                                            <p className="card-value">
+                                                {recruitmentSlots.reduce((sum, slot) => sum + slot.filled_slots, 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="overview-card">
+                                        <div className="card-icon">
+                                            <Shield size={24} />
+                                        </div>
+                                        <div className="card-content">
+                                            <h4>Reserved</h4>
+                                            <p className="card-value">
+                                                {recruitmentSlots.reduce((sum, slot) => sum + slot.reserved_slots, 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="overview-card">
+                                        <div className="card-icon">
+                                            <Target size={24} />
+                                        </div>
+                                        <div className="card-content">
+                                            <h4>Available</h4>
+                                            <p className="card-value">
+                                                {recruitmentSlots.reduce((sum, slot) => sum + (slot.available_slots || 0), 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="recruitment-tables">
+                                <div className="table-section">
+                                    <h3>Unit Recruitment Status</h3>
+                                    {sortedUnits.length === 0 ? (
+                                        <div className="empty-state">
+                                            <Target size={48} />
+                                            <h3>No units found</h3>
+                                            <p>Create units first to manage recruitment</p>
+                                        </div>
+                                    ) : (
+                                        <table className="data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Unit</th>
+                                                <th>Status</th>
+                                                <th>Max/Target</th>
+                                                <th>Slots</th>
+                                                <th>Fill Rate</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {sortedUnits.map(unit => renderRecruitmentRow(unit))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+
+                                <div className="table-section">
+                                    <h3>Recruitment Slots</h3>
+                                    {filteredSlots.length === 0 ? (
+                                        <div className="empty-state">
+                                            <UserPlus size={48} />
+                                            <h3>No recruitment slots found</h3>
+                                            <p>Create recruitment slots or initialize from unit positions</p>
+                                            <button className="action-btn primary" onClick={() => setShowCreateSlotModal(true)}>
+                                                <Plus size={18} />
+                                                Create Recruitment Slot
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <table className="data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Unit</th>
+                                                <th>Role</th>
+                                                <th>Track</th>
+                                                <th>Slots</th>
+                                                <th>Available</th>
+                                                <th>Fill Rate</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {filteredSlots.map(slot => renderRecruitmentSlotRow(slot))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>
@@ -987,6 +1451,38 @@ const UnitManagement = () => {
                 <UnitHierarchyModal
                     unit={selectedUnit}
                     onClose={() => setShowHierarchyModal(false)}
+                />
+            )}
+
+            {/* Recruitment Modals */}
+            {showCreateSlotModal && (
+                <CreateRecruitmentSlotModal
+                    unit={selectedUnit}
+                    roles={roles}
+                    onClose={() => setShowCreateSlotModal(false)}
+                    onCreate={handleCreateRecruitmentSlot}
+                />
+            )}
+
+            {showEditSlotModal && selectedSlot && (
+                <EditRecruitmentSlotModal
+                    slot={selectedSlot}
+                    onClose={() => {
+                        setShowEditSlotModal(false);
+                        setSelectedSlot(null);
+                    }}
+                    onUpdate={handleUpdateRecruitmentSlot}
+                />
+            )}
+
+            {showRecruitmentStatusModal && selectedUnit && (
+                <UnitRecruitmentStatusModal
+                    unit={selectedUnit}
+                    onClose={() => {
+                        setShowRecruitmentStatusModal(false);
+                        setSelectedUnit(null);
+                    }}
+                    onUpdate={handleUpdateRecruitmentStatus}
                 />
             )}
         </div>
