@@ -65,32 +65,13 @@ const PositionsTablePage = () => {
         console.log('Fetching position for user:', currentUser.id);
 
         try {
-            // Try the positions endpoint first
-            let userPositions = [];
+            // Use the correct endpoint to get user's positions
+            const userPositionsResponse = await api.get(`/users/${currentUser.id}/positions/`);
+            console.log('User positions response:', userPositionsResponse.data);
 
-            try {
-                const userPositionsResponse = await api.get(`/users/positions/`);
-                if (userPositionsResponse !== null, userPositionsResponse.current_holder===currentUser.id) {
-
-                    console.log('User positions response:', userPositionsResponse.data);
-                    userPositions = Array.isArray(userPositionsResponse.data)
-                        ? userPositionsResponse.data
-                        : userPositionsResponse.data.results || [];
-                }
-
-            } catch (error) {
-                console.log('positions/ endpoint failed, trying position_assignments/');
-                // Try alternative endpoint
-                try {
-                    const altResponse = await api.get(`/users/${currentUser.id}/position_assignments/`);
-                    console.log('Position assignments response:', altResponse.data);
-                    userPositions = Array.isArray(altResponse.data)
-                        ? altResponse.data
-                        : altResponse.data.results || [];
-                } catch (altError) {
-                    console.error('Both endpoints failed:', altError);
-                }
-            }
+            const userPositions = Array.isArray(userPositionsResponse.data)
+                ? userPositionsResponse.data
+                : userPositionsResponse.data.results || [];
 
             // Find primary active position
             const primaryPosition = userPositions.find(up =>
@@ -101,7 +82,7 @@ const PositionsTablePage = () => {
 
             if (primaryPosition) {
                 // Handle different response structures
-                const positionId = primaryPosition.position?.id || primaryPosition.position_id;
+                const positionId = primaryPosition.position?.id || primaryPosition.position_id || primaryPosition.position;
                 if (positionId) {
                     setCurrentUserPositionId(positionId);
 
@@ -111,27 +92,31 @@ const PositionsTablePage = () => {
                         expandUnitHierarchy(position.unit, units);
                     }
                 }
+            } else {
+                console.log('No primary active position found for user');
             }
         } catch (error) {
             console.error('Error fetching user position:', error);
 
-            // Alternative: Check if user has position data in their profile
-            if (currentUser.position_assignments || currentUser.positions) {
-                console.log('Checking user object for position data...');
-                const assignments = currentUser.position_assignments || currentUser.positions || [];
-                const primary = assignments.find(a =>
-                    a.status === 'active' && a.assignment_type === 'primary'
+            // If the endpoint fails, try alternative approach by filtering all positions
+            // This is a fallback in case the user endpoint is not available
+            try {
+                console.log('Trying fallback: searching through all positions for current holder');
+
+                // Find positions where current_holder matches the user
+                const userPosition = positions.find(p =>
+                    p.current_holder &&
+                    (p.current_holder.id === currentUser.id ||
+                        p.current_holder.username === currentUser.username)
                 );
-                if (primary) {
-                    const positionId = primary.position?.id || primary.position_id;
-                    if (positionId) {
-                        setCurrentUserPositionId(positionId);
-                        const position = positions.find(p => p.id === positionId);
-                        if (position) {
-                            expandUnitHierarchy(position.unit, units);
-                        }
-                    }
+
+                if (userPosition) {
+                    console.log('Found user position via fallback method:', userPosition);
+                    setCurrentUserPositionId(userPosition.id);
+                    expandUnitHierarchy(userPosition.unit, units);
                 }
+            } catch (fallbackError) {
+                console.error('Fallback method also failed:', fallbackError);
             }
         } finally {
             setIsFetchingUserPosition(false);
