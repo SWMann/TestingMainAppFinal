@@ -9,10 +9,13 @@ import {
 import './Header.css';
 import api, { setLoggingOut } from '../../../services/api';
 
+
 const Header = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
+
+
 
     const { isAuthenticated, user } = useSelector(state => state.auth);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -21,7 +24,6 @@ const Header = () => {
 
     // Get user data - check if it's nested
     const userData = user?.user || user;
-
     // Debug logging for user data
     useEffect(() => {
         if (user) {
@@ -118,7 +120,10 @@ const Header = () => {
             document.body.classList.remove('nav-open');
         };
     }, [menuOpen]);
+    const rankInfo = async () => {
+        api.get(`/units/ranks/${userData.current_rank}/`)
 
+    }
     const handleLogout = async () => {
         try {
             // Set logging out flag to prevent token refresh during logout
@@ -192,7 +197,9 @@ const Header = () => {
         }
         return null;
     };
-
+    let rank;
+    rank = rankInfo()
+    pring(rank);
     // Check if user data is still loading
     if (isAuthenticated && !userData) {
         return (
