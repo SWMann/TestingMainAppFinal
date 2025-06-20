@@ -403,14 +403,27 @@ const PositionsTablePage = () => {
     };
 
     // Handle individual position creation
-    const handlePositionCreate = (positionData) => {
-        console.log('Position created:', positionData);
+    const handleCreatePosition = async (positionData) => {
+        try {
+            console.log('Creating position with data:', positionData);
 
-        // Refresh the positions data
-        fetchData();
+            // Make the API call
+            const response = await api.post('/units/positions/', positionData);
+            console.log('Position created:', response.data);
 
-        // Show success message
-        alert('Position created successfully');
+            // Show success message
+            showSuccessMessage('Position created successfully');
+
+            // Refresh the positions list
+            await fetchData();
+
+            // Close the modal
+            setShowCreateModal(false);
+        } catch (error) {
+            console.error('Error creating position:', error);
+            console.error('Error response:', error.response?.data);
+            showErrorMessage(error.response?.data?.detail || 'Failed to create position');
+        }
     };
 
     const openTemplateModal = (unit) => {
