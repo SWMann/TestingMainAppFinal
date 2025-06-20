@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import api from "../../services/api";
 import './AdminModals.css';
-import './AssignPositionModal.css';
 
 export const AssignPositionModal = ({ position, onClose, onAssign }) => {
     const [searchTerm, setSearchTerm] = useState('');
