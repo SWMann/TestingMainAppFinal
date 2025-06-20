@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import {
     ChevronRight, ChevronDown, Users, Shield, Search,
     Filter, Download, Maximize2, User, Building,
-    AlertCircle, Hash, MapPin, Calendar, Star
+    AlertCircle, Hash, MapPin, Calendar, Star, Target
 } from 'lucide-react';
 import './PositionsTablePage.css';
 import api from "../../../services/api";
 
 const PositionsTablePage = () => {
     const { user: currentUser } = useSelector(state => state.auth);
+    const navigate = useNavigate();
 
     // State
     const [units, setUnits] = useState([]);
@@ -22,6 +24,7 @@ const PositionsTablePage = () => {
     const [filterVacancy, setFilterVacancy] = useState('all');
     const [branches, setBranches] = useState([]);
     const [currentUserPositionId, setCurrentUserPositionId] = useState(null);
+    const [isHighlighting, setIsHighlighting] = useState(false);
 
     // Refs for scrolling
     const tableRef = useRef(null);
@@ -52,9 +55,26 @@ const PositionsTablePage = () => {
             const unitsResponse = await api.get('/units/');
             const unitsData = unitsResponse.data.results || unitsResponse.data;
 
-            // Fetch all positions
-            const positionsResponse = await api.get('/units/positions/');
+            // Fetch all positions with expanded role data
+            const positionsResponse = await api.get('/units/positions/', {
+                params: { expand: 'role,role.typical_rank' }
+            });
             const positionsData = positionsResponse.data.results || positionsResponse.data;
+
+            // Process positions to include rank tier information
+            const processedPositions = positionsData.map(position => ({
+                ...position,
+                // Handle both nested and flat data structures
+                role_typical_rank_tier: position.role?.typical_rank?.tier ||
+                    position.role_typical_rank_tier ||
+                    null,
+                role_is_command: position.role?.is_command_role ||
+                    position.role_is_command ||
+                    false,
+                role_is_staff: position.role?.is_staff_role ||
+                    position.role_is_staff ||
+                    false
+            }));
 
             // Fetch branches for filter
             const branchesResponse = await api.get('/units/branches/');
@@ -74,7 +94,7 @@ const PositionsTablePage = () => {
                     setCurrentUserPositionId(primaryPosition.position.id);
 
                     // Auto-expand units to show user's position
-                    const position = positionsData.find(p => p.id === primaryPosition.position.id);
+                    const position = processedPositions.find(p => p.id === primaryPosition.position.id);
                     if (position) {
                         expandUnitHierarchy(position.unit, unitsData);
                     }
@@ -82,7 +102,7 @@ const PositionsTablePage = () => {
             }
 
             setUnits(unitsData);
-            setPositions(positionsData);
+            setPositions(processedPositions);
             setBranches(branchesData);
         } catch (err) {
             console.error('Error fetching data:', err);
@@ -134,6 +154,83 @@ const PositionsTablePage = () => {
         setExpandedUnits(new Set());
     };
 
+    const findMyPosition = () => {
+        if (!currentUserPositionId) {
+            alert('You do not currently have an assigned position.\n\nIf you believe this is an error, please contact your unit administrator.');
+            return;
+        }
+
+        setIsHighlighting(true);
+
+        // Find the position and expand its unit hierarchy
+        const position = positions.find(p => p.id === currentUserPositionId);
+        if (position) {
+            expandUnitHierarchy(position.unit, units);
+        }
+
+        // Scroll to the position after a short delay
+        setTimeout(() => {
+            if (highlightedRowRef.current) {
+                highlightedRowRef.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                // Add a temporary highlight animation
+                highlightedRowRef.current.classList.add('highlight-flash');
+                setTimeout(() => {
+                    highlightedRowRef.current?.classList.remove('highlight-flash');
+                    setIsHighlighting(false);
+                }, 2000);
+            }
+        }, 300);
+    };
+
+    // Sort positions by rank tier (higher ranks first)
+    const sortPositionsByRank = (positionsList) => {
+        return [...positionsList].sort((a, b) => {
+            // Get rank tiers (default to 999 if no rank)
+            const aTier = a.role_typical_rank_tier ?? 999;
+            const bTier = b.role_typical_rank_tier ?? 999;
+
+            // Sort by tier descending (higher tier = higher rank)
+            if (aTier !== bTier) {
+                return bTier - aTier;
+            }
+
+            // If same tier, sort by role category
+            const categoryOrder = {
+                'command': 0,
+                'staff': 1,
+                'nco': 2,
+                'specialist': 3,
+                'trooper': 4,
+                'support': 5
+            };
+
+            const aCat = categoryOrder[a.role_category] ?? 99;
+            const bCat = categoryOrder[b.role_category] ?? 99;
+
+            if (aCat !== bCat) {
+                return aCat - bCat;
+            }
+
+            // Finally, sort by display title
+            return (a.display_title || '').localeCompare(b.display_title || '');
+        });
+    };
+
+    // Helper function to count all positions in a unit and its children
+    const countAllPositions = (unit) => {
+        let count = filterPositions(unit.positions || []).length;
+        if (unit.children) {
+            unit.children.forEach(child => {
+                count += countAllPositions(child);
+            });
+        }
+        return count;
+    };
+
     // Build hierarchical unit structure
     const buildUnitTree = () => {
         const unitMap = {};
@@ -156,6 +253,14 @@ const PositionsTablePage = () => {
                 rootUnits.push(unitMap[unit.id]);
             }
         });
+
+        // Sort children units alphabetically
+        const sortChildren = (unit) => {
+            unit.children.sort((a, b) => a.name.localeCompare(b.name));
+            unit.children.forEach(child => sortChildren(child));
+        };
+
+        rootUnits.forEach(unit => sortChildren(unit));
 
         return rootUnits;
     };
@@ -202,7 +307,8 @@ const PositionsTablePage = () => {
         const isExpanded = expandedUnits.has(unit.id);
         const hasChildren = unit.children.length > 0;
         const filteredPositions = filterPositions(unit.positions);
-        const hasVisibleContent = filteredPositions.length > 0 ||
+        const sortedPositions = sortPositionsByRank(filteredPositions);
+        const hasVisibleContent = sortedPositions.length > 0 ||
             unit.children.some(child => hasVisiblePositions(child));
 
         // Don't render if no visible content after filtering
@@ -216,7 +322,12 @@ const PositionsTablePage = () => {
                         <div
                             className="unit-header"
                             onClick={() => hasChildren && toggleUnit(unit.id)}
+                            onKeyDown={(e) => e.key === 'Enter' && hasChildren && toggleUnit(unit.id)}
                             style={{ paddingLeft: `${level * 24}px` }}
+                            tabIndex={hasChildren ? 0 : -1}
+                            role={hasChildren ? "button" : undefined}
+                            aria-expanded={hasChildren ? isExpanded : undefined}
+                            aria-label={`${unit.name} unit with ${sortedPositions.length} positions`}
                         >
                             {hasChildren && (
                                 <span className="expand-icon">
@@ -230,17 +341,22 @@ const PositionsTablePage = () => {
                                 <span className="unit-type">{unit.unit_type}</span>
                             )}
                             <span className="position-count">
-                                {filteredPositions.length} positions
+                                {sortedPositions.length} direct positions
+                                {hasChildren && !isExpanded && (
+                                    <span className="total-count">
+                                        ({countAllPositions(unit)} total)
+                                    </span>
+                                )}
                             </span>
                         </div>
                     </td>
                 </tr>
 
                 {/* Unit's Positions */}
-                {isExpanded && filteredPositions.map(position => (
+                {isExpanded && sortedPositions.map(position => (
                     <tr
                         key={position.id}
-                        className={`position-row ${position.id === currentUserPositionId ? 'highlighted' : ''}`}
+                        className={`position-row ${position.id === currentUserPositionId ? 'highlighted' : ''} ${isHighlighting && position.id === currentUserPositionId ? 'highlighting' : ''}`}
                         ref={position.id === currentUserPositionId ? highlightedRowRef : null}
                     >
                         <td style={{ paddingLeft: `${(level + 1) * 24}px` }}>
@@ -248,12 +364,20 @@ const PositionsTablePage = () => {
                                 {position.id === currentUserPositionId && (
                                     <Star size={16} className="current-position-icon" />
                                 )}
+                                {position.role_is_command && (
+                                    <Shield size={14} className="command-icon" title="Command Position" />
+                                )}
                                 {position.display_title}
                             </div>
                         </td>
                         <td>
                             <span className={`role-category ${position.role_category}`}>
                                 {position.role_name}
+                                {position.role_typical_rank_tier && (
+                                    <span className="rank-tier" title={`Rank Tier: ${position.role_typical_rank_tier}`}>
+                                        T{position.role_typical_rank_tier}
+                                    </span>
+                                )}
                             </span>
                         </td>
                         <td>
@@ -292,7 +416,7 @@ const PositionsTablePage = () => {
                             <div className="position-actions">
                                 <button
                                     className="action-btn view"
-                                    onClick={() => window.location.href = `/positions/${position.id}`}
+                                    onClick={() => navigate(`/positions/${position.id}`)}
                                 >
                                     View
                                 </button>
@@ -317,16 +441,19 @@ const PositionsTablePage = () => {
 
     const exportToCSV = () => {
         // Build CSV data
-        let csv = 'Position,Role,Current Holder,Service Number,Unit,Branch\n';
+        let csv = 'Position,Role,Current Holder,Service Number,Unit,Branch,Rank Tier\n';
 
         const addPositionsToCSV = (unit) => {
-            unit.positions.forEach(position => {
+            const sortedPositions = sortPositionsByRank(unit.positions);
+            sortedPositions.forEach(position => {
                 const holder = position.is_vacant ? 'VACANT' :
                     position.current_holder ?
                         `${position.current_holder.rank} ${position.current_holder.username}` :
                         'Unknown';
 
-                csv += `"${position.display_title}","${position.role_name}","${holder}","${position.current_holder?.service_number || '-'}","${unit.abbreviation}","${unit.branch_name || '-'}"\n`;
+                const rankTier = position.role_typical_rank_tier || '-';
+
+                csv += `"${position.display_title}","${position.role_name}","${holder}","${position.current_holder?.service_number || '-'}","${unit.abbreviation}","${unit.branch_name || '-'}","${rankTier}"\n`;
             });
 
             unit.children.forEach(child => addPositionsToCSV(child));
@@ -344,6 +471,7 @@ const PositionsTablePage = () => {
         a.click();
     };
 
+    // Render loading state
     if (isLoading) {
         return (
             <div className="positions-table-loading">
@@ -353,6 +481,7 @@ const PositionsTablePage = () => {
         );
     }
 
+    // Render error state
     if (error) {
         return (
             <div className="positions-table-error">
@@ -364,6 +493,7 @@ const PositionsTablePage = () => {
         );
     }
 
+    // Main render
     const unitTree = buildUnitTree();
     const filteredTree = filterUnits(unitTree);
 
@@ -377,6 +507,7 @@ const PositionsTablePage = () => {
                         Unit Positions Table
                     </h1>
                     <p>Complete organizational structure and position assignments</p>
+                    <p className="sort-info">Positions are sorted by rank tier (highest first)</p>
                 </div>
 
                 {/* Controls */}
@@ -421,6 +552,17 @@ const PositionsTablePage = () => {
                     </div>
 
                     <div className="action-buttons">
+                        {currentUser && (
+                            <button
+                                onClick={findMyPosition}
+                                className={`btn-primary ${isHighlighting ? 'highlighting' : ''} ${!currentUserPositionId ? 'no-position' : ''}`}
+                                disabled={isHighlighting}
+                                title={!currentUserPositionId ? 'You do not have an assigned position' : 'Find and highlight your position'}
+                            >
+                                <Target size={16} />
+                                Find My Position
+                            </button>
+                        )}
                         <button onClick={expandAll} className="btn-secondary">
                             <Maximize2 size={16} />
                             Expand All
@@ -439,7 +581,7 @@ const PositionsTablePage = () => {
 
             {/* Table */}
             <div className="positions-table-wrapper" ref={tableRef}>
-                <table className="positions-table">
+                <table className="positions-table" aria-label="Military unit positions table sorted by rank tier">
                     <thead>
                     <tr>
                         <th>Position</th>

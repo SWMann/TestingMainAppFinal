@@ -112,7 +112,7 @@ const Header = () => {
 
     // Admin navigation items
     const adminItems = [
-        { path: '/admin', label: 'Admin Panel', icon: Settings },
+        { path: '/admindashboard', label: 'Admin Panel', icon: Settings },
         { path: '/analytics', label: 'Analytics', icon: BarChart3 },
         { path: '/hierarchy', label: 'Unit Hierarchy', icon: Map },
     ];
