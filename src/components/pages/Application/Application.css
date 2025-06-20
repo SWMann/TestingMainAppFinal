@@ -1,0 +1,1049 @@
+/* ApplicationForm.css - Military-themed application form styles */
+
+/* Base Container */
+.application-container {
+    min-height: 100vh;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    padding: 1rem;
+}
+
+/* Header */
+.application-header {
+    text-align: center;
+    padding: 2rem 0;
+    background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+    border-bottom: 2px solid #8B0000;
+    margin-bottom: 2rem;
+}
+
+.application-header h1 {
+    font-size: 1.8rem;
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+}
+
+.application-header p {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.division-emblem {
+    width: 80px;
+    height: 80px;
+    background-color: #8B0000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    border: 3px solid #ffd700;
+    color: #ffd700;
+}
+
+/* Progress Bar */
+.progress-container {
+    max-width: 800px;
+    margin: 0 auto 2rem;
+}
+
+.progress-bar {
+    height: 6px;
+    background-color: #333;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8B0000, #ffd700);
+    transition: width 0.3s ease;
+}
+
+.step-indicator {
+    text-align: center;
+    color: #ffd700;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Error Message */
+.error-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    max-width: 800px;
+    margin: 0 auto 1rem;
+    padding: 0.75rem 1rem;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    border-radius: 0.375rem;
+    color: #ef4444;
+}
+
+/* Content Section */
+.application-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Welcome Section */
+.welcome-section {
+    text-align: center;
+}
+
+.welcome-section h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+.step-description {
+    color: #999;
+    margin-bottom: 1.5rem;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.feature-card {
+    background-color: #2d2d2d;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #404040;
+    text-align: left;
+}
+
+.feature-card.highlight {
+    border-color: #8B0000;
+    margin-top: 1rem;
+}
+
+.feature-card.requirements {
+    border-color: #ffd700;
+    margin-top: 1rem;
+}
+
+.feature-card h3 {
+    color: #ffd700;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature-card p {
+    color: #ccc;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.feature-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-card li {
+    color: #ccc;
+    font-size: 0.9rem;
+    padding: 0.25rem 0;
+}
+
+.feature-icon {
+    color: #ffd700;
+}
+
+/* Unit Selection Cards */
+.brigade-selection h2,
+.platoon-selection h2,
+.career-selection h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.unit-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.unit-card {
+    background-color: #2d2d2d;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.unit-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.unit-card.selected {
+    border-color: #8B0000;
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(139, 0, 0, 0.3);
+}
+
+.unit-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.unit-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.infantry-icon { background-color: rgba(139, 0, 0, 0.3); color: #DC143C; border: 2px solid #8B0000; }
+.armor-icon { background-color: rgba(105, 105, 105, 0.3); color: #A9A9A9; border: 2px solid #696969; }
+.arty-icon { background-color: rgba(178, 34, 34, 0.3); color: #B22222; border: 2px solid #8B0000; }
+.aviation-icon { background-color: rgba(0, 191, 255, 0.3); color: #00BFFF; border: 2px solid #1E90FF; }
+
+.unit-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+    color: #ffffff;
+}
+
+.unit-info p {
+    color: #999;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.unit-details {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.unit-details > p {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.unit-features {
+    list-style: none;
+    margin: 0.5rem 0;
+    padding: 0;
+}
+
+.unit-features li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.unit-features li:before {
+    content: "•";
+    position: absolute;
+    left: 0.5rem;
+    color: #ffd700;
+}
+
+.unit-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-item > div:first-child {
+    color: #999;
+    font-size: 0.75rem;
+}
+
+.stat-value {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.unit-recommendation {
+    margin-top: 0.5rem;
+    font-style: italic;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.warrant-notice {
+    background-color: rgba(139, 92, 246, 0.2);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    font-weight: bold;
+    color: #8b5cf6;
+}
+
+/* Platoon Selection */
+.selection-summary {
+    background-color: rgba(139, 0, 0, 0.1);
+    border: 1px solid #8B0000;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.selection-summary h4 {
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.selection-summary p {
+    color: #ccc;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.platoon-grid {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1rem auto;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    max-width: 900px;
+}
+
+.battalion-header {
+    font-weight: bold;
+    color: #ffd700;
+    margin: 1rem 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.company-header {
+    font-weight: bold;
+    color: #ccc;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    padding-left: 1rem;
+}
+
+.platoon-card {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 6px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 2rem;
+}
+
+.platoon-card:hover {
+    border-color: #8B0000;
+    transform: translateX(4px);
+}
+
+.platoon-card.selected {
+    border-color: #ffd700;
+    background-color: rgba(255, 215, 0, 0.05);
+}
+
+.platoon-card.full {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.platoon-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.platoon-designation {
+    font-weight: bold;
+    color: #ffd700;
+    font-size: 0.95rem;
+}
+
+.platoon-type {
+    font-size: 0.8rem;
+    color: #999;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.platoon-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.platoon-strength {
+    color: #ccc;
+}
+
+.platoon-slots {
+    font-weight: bold;
+}
+
+.slots-available { color: #4ade80; }
+.slots-limited { color: #f59e0b; }
+.slots-full { color: #ef4444; }
+
+.platoon-details {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #999;
+}
+
+/* Career Path Selection */
+.career-paths {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem auto;
+    max-width: 1000px;
+}
+
+.career-card {
+    background-color: #2d2d2d;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.career-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.career-card.selected {
+    border-color: #ffd700;
+    transform: scale(1.02);
+}
+
+.career-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.career-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.enlisted-icon { background-color: rgba(74, 222, 128, 0.2); color: #4ade80; }
+.warrant-icon { background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+.officer-icon { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+
+.career-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+    color: #ffffff;
+}
+
+.career-info p {
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.career-details {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.benefits-list {
+    list-style: none;
+    margin: 0.5rem 0;
+    padding: 0;
+}
+
+.benefits-list li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.benefits-list li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #4ade80;
+}
+
+.timeline {
+    background-color: rgba(255, 215, 0, 0.1);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+}
+
+.challenges {
+    background-color: rgba(239, 68, 68, 0.1);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+}
+
+.requirements {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #999;
+}
+
+/* Form Elements */
+.basic-info,
+.experience-info,
+.agreement-section {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.basic-info h2,
+.experience-info h2,
+.agreement-section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    color: #ffd700;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #fff;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #8B0000;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+/* Agreement Section */
+.agreement-item {
+    background-color: #2d2d2d;
+    padding: 1.5rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    border: 1px solid #404040;
+}
+
+.agreement-item h4 {
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.agreement-item p {
+    color: #ccc;
+    margin-bottom: 0.5rem;
+}
+
+.agreement-item ul {
+    font-size: 0.9rem;
+    color: #ccc;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    color: #ffffff;
+    cursor: pointer;
+}
+
+/* Navigation */
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem 0;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    flex: 1;
+}
+
+.nav-btn:hover {
+    transform: translateY(-1px);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nav-btn.prev {
+    background-color: #333;
+    color: #ccc;
+}
+
+.nav-btn.prev:hover:not(:disabled) {
+    background-color: #404040;
+}
+
+.nav-btn.next {
+    background-color: #8B0000;
+    color: white;
+    justify-content: center;
+}
+
+.nav-btn.next:hover:not(:disabled) {
+    background-color: #a01010;
+}
+
+.nav-btn.submit {
+    background-color: #ffd700;
+    color: #1a1a1a;
+    justify-content: center;
+}
+
+.nav-btn.submit:hover:not(:disabled) {
+    background-color: #ffed4e;
+}
+
+/* Success Message */
+.success-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #1a1a1a;
+    padding: 2rem;
+}
+
+.success-message {
+    text-align: center;
+    padding: 2rem;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    border: 2px solid #4ade80;
+    max-width: 600px;
+    width: 100%;
+}
+
+.success-icon {
+    color: #4ade80;
+    margin-bottom: 1rem;
+}
+
+.success-message h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+.success-message > p {
+    color: #ccc;
+    margin-bottom: 2rem;
+}
+
+.assignment-summary {
+    margin: 2rem 0;
+    text-align: left;
+}
+
+.assignment-summary h3 {
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+}
+
+.assignment-details {
+    background-color: rgba(139, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.assignment-text {
+    color: #ffd700;
+    font-weight: bold;
+    margin: 0;
+}
+
+.next-steps {
+    margin: 2rem 0;
+    text-align: left;
+}
+
+.next-steps h3 {
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+}
+
+.next-steps ol {
+    color: #ccc;
+    padding-left: 1.5rem;
+    line-height: 1.8;
+}
+
+.reference-code {
+    background-color: #1a1a1a;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.reference-code p {
+    color: #999;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.reference-code code {
+    color: #ffd700;
+    font-size: 1.1rem;
+    font-family: monospace;
+}
+
+.motto-box {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background-color: rgba(139, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.motto-box p {
+    color: #ffd700;
+    margin: 0;
+    font-weight: bold;
+}
+
+.return-home-btn {
+    background-color: #4a5d23;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 1rem;
+}
+
+.return-home-btn:hover {
+    background-color: #5a6d33;
+    transform: translateY(-1px);
+}
+
+/* Scrollbar Styling */
+.platoon-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.platoon-grid::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.platoon-grid::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+}
+
+.platoon-grid::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Loading State */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #ffd700;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 1rem;
+    color: #999;
+}
+
+.loading-container p {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Recruitment Status Styles */
+.stat-value.open {
+    color: #4ade80;
+}
+
+.stat-value.limited {
+    color: #f59e0b;
+}
+
+.stat-value.closed,
+.stat-value.frozen {
+    color: #ef4444;
+}
+
+.recruitment-notes {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #f59e0b;
+    font-style: italic;
+    background-color: rgba(245, 158, 11, 0.1);
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.unit-description {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #ccc;
+    line-height: 1.4;
+}
+
+.platoon-closed {
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    font-size: 0.8rem;
+    text-align: center;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+/* Disabled and Closed States */
+.unit-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    position: relative;
+}
+
+.unit-card.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.unit-closed-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.unit-closed-overlay p {
+    background-color: #8B0000;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+}
+
+.no-brigades-message {
+    text-align: center;
+    padding: 3rem;
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+.no-brigades-message svg {
+    color: #f59e0b;
+    margin-bottom: 1rem;
+}
+
+.no-brigades-message h3 {
+    color: #ffd700;
+    margin-bottom: 1rem;
+}
+
+.no-brigades-message p {
+    color: #ccc;
+    line-height: 1.6;
+}
+@media (max-width: 768px) {
+    .application-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .features,
+    .unit-cards,
+    .career-paths {
+        grid-template-columns: 1fr;
+    }
+
+    .unit-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .unit-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .platoon-grid {
+        max-height: 400px;
+        padding: 0.5rem;
+    }
+
+    .platoon-card {
+        margin-left: 1rem;
+    }
+
+    .navigation {
+        flex-direction: column;
+    }
+
+    .nav-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .application-container {
+        padding: 0.5rem;
+    }
+
+    .unit-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .platoon-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .platoon-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
