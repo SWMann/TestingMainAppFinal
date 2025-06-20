@@ -2014,3 +2014,169 @@ textarea.error {
         min-width: 700px;
     }
 }
+
+/* Base Management Section Scroll Fix - Add to ManagementSections.css */
+
+/* Reset and ensure proper layout hierarchy */
+.management-section {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+.section-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Section header should not scroll */
+.section-header {
+    flex-shrink: 0;
+    padding: 1.5rem;
+    background: #0D1117;
+    border-bottom: 1px solid #1E293B;
+}
+
+/* Section tabs should not scroll */
+.section-tabs {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    padding: 0 1.5rem;
+    background: #0D1117;
+    border-bottom: 2px solid #1E293B;
+}
+
+/* Section filters should not scroll */
+.section-filters {
+    flex-shrink: 0;
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: #0D1117;
+    border-bottom: 1px solid #1E293B;
+}
+
+/* Main scrollable content area */
+.data-table-container {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0; /* Critical for Firefox */
+    padding: 1.5rem;
+    background: #0D1117;
+}
+
+/* Ensure tables don't break layout */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+}
+
+/* Empty state should center in container */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 3rem;
+    text-align: center;
+}
+
+/* Loading state should center in container */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 3rem;
+}
+
+/* Details panel absolute positioning */
+.details-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 400px;
+    background: #0D1117;
+    border-left: 1px solid #1E293B;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.details-panel .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+/* Ensure recruitment content scrolls properly */
+.recruitment-content {
+    width: 100%;
+    /* Remove fixed height to allow natural flow */
+}
+
+/* Custom scrollbar for all scrollable areas */
+.data-table-container::-webkit-scrollbar,
+.panel-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.data-table-container::-webkit-scrollbar-track,
+.panel-content::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+}
+
+.data-table-container::-webkit-scrollbar-thumb,
+.panel-content::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+    border: 1px solid #1a1a1a;
+}
+
+.data-table-container::-webkit-scrollbar-thumb:hover,
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: #555555;
+}
+
+/* Firefox scrollbar */
+.data-table-container,
+.panel-content {
+    scrollbar-width: thin;
+    scrollbar-color: #404040 #1a1a1a;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .data-table-container {
+        padding: 1rem;
+    }
+
+    .details-panel {
+        width: 100%;
+    }
+
+    /* Enable horizontal scroll for tables on mobile */
+    .data-table-container {
+        overflow-x: auto;
+    }
+
+    .data-table {
+        min-width: 600px;
+    }
+}
