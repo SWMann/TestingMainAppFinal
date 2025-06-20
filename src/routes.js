@@ -16,6 +16,7 @@ import OperationDetailPage from "./components/pages/OperationViewer/OperationDet
 import ORBATViewer from "./components/pages/Test/ORBATPage";
 import ORBATPage from "./components/pages/Test/ORBATPage";
 import ApplicationForm from "./components/pages/Application/Application";
+import PositionsTablePage from "./components/pages/PositionsTablePage/PositionsTablePage";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -73,6 +74,11 @@ const routes = (isAuthenticated) => [
     {
         path: '/apply',
         element: <ApplicationForm />
+    },
+    {
+        path: '/roster',
+        element: <PositionsTablePage/>
+
     },
 
 
