@@ -119,6 +119,10 @@ body.nav-open {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
+.profile-button:hover .profile-avatar {
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
 .profile-avatar {
     width: 32px;
     height: 32px;
@@ -131,11 +135,13 @@ body.nav-open {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .profile-avatar img {
-    width: 32px;
-    height: 32px;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     display: block;
 }
@@ -161,6 +167,10 @@ body.nav-open {
     font-size: 0.875rem;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.profile-rank.no-rank {
+    gap: 0; /* No gap when there's no rank */
 }
 
 .rank-abbr {
@@ -485,6 +495,14 @@ body.nav-open {
     .profile-button {
         padding: 0.25rem;
     }
+
+    .profile-avatar {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        min-height: 28px;
+        border-width: 1px;
+    }
 }
 
 /* Accessibility */
@@ -529,6 +547,13 @@ body.nav-open {
     .nav-link {
         font-weight: 600;
     }
+}
+
+/* Loading spinner */
+.loading-spinner {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
 }
 
 /* Reduced motion */

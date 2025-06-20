@@ -19,6 +19,50 @@ const Header = () => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const profileRef = useRef(null);
 
+    // Get user data - check if it's nested
+    const userData = user?.user || user;
+
+    // Debug logging for user data
+    useEffect(() => {
+        if (user) {
+            console.log('Header - Raw user from Redux:', user);
+            console.log('Header - userData after extraction:', userData);
+            if (userData) {
+                console.log('Header - Username:', userData.username);
+                console.log('Header - Current rank:', userData.current_rank);
+                console.log('Header - Service number:', userData.service_number);
+            }
+        }
+    }, [user, userData]);
+
+    // Fetch complete user profile if needed
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            if (isAuthenticated && userData) {
+                // Check if we need to fetch full profile data
+                const needsFullProfile = !userData.current_rank && !userData.rank && !userData.primary_unit && !userData.unit;
+
+                if (needsFullProfile) {
+                    try {
+                        console.log('Fetching complete user profile...');
+                        const response = await api.get('/users/me/');
+                        console.log('User profile response:', response.data);
+
+                        // Update the user in Redux store
+                        dispatch({
+                            type: 'auth/updateUser',
+                            payload: response.data
+                        });
+                    } catch (error) {
+                        console.error('Failed to fetch user profile:', error);
+                    }
+                }
+            }
+        };
+
+        fetchUserProfile();
+    }, [isAuthenticated, userData?.id, dispatch]); // Use userData.id as dependency to avoid infinite loops
+
     // Navigation items
     const navigationItems = [
         { path: '/', label: 'Home', icon: Home },
@@ -55,15 +99,23 @@ const Header = () => {
         setMenuOpen(false);
     }, [location.pathname]);
 
+    // Ensure menu starts closed
+    useEffect(() => {
+        setMenuOpen(false);
+    }, []);
+
     // Prevent body scroll when menu is open
     useEffect(() => {
         if (menuOpen) {
             document.body.style.overflow = 'hidden';
+            document.body.classList.add('nav-open');
         } else {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = '';
+            document.body.classList.remove('nav-open');
         }
         return () => {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = '';
+            document.body.classList.remove('nav-open');
         };
     }, [menuOpen]);
 
@@ -97,8 +149,8 @@ const Header = () => {
     const handleProfileClick = () => {
         setProfileDropdownOpen(false);
         // Navigate to profile using service number if available, otherwise use 'me'
-        if (user?.service_number) {
-            navigate(`/profile/${user.service_number}`);
+        if (userData?.service_number) {
+            navigate(`/profile/${userData.service_number}`);
         } else {
             navigate('/profile');
         }
@@ -117,27 +169,60 @@ const Header = () => {
     };
 
     // Check if user has admin access based on rank or admin flag
-    const hasAdminAccess = isAuthenticated && (
-        user?.is_admin ||
-        user?.is_staff ||
-        user?.current_rank?.is_officer
+    const hasAdminAccess = isAuthenticated && userData && (
+        userData.is_admin ||
+        userData.is_staff ||
+        userData.current_rank?.is_officer ||
+        userData.rank?.is_officer
     );
 
     // Format avatar URL if it's a Discord avatar
     const getAvatarUrl = () => {
-        if (user?.avatar_url) {
-            return user.avatar_url;
+        if (userData?.avatar_url) {
+            return userData.avatar_url;
+        }
+        // Check for avatar in different possible locations
+        if (userData?.avatar) {
+            return userData.avatar;
         }
         // If no avatar URL but has Discord ID, construct default Discord avatar
-        if (user?.discord_id) {
-            const discriminator = parseInt(user.discord_id) % 5;
+        if (userData?.discord_id) {
+            const discriminator = parseInt(userData.discord_id) % 5;
             return `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
         }
         return null;
     };
 
+    // Check if user data is still loading
+    if (isAuthenticated && !userData) {
+        return (
+            <div className="header-wrapper">
+                <header className="header">
+                    <div className="header-container">
+                        <div className="header-logo">
+                            <button className="menu-toggle" disabled>
+                                <div className="hamburger">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </button>
+                            <Link to="/" className="logo-link">
+                                <Shield className="logo-icon" />
+                                <span className="logo-text">3RD CORPS</span>
+                            </Link>
+                        </div>
+                        <div className="nav-container">
+                            <div className="loading-spinner">Loading...</div>
+                        </div>
+                    </div>
+                </header>
+            </div>
+        );
+    }
+
     return (
-        <>
+        <div className="header-wrapper">
             <header className="header">
                 <div className="header-container">
                     {/* Logo and Menu Toggle */}
@@ -162,7 +247,7 @@ const Header = () => {
 
                     {/* Right Section */}
                     <div className="nav-container">
-                        {isAuthenticated && user ? (
+                        {isAuthenticated && userData ? (
                             <div className="profile-widget" ref={profileRef}>
                                 <button
                                     className="profile-button"
@@ -174,10 +259,11 @@ const Header = () => {
                                         {getAvatarUrl() ? (
                                             <img
                                                 src={getAvatarUrl()}
-                                                alt={user.username}
+                                                alt={userData.username}
                                                 onError={(e) => {
                                                     e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'flex';
+                                                    const icon = e.target.parentElement.querySelector('svg');
+                                                    if (icon) icon.style.display = 'flex';
                                                 }}
                                             />
                                         ) : null}
@@ -187,63 +273,61 @@ const Header = () => {
                                         />
                                     </div>
                                     <div className="profile-info">
-                                        <div className="profile-rank">
-                                            {user.current_rank?.abbreviation && (
-                                                <span className="rank-abbr">
-                                                    {user.current_rank.abbreviation}
-                                                </span>
-                                            )}
-                                            <span>{user.username}</span>
+                                        <div className={`profile-rank ${!userData.current_rank?.abbreviation && !userData.rank?.abbreviation ? 'no-rank' : ''}`}>
+                                            {userData.current_rank?.abbreviation ? (
+                                                <span className="rank-abbr">{userData.current_rank.abbreviation}</span>
+                                            ) : userData.rank?.abbreviation ? (
+                                                <span className="rank-abbr">{userData.rank.abbreviation}</span>
+                                            ) : null}
+                                            <span>{userData.username || 'Unknown'}</span>
                                         </div>
                                         <div className="profile-service-number">
-                                            {user.service_number || 'NO-SN'}
+                                            {userData.service_number || userData.serviceNumber || 'NO-SN'}
                                         </div>
                                     </div>
-                                    {user.current_rank?.insignia_image_url && (
+                                    {(userData.current_rank?.insignia_image_url || userData.rank?.insignia_image_url) && (
                                         <img
-                                            src={user.current_rank.insignia_image_url}
-                                            alt={user.current_rank.name}
+                                            src={userData.current_rank?.insignia_image_url || userData.rank?.insignia_image_url}
+                                            alt={userData.current_rank?.name || userData.rank?.name || 'Rank insignia'}
                                             className="rank-insignia-small"
                                         />
                                     )}
                                 </button>
 
                                 {/* Profile Dropdown */}
-                                {profileDropdownOpen && (
-                                    <div className="profile-dropdown">
-                                        <div className="dropdown-header">
-                                            <div className="dropdown-username">
-                                                {user.current_rank?.abbreviation} {user.username}
-                                            </div>
-                                            <div className="dropdown-unit">
-                                                {user.primary_unit?.name || 'No Unit Assignment'}
-                                            </div>
+                                <div className={`profile-dropdown ${profileDropdownOpen ? 'open' : ''}`}>
+                                    <div className="dropdown-header">
+                                        <div className="dropdown-username">
+                                            {userData.current_rank?.abbreviation || userData.rank?.abbreviation || ''} {userData.username}
                                         </div>
-                                        <div className="dropdown-menu">
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={handleProfileClick}
-                                            >
-                                                <User size={16} />
-                                                <span>My Profile</span>
-                                            </button>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={handleSettingsClick}
-                                            >
-                                                <Settings size={16} />
-                                                <span>Settings</span>
-                                            </button>
-                                            <button
-                                                className="dropdown-item logout"
-                                                onClick={handleLogout}
-                                            >
-                                                <LogOut size={16} />
-                                                <span>Logout</span>
-                                            </button>
+                                        <div className="dropdown-unit">
+                                            {userData.primary_unit?.name || userData.unit?.name || 'No Unit Assignment'}
                                         </div>
                                     </div>
-                                )}
+                                    <div className="dropdown-menu">
+                                        <button
+                                            className="dropdown-item"
+                                            onClick={handleProfileClick}
+                                        >
+                                            <User size={16} />
+                                            <span>My Profile</span>
+                                        </button>
+                                        <button
+                                            className="dropdown-item"
+                                            onClick={handleSettingsClick}
+                                        >
+                                            <Settings size={16} />
+                                            <span>Settings</span>
+                                        </button>
+                                        <button
+                                            className="dropdown-item logout"
+                                            onClick={handleLogout}
+                                        >
+                                            <LogOut size={16} />
+                                            <span>Logout</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <Link to="/login" className="login-button">
@@ -256,7 +340,10 @@ const Header = () => {
             </header>
 
             {/* Navigation Drawer */}
-            <nav className={`nav-drawer ${menuOpen ? 'open' : ''}`}>
+            <nav
+                className={`nav-drawer ${menuOpen ? 'open' : ''}`}
+                data-menu-open={menuOpen}
+            >
                 <div className="nav-links">
                     {navigationItems.map(item => {
                         const Icon = item.icon;
@@ -265,6 +352,7 @@ const Header = () => {
                                 key={item.path}
                                 to={item.path}
                                 className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
+                                onClick={() => setMenuOpen(false)}
                             >
                                 <Icon />
                                 <span>{item.label}</span>
@@ -283,6 +371,7 @@ const Header = () => {
                                         key={item.path}
                                         to={item.path}
                                         className={`nav-link admin-link ${isActive(item.path) ? 'active' : ''}`}
+                                        onClick={() => setMenuOpen(false)}
                                     >
                                         <Icon />
                                         <span>{item.label}</span>
@@ -299,6 +388,7 @@ const Header = () => {
                             <Link
                                 to="/login"
                                 className="nav-link"
+                                onClick={() => setMenuOpen(false)}
                             >
                                 <User />
                                 <span>Login</span>
@@ -314,7 +404,7 @@ const Header = () => {
                 onClick={() => setMenuOpen(false)}
                 aria-hidden="true"
             />
-        </>
+        </div>
     );
 };
 
