@@ -8,7 +8,8 @@ import api from "../../services/api";
 import './AdminModals.css';
 
 // Create Recruitment Slot Modal
-export const CreateRecruitmentSlotModal = ({ unit, roles, onClose, onCreate }) => {
+export const CreateRecruitmentSlotModal = ({ unit, units, roles, onClose, onCreate }) => {
+
     const [formData, setFormData] = useState({
         unit: unit?.id || '',
         role: '',
@@ -30,6 +31,10 @@ export const CreateRecruitmentSlotModal = ({ unit, roles, onClose, onCreate }) =
             return;
         }
 
+        if (!formData.unit) {
+            alert('Please select a unit');
+            return;
+        }
         onCreate(formData);
     };
 
@@ -88,7 +93,11 @@ export const CreateRecruitmentSlotModal = ({ unit, roles, onClose, onCreate }) =
                                 required
                             >
                                 <option value="">Select Unit</option>
-                                {/* Units would be passed as prop */}
+                                {units && units.map(unit => (
+                                    <option key={unit.id} value={unit.id}>
+                                        {unit.name} {unit.abbreviation && `(${unit.abbreviation})`}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     )}

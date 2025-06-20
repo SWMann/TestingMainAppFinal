@@ -1458,6 +1458,7 @@ const UnitManagement = () => {
             {showCreateSlotModal && (
                 <CreateRecruitmentSlotModal
                     unit={selectedUnit}
+                    units={units}  // Added this
                     roles={roles}
                     onClose={() => setShowCreateSlotModal(false)}
                     onCreate={handleCreateRecruitmentSlot}
