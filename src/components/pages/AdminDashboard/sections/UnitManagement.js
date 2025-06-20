@@ -799,7 +799,7 @@ const UnitManagement = () => {
                 </td>
                 <td>
                     <span className={`status-badge ${getStatusBadgeClass(unit.recruitment_status)}`}>
-                        {unit.recruitment_status?.replace(/_/g, ' ') || 'Not Set'}
+                        {unit.recruitment_status?.replace('_', ' ') || 'Not Set'}
                     </span>
                 </td>
                 <td>
@@ -1234,7 +1234,7 @@ const UnitManagement = () => {
                         )
                     ) : (
                         // Recruitment tab
-                        <div className="recruitment-content">
+                        <>
                             <div className="recruitment-overview">
                                 <div className="overview-cards">
                                     <div className="overview-card">
@@ -1284,66 +1284,68 @@ const UnitManagement = () => {
                                 </div>
                             </div>
 
-                            <div className="table-section">
-                                <h3>Unit Recruitment Status</h3>
-                                {sortedUnits.length === 0 ? (
-                                    <div className="empty-state">
-                                        <Target size={48} />
-                                        <h3>No units found</h3>
-                                        <p>Create units first to manage recruitment</p>
-                                    </div>
-                                ) : (
-                                    <table className="data-table">
-                                        <thead>
-                                        <tr>
-                                            <th>Unit</th>
-                                            <th>Status</th>
-                                            <th>Max/Target</th>
-                                            <th>Slots</th>
-                                            <th>Fill Rate</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {sortedUnits.map(unit => renderRecruitmentRow(unit))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
+                            <div className="recruitment-tables">
+                                <div className="table-section">
+                                    <h3>Unit Recruitment Status</h3>
+                                    {sortedUnits.length === 0 ? (
+                                        <div className="empty-state">
+                                            <Target size={48} />
+                                            <h3>No units found</h3>
+                                            <p>Create units first to manage recruitment</p>
+                                        </div>
+                                    ) : (
+                                        <table className="data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Unit</th>
+                                                <th>Status</th>
+                                                <th>Max/Target</th>
+                                                <th>Slots</th>
+                                                <th>Fill Rate</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {sortedUnits.map(unit => renderRecruitmentRow(unit))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
 
-                            <div className="table-section">
-                                <h3>Recruitment Slots</h3>
-                                {filteredSlots.length === 0 ? (
-                                    <div className="empty-state">
-                                        <UserPlus size={48} />
-                                        <h3>No recruitment slots found</h3>
-                                        <p>Create recruitment slots or initialize from unit positions</p>
-                                        <button className="action-btn primary" onClick={() => setShowCreateSlotModal(true)}>
-                                            <Plus size={18} />
-                                            Create Recruitment Slot
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <table className="data-table">
-                                        <thead>
-                                        <tr>
-                                            <th>Unit</th>
-                                            <th>Role</th>
-                                            <th>Track</th>
-                                            <th>Slots</th>
-                                            <th>Available</th>
-                                            <th>Fill Rate</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {filteredSlots.map(slot => renderRecruitmentSlotRow(slot))}
-                                        </tbody>
-                                    </table>
-                                )}
+                                <div className="table-section">
+                                    <h3>Recruitment Slots</h3>
+                                    {filteredSlots.length === 0 ? (
+                                        <div className="empty-state">
+                                            <UserPlus size={48} />
+                                            <h3>No recruitment slots found</h3>
+                                            <p>Create recruitment slots or initialize from unit positions</p>
+                                            <button className="action-btn primary" onClick={() => setShowCreateSlotModal(true)}>
+                                                <Plus size={18} />
+                                                Create Recruitment Slot
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <table className="data-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Unit</th>
+                                                <th>Role</th>
+                                                <th>Track</th>
+                                                <th>Slots</th>
+                                                <th>Available</th>
+                                                <th>Fill Rate</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {filteredSlots.map(slot => renderRecruitmentSlotRow(slot))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
@@ -1487,4 +1489,4 @@ const UnitManagement = () => {
     );
 };
 
-export default UnitManagement;  
+export default UnitManagement;
