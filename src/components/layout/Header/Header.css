@@ -1,6 +1,6 @@
 /* Header.css - Minimalistic military-themed header with fixed layout */
 
-/* CRITICAL: Ensure nav drawer is not interfering with page layout */
+/* Global box-sizing reset */
 * {
     box-sizing: border-box;
 }
@@ -12,25 +12,9 @@
     isolation: isolate;
 }
 
-/* Prevent horizontal scroll when nav is open */
+/* Prevent body scroll when nav is open */
 body.nav-open {
-    overflow-x: hidden;
-}
-
-/* Ensure the header wrapper contains all floating elements */
-.header-wrapper::after {
-    content: '';
-    display: table;
-    clear: both;
-}
-
-/* Base reset to prevent inherited styles */
-.header,
-.nav-drawer,
-.nav-links {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+    overflow: hidden;
 }
 
 /* Reset box-sizing for all header elements */
@@ -260,22 +244,23 @@ body.nav-open {
 }
 
 /* Navigation Drawer - FIXED: Ensure it's hidden by default */
-.header-wrapper .nav-drawer {
+.nav-drawer {
     position: fixed !important;
     top: 60px;
-    left: 0;
+    left: -280px; /* Start off-screen */
     width: 280px;
     height: calc(100vh - 60px);
     background-color: #111111;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    transition: left 0.3s ease;
     overflow-y: auto;
     z-index: 999;
+    pointer-events: none; /* Prevent interaction when closed */
 }
 
-.header-wrapper .nav-drawer.open {
-    transform: translateX(0);
+.nav-drawer.open {
+    left: 0; /* Slide in */
+    pointer-events: auto; /* Allow interaction when open */
 }
 
 .nav-drawer.open {
@@ -482,13 +467,13 @@ body.nav-open {
         display: none;
     }
 
-    .header-wrapper .nav-drawer {
+    .nav-drawer {
         width: 100%;
-        transform: translateX(-100%);
+        left: -100%; /* Start off-screen on mobile */
     }
 
-    .header-wrapper .nav-drawer.open {
-        transform: translateX(0);
+    .nav-drawer.open {
+        left: 0; /* Slide in */
     }
 
     .profile-dropdown {
