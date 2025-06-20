@@ -7,6 +7,8 @@ import {
 import './AdminModals.css';
 
 const EditUserDetailsModal = ({ user, onClose, onSave }) => {
+    console.log('EditUserDetailsModal rendered with user:', user);
+
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -55,6 +57,7 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
 
     useEffect(() => {
         if (user) {
+            console.log('EditUserDetailsModal: Setting form data for user:', user);
             setFormData({
                 username: user.username || '',
                 email: user.email || '',
@@ -98,33 +101,51 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
             newErrors.email = 'Invalid email format';
         }
 
-        if (formData.service_number && !/^[A-Z0-9-]+$/.test(formData.service_number)) {
-            newErrors.service_number = 'Invalid service number format';
+        if (formData.service_number && !/^[A-Za-z0-9-]*$/.test(formData.service_number)) {
+            newErrors.service_number = 'Invalid service number format (use letters, numbers, and hyphens only)';
         }
 
         setErrors(newErrors);
+        console.log('Validation errors:', newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setLoading(true);
+    const handleSubmit = (e) => {
         try {
-            await onSave(formData);
+            e.preventDefault();
+            console.log('Form submitted with data:', formData);
+
+            if (!validateForm()) {
+                console.log('Form validation failed:', errors);
+                return;
+            }
+
+            setLoading(true);
+            console.log('Calling onSave with formData:', formData);
+
+            // Call onSave asynchronously
+            onSave(formData)
+                .then(() => {
+                    console.log('Save completed successfully');
+                    setLoading(false);
+                })
+                .catch((error) => {
+                    console.error('Error in onSave:', error);
+                    setErrors({ submit: 'Failed to save user details. Please try again.' });
+                    setLoading(false);
+                });
+
         } catch (error) {
-            console.error('Error saving user details:', error);
-            // Don't close the modal on error
-        } finally {
+            console.error('Unexpected error in handleSubmit:', error);
+            setErrors({ submit: 'An unexpected error occurred. Please try again.' });
             setLoading(false);
         }
     };
 
-    if (!user) return null;
+    if (!user) {
+        console.log('EditUserDetailsModal: No user provided');
+        return null;
+    }
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -140,6 +161,14 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="modal-form">
+                    {/* Submit Error */}
+                    {errors.submit && (
+                        <div className="error-message">
+                            <AlertCircle size={16} />
+                            {errors.submit}
+                        </div>
+                    )}
+
                     {/* User Info Section */}
                     <div className="form-section">
                         <h3>User Information</h3>
@@ -404,10 +433,23 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
                     </div>
 
                     <div className="modal-actions">
-                        <button type="button" className="cancel-button" onClick={onClose}>
+                        <button
+                            type="button"
+                            className="cancel-button"
+                            onClick={onClose}
+                            disabled={loading}
+                        >
                             Cancel
                         </button>
-                        <button type="submit" className="submit-button" disabled={loading}>
+                        <button
+                            type="button"
+                            className="submit-button"
+                            disabled={loading}
+                            onClick={(e) => {
+                                console.log('Submit button clicked directly');
+                                handleSubmit(e);
+                            }}
+                        >
                             <Save size={18} />
                             {loading ? 'Saving...' : 'Save Changes'}
                         </button>
