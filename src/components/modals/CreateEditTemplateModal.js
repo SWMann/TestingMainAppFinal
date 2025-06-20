@@ -1,74 +1,195 @@
-// Create new file: src/components/pages/PositionTemplateManagement/PositionTemplateManagement.js
+// src/components/modals/CreateEditTemplateModal.js
 
 import React, { useState, useEffect } from 'react';
 import {
-    Package, Plus, Edit, Trash2, Copy, Eye,
-    FileText, Users, Shield, ChevronRight,
-    AlertCircle, Check, X, GitBranch, Building
+    X, Plus, Trash2, Save, AlertCircle,
+    Users, Shield, Building, GitBranch, Package,
+    ChevronDown, ChevronUp, Loader
 } from 'lucide-react';
-import { CreateEditTemplateModal } from '../../modals/CreateEditTemplateModal';
-import './PositionTemplateManagement.css';
-import api from "../../services/api";
+import api from '../../services/api';
+import './CreateEditTemplateModal.css';
 
-const PositionTemplateManagement = () => {
-    const [templates, setTemplates] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [filter, setFilter] = useState('all');
+export const CreateEditTemplateModal = ({ template, onClose, onSave }) => {
+    const isEditMode = !!template;
+
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        template_type: 'squad',
+        applicable_unit_types: [],
+        template_positions: []
+    });
+
+    const [availableRoles, setAvailableRoles] = useState([]);
+    const [availableUnitTypes, setAvailableUnitTypes] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [expandedPositions, setExpandedPositions] = useState({});
 
     useEffect(() => {
-        fetchTemplates();
-    }, []);
+        fetchInitialData();
+        if (template) {
+            setFormData({
+                name: template.name || '',
+                description: template.description || '',
+                template_type: template.template_type || 'squad',
+                applicable_unit_types: template.applicable_unit_types || [],
+                template_positions: template.template_positions || []
+            });
+        }
+    }, [template]);
 
-    const fetchTemplates = async () => {
+    const fetchInitialData = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const response = await api.get('/units/position-templates/');
-            setTemplates(response.data.results || response.data);
+            const [rolesResponse, unitTypesResponse] = await Promise.all([
+                api.get('/personnel/roles/'),
+                api.get('/units/unit-types/')
+            ]);
+
+            setAvailableRoles(rolesResponse.data.results || rolesResponse.data);
+            setAvailableUnitTypes(unitTypesResponse.data.results || unitTypesResponse.data);
         } catch (error) {
-            console.error('Error fetching templates:', error);
+            console.error('Error fetching initial data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = async (templateId) => {
-        if (!window.confirm('Are you sure you want to delete this template?')) {
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        // Clear error for this field
+        if (errors[field]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleUnitTypeToggle = (unitType) => {
+        setFormData(prev => ({
+            ...prev,
+            applicable_unit_types: prev.applicable_unit_types.includes(unitType)
+                ? prev.applicable_unit_types.filter(ut => ut !== unitType)
+                : [...prev.applicable_unit_types, unitType]
+        }));
+    };
+
+    const addPosition = () => {
+        const newPosition = {
+            id: Date.now(), // Temporary ID for frontend tracking
+            role: availableRoles[0]?.id || '',
+            quantity: 1,
+            is_leadership: false,
+            is_required: true,
+            notes: ''
+        };
+
+        setFormData(prev => ({
+            ...prev,
+            template_positions: [...prev.template_positions, newPosition]
+        }));
+
+        // Expand the new position
+        setExpandedPositions(prev => ({
+            ...prev,
+            [newPosition.id]: true
+        }));
+    };
+
+    const updatePosition = (positionId, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            template_positions: prev.template_positions.map(pos =>
+                pos.id === positionId ? { ...pos, [field]: value } : pos
+            )
+        }));
+    };
+
+    const removePosition = (positionId) => {
+        setFormData(prev => ({
+            ...prev,
+            template_positions: prev.template_positions.filter(pos => pos.id !== positionId)
+        }));
+    };
+
+    const togglePositionExpanded = (positionId) => {
+        setExpandedPositions(prev => ({
+            ...prev,
+            [positionId]: !prev[positionId]
+        }));
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.name.trim()) {
+            newErrors.name = 'Template name is required';
+        }
+
+        if (!formData.template_type) {
+            newErrors.template_type = 'Template type is required';
+        }
+
+        if (formData.template_positions.length === 0) {
+            newErrors.positions = 'At least one position is required';
+        }
+
+        formData.template_positions.forEach((pos, index) => {
+            if (!pos.role) {
+                newErrors[`position_${index}_role`] = 'Role is required';
+            }
+            if (pos.quantity < 1) {
+                newErrors[`position_${index}_quantity`] = 'Quantity must be at least 1';
+            }
+        });
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async () => {
+        if (!validateForm()) {
             return;
         }
 
+        setSaving(true);
         try {
-            await api.delete(`/units/position-templates/${templateId}/`);
-            fetchTemplates();
+            const payload = {
+                ...formData,
+                template_positions: formData.template_positions.map(pos => ({
+                    role: pos.role,
+                    quantity: pos.quantity,
+                    is_leadership: pos.is_leadership,
+                    is_required: pos.is_required,
+                    notes: pos.notes
+                }))
+            };
+
+            if (isEditMode) {
+                await api.put(`/units/position-templates/${template.id}/`, payload);
+            } else {
+                await api.post('/units/position-templates/', payload);
+            }
+
+            onSave();
         } catch (error) {
-            console.error('Error deleting template:', error);
-            alert('Failed to delete template');
-        }
-    };
-
-    const handleDuplicate = async (templateId) => {
-        const name = prompt('Enter name for the duplicated template:');
-        if (!name) return;
-
-        try {
-            await api.post(`/units/position-templates/${templateId}/duplicate/`, {
-                name
+            console.error('Error saving template:', error);
+            setErrors({
+                submit: error.response?.data?.detail || 'Failed to save template'
             });
-            fetchTemplates();
-        } catch (error) {
-            console.error('Error duplicating template:', error);
-            alert('Failed to duplicate template');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const filteredTemplates = templates.filter(template => {
-        if (filter === 'all') return true;
-        return template.template_type === filter;
-    });
-
-    const getTemplateIcon = (type) => {
+    const getTemplateTypeIcon = (type) => {
         const icons = {
             'squad': <Users size={16} />,
             'platoon': <Shield size={16} />,
@@ -76,287 +197,266 @@ const PositionTemplateManagement = () => {
             'battalion': <GitBranch size={16} />,
             'custom': <Package size={16} />
         };
-        return icons[type] || <FileText size={16} />;
+        return icons[type] || <Package size={16} />;
     };
 
-    return (
-        <div className="template-management-container">
-            <div className="template-management-header">
-                <div className="header-content">
-                    <h1>
-                        <Package size={32} />
-                        Position Template Management
-                    </h1>
-                    <p>Create and manage position templates for quick unit setup</p>
-                </div>
+    const templateTypes = [
+        { value: 'squad', label: 'Squad', icon: <Users size={16} /> },
+        { value: 'platoon', label: 'Platoon', icon: <Shield size={16} /> },
+        { value: 'company', label: 'Company', icon: <Building size={16} /> },
+        { value: 'battalion', label: 'Battalion', icon: <GitBranch size={16} /> },
+        { value: 'custom', label: 'Custom', icon: <Package size={16} /> }
+    ];
 
-                <div className="header-actions">
-                    <button
-                        className="btn primary"
-                        onClick={() => setShowCreateModal(true)}
-                    >
-                        <Plus size={16} />
-                        Create Template
-                    </button>
-                </div>
-            </div>
-
-            <div className="template-filters">
-                <button
-                    className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                    onClick={() => setFilter('all')}
-                >
-                    All Templates
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'squad' ? 'active' : ''}`}
-                    onClick={() => setFilter('squad')}
-                >
-                    Squad
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'platoon' ? 'active' : ''}`}
-                    onClick={() => setFilter('platoon')}
-                >
-                    Platoon
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'company' ? 'active' : ''}`}
-                    onClick={() => setFilter('company')}
-                >
-                    Company
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'battalion' ? 'active' : ''}`}
-                    onClick={() => setFilter('battalion')}
-                >
-                    Battalion
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'custom' ? 'active' : ''}`}
-                    onClick={() => setFilter('custom')}
-                >
-                    Custom
-                </button>
-            </div>
-
-            {loading ? (
-                <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Loading templates...</p>
-                </div>
-            ) : (
-                <div className="templates-grid">
-                    {filteredTemplates.map(template => (
-                        <TemplateCard
-                            key={template.id}
-                            template={template}
-                            onEdit={() => {
-                                setSelectedTemplate(template);
-                                setShowEditModal(true);
-                            }}
-                            onDelete={() => handleDelete(template.id)}
-                            onDuplicate={() => handleDuplicate(template.id)}
-                            onPreview={() => {
-                                setSelectedTemplate(template);
-                                // Show preview modal
-                            }}
-                        />
-                    ))}
-                </div>
-            )}
-
-            {filteredTemplates.length === 0 && !loading && (
-                <div className="empty-state">
-                    <Package size={48} />
-                    <p>No templates found{filter !== 'all' ? ` for ${filter} type` : ''}</p>
-                    <button
-                        className="btn primary"
-                        onClick={() => setShowCreateModal(true)}
-                    >
-                        Create First Template
-                    </button>
-                </div>
-            )}
-
-            {showCreateModal && (
-                <CreateTemplateModal
-                    onClose={() => setShowCreateModal(false)}
-                    onCreate={() => {
-                        setShowCreateModal(false);
-                        fetchTemplates();
-                    }}
-                />
-            )}
-
-            {showEditModal && selectedTemplate && (
-                <EditTemplateModal
-                    template={selectedTemplate}
-                    onClose={() => {
-                        setShowEditModal(false);
-                        setSelectedTemplate(null);
-                    }}
-                    onUpdate={() => {
-                        setShowEditModal(false);
-                        setSelectedTemplate(null);
-                        fetchTemplates();
-                    }}
-                />
-            )}
-        </div>
-    );
-};
-
-const TemplateCard = ({ template, onEdit, onDelete, onDuplicate, onPreview }) => {
-    const positionCount = template.position_count || 0;
-
-    return (
-        <div className="template-card">
-            <div className="template-card-header">
-                <h3>
-                    {getTemplateIcon(template.template_type)}
-                    {template.name}
-                </h3>
-                <span className={`template-type ${template.template_type}`}>
-                    {template.template_type}
-                </span>
-            </div>
-
-            {template.description && (
-                <p className="template-description">{template.description}</p>
-            )}
-
-            <div className="template-stats">
-                <div className="stat">
-                    <Users size={14} />
-                    <span>{positionCount} positions</span>
-                </div>
-                {template.applicable_unit_types && template.applicable_unit_types.length > 0 && (
-                    <div className="stat">
-                        <Shield size={14} />
-                        <span>{template.applicable_unit_types.join(', ')}</span>
+    if (loading) {
+        return (
+            <div className="modal-overlay">
+                <div className="modal-container">
+                    <div className="loading-state">
+                        <Loader className="spinner" size={32} />
+                        <p>Loading...</p>
                     </div>
-                )}
+                </div>
             </div>
+        );
+    }
 
-            {template.template_positions && template.template_positions.length > 0 && (
-                <div className="template-positions-preview">
-                    <h4>Positions:</h4>
-                    <div className="positions-list">
-                        {template.template_positions.slice(0, 5).map((tp, index) => (
-                            <div key={index} className="position-item">
-                                <span>{tp.role_details?.name || 'Unknown'}</span>
-                                <span className="quantity">×{tp.quantity}</span>
+    return (
+        <div className="modal-overlay">
+            <div className="modal-container large">
+                <div className="modal-header">
+                    <h2>
+                        {getTemplateTypeIcon(formData.template_type)}
+                        {isEditMode ? `Edit Template: ${template.name}` : 'Create Position Template'}
+                    </h2>
+                    <button className="close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="modal-content">
+                    {errors.submit && (
+                        <div className="error-banner">
+                            <AlertCircle size={16} />
+                            {errors.submit}
+                        </div>
+                    )}
+
+                    <div className="form-section">
+                        <h3>Basic Information</h3>
+
+                        <div className="form-group">
+                            <label htmlFor="name">Template Name *</label>
+                            <input
+                                type="text"
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                placeholder="e.g., Standard Infantry Squad"
+                                className={errors.name ? 'error' : ''}
+                            />
+                            {errors.name && (
+                                <div className="field-error">{errors.name}</div>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="description">Description</label>
+                            <textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={(e) => handleInputChange('description', e.target.value)}
+                                placeholder="Describe the purpose and structure of this template..."
+                                rows={3}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>Template Type *</label>
+                            <div className="template-type-selector">
+                                {templateTypes.map(type => (
+                                    <button
+                                        key={type.value}
+                                        className={`type-option ${formData.template_type === type.value ? 'selected' : ''}`}
+                                        onClick={() => handleInputChange('template_type', type.value)}
+                                    >
+                                        {type.icon}
+                                        <span>{type.label}</span>
+                                    </button>
+                                ))}
                             </div>
-                        ))}
-                        {template.template_positions.length > 5 && (
-                            <div className="more-positions">
-                                +{template.template_positions.length - 5} more...
+                            {errors.template_type && (
+                                <div className="field-error">{errors.template_type}</div>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label>Applicable Unit Types</label>
+                            <div className="unit-types-grid">
+                                {availableUnitTypes.map(unitType => (
+                                    <label key={unitType.id || unitType} className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.applicable_unit_types.includes(unitType.name || unitType)}
+                                            onChange={() => handleUnitTypeToggle(unitType.name || unitType)}
+                                        />
+                                        <span>{unitType.name || unitType}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="form-section">
+                        <div className="section-header">
+                            <h3>Positions</h3>
+                            <button className="btn secondary small" onClick={addPosition}>
+                                <Plus size={16} />
+                                Add Position
+                            </button>
+                        </div>
+
+                        {errors.positions && (
+                            <div className="field-error">{errors.positions}</div>
+                        )}
+
+                        <div className="positions-list">
+                            {formData.template_positions.map((position, index) => (
+                                <div key={position.id} className="position-item">
+                                    <div className="position-header">
+                                        <div className="position-summary">
+                                            <span className="position-role">
+                                                {availableRoles.find(r => r.id === position.role)?.name || 'Select Role'}
+                                            </span>
+                                            <span className="position-quantity">×{position.quantity}</span>
+                                        </div>
+                                        <div className="position-actions">
+                                            <button
+                                                className="icon-btn"
+                                                onClick={() => togglePositionExpanded(position.id)}
+                                            >
+                                                {expandedPositions[position.id] ?
+                                                    <ChevronUp size={16} /> :
+                                                    <ChevronDown size={16} />
+                                                }
+                                            </button>
+                                            <button
+                                                className="icon-btn danger"
+                                                onClick={() => removePosition(position.id)}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {expandedPositions[position.id] && (
+                                        <div className="position-details">
+                                            <div className="form-row">
+                                                <div className="form-group flex-2">
+                                                    <label>Role *</label>
+                                                    <select
+                                                        value={position.role}
+                                                        onChange={(e) => updatePosition(position.id, 'role', e.target.value)}
+                                                        className={errors[`position_${index}_role`] ? 'error' : ''}
+                                                    >
+                                                        <option value="">Select a role</option>
+                                                        {availableRoles.map(role => (
+                                                            <option key={role.id} value={role.id}>
+                                                                {role.name} ({role.abbreviation})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors[`position_${index}_role`] && (
+                                                        <div className="field-error">{errors[`position_${index}_role`]}</div>
+                                                    )}
+                                                </div>
+
+                                                <div className="form-group flex-1">
+                                                    <label>Quantity *</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={position.quantity}
+                                                        onChange={(e) => updatePosition(position.id, 'quantity', parseInt(e.target.value) || 1)}
+                                                        className={errors[`position_${index}_quantity`] ? 'error' : ''}
+                                                    />
+                                                    {errors[`position_${index}_quantity`] && (
+                                                        <div className="field-error">{errors[`position_${index}_quantity`]}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="form-row">
+                                                <label className="checkbox-label">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={position.is_leadership}
+                                                        onChange={(e) => updatePosition(position.id, 'is_leadership', e.target.checked)}
+                                                    />
+                                                    <span>Leadership Position</span>
+                                                </label>
+
+                                                <label className="checkbox-label">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={position.is_required}
+                                                        onChange={(e) => updatePosition(position.id, 'is_required', e.target.checked)}
+                                                    />
+                                                    <span>Required Position</span>
+                                                </label>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label>Notes</label>
+                                                <input
+                                                    type="text"
+                                                    value={position.notes}
+                                                    onChange={(e) => updatePosition(position.id, 'notes', e.target.value)}
+                                                    placeholder="Additional notes about this position..."
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {formData.template_positions.length === 0 && (
+                            <div className="empty-positions">
+                                <Users size={32} />
+                                <p>No positions added yet</p>
+                                <button className="btn secondary" onClick={addPosition}>
+                                    <Plus size={16} />
+                                    Add First Position
+                                </button>
                             </div>
                         )}
                     </div>
                 </div>
-            )}
 
-            <div className="template-actions">
-                <button
-                    className="action-btn preview"
-                    onClick={onPreview}
-                    title="Preview"
-                >
-                    <Eye size={16} />
-                </button>
-                <button
-                    className="action-btn edit"
-                    onClick={onEdit}
-                    title="Edit"
-                >
-                    <Edit size={16} />
-                </button>
-                <button
-                    className="action-btn duplicate"
-                    onClick={onDuplicate}
-                    title="Duplicate"
-                >
-                    <Copy size={16} />
-                </button>
-                <button
-                    className="action-btn delete"
-                    onClick={onDelete}
-                    title="Delete"
-                >
-                    <Trash2 size={16} />
-                </button>
-            </div>
-        </div>
-    );
-};
-
-// Placeholder for Create/Edit modals - these would be more complex in practice
-const CreateTemplateModal = ({ onClose, onCreate }) => {
-    // Implementation would include form for creating template
-    return (
-        <div className="modal-overlay">
-            <div className="modal-container">
-                <div className="modal-header">
-                    <h2>Create Position Template</h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="modal-content">
-                    <p>Template creation form would go here...</p>
-                </div>
                 <div className="modal-actions">
-                    <button className="btn secondary" onClick={onClose}>
+                    <button className="btn secondary" onClick={onClose} disabled={saving}>
                         Cancel
                     </button>
-                    <button className="btn primary" onClick={onCreate}>
-                        Create Template
+                    <button
+                        className="btn primary"
+                        onClick={handleSubmit}
+                        disabled={saving}
+                    >
+                        {saving ? (
+                            <>
+                                <Loader className="spinner small" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Save size={16} />
+                                {isEditMode ? 'Update Template' : 'Create Template'}
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
         </div>
     );
 };
-
-const EditTemplateModal = ({ template, onClose, onUpdate }) => {
-    // Implementation would include form for editing template
-    return (
-        <div className="modal-overlay">
-            <div className="modal-container">
-                <div className="modal-header">
-                    <h2>Edit Template: {template.name}</h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="modal-content">
-                    <p>Template editing form would go here...</p>
-                </div>
-                <div className="modal-actions">
-                    <button className="btn secondary" onClick={onClose}>
-                        Cancel
-                    </button>
-                    <button className="btn primary" onClick={onUpdate}>
-                        Update Template
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Helper function
-const getTemplateIcon = (type) => {
-    const icons = {
-        'squad': <Users size={16} />,
-        'platoon': <Shield size={16} />,
-        'company': <Building size={16} />,
-        'battalion': <GitBranch size={16} />,
-        'custom': <Package size={16} />
-    };
-    return icons[type] || <FileText size={16} />;
-};
-
-export default PositionTemplateManagement;
