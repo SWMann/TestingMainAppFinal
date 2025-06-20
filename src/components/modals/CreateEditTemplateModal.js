@@ -6,9 +6,9 @@ import {
     FileText, Users, Shield, ChevronRight,
     AlertCircle, Check, X, GitBranch, Building
 } from 'lucide-react';
-import api from '../../../services/api';
 import { CreateEditTemplateModal } from '../../modals/CreateEditTemplateModal';
 import './PositionTemplateManagement.css';
+import api from "../../services/api";
 
 const PositionTemplateManagement = () => {
     const [templates, setTemplates] = useState([]);

@@ -8,9 +8,9 @@ import {
     Package, Plus
 } from 'lucide-react';
 import './PositionsTablePage.css';
-import api from "../../../services/api";
 import { ApplyPositionTemplateModal } from '../../modals/ApplyPositionTemplateModal';
 import { CreatePositionModal } from '../../modals/CreatePositionModal';
+import api from "../../../services/api";
 
 const PositionsTablePage = () => {
     const { user: currentUser } = useSelector(state => state.auth);
