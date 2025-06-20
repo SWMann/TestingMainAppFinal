@@ -280,11 +280,11 @@ const Header = () => {
                                         />
                                     </div>
                                     <div className="profile-info">
-                                        <div className={`profile-rank ${!userData.current_rank?.abbreviation && !userData.rank?.abbreviation ? 'no-rank' : ''}`}>
-                                            {userData.current_rank?.abbreviation ? (
-                                                <span className="rank-abbr">{userData.current_rank.abbreviation}</span>
-                                            ) : userData.rank?.abbreviation ? (
-                                                <span className="rank-abbr">{userData.rank.abbreviation}</span>
+                                        <div className={`profile-rank ${!rank?.abbreviation && !rank?.abbreviation ? 'no-rank' : ''}`}>
+                                            {rank?.abbreviation ? (
+                                                <span className="rank-abbr">{rank.abbreviation}</span>
+                                            ) : rank?.abbreviation ? (
+                                                <span className="rank-abbr">{rank.abbreviation}</span>
                                             ) : null}
                                             <span>{userData.username || 'Unknown'}</span>
                                         </div>
@@ -292,10 +292,10 @@ const Header = () => {
                                             {userData.service_number || userData.serviceNumber || 'NO-SN'}
                                         </div>
                                     </div>
-                                    {(userData.current_rank?.insignia_image_url || userData.rank?.insignia_image_url) && (
+                                    {(rank?.insignia_image_url || rank?.insignia_image_url) && (
                                         <img
-                                            src={userData.current_rank?.insignia_image_url || userData.rank?.insignia_image_url}
-                                            alt={userData.current_rank?.name || userData.rank?.name || 'Rank insignia'}
+                                            src={rank.insignia_image_url || rank.insignia_image_url}
+                                            alt={rank?.name || rank?.name || 'Rank insignia'}
                                             className="rank-insignia-small"
                                         />
                                     )}
@@ -305,7 +305,7 @@ const Header = () => {
                                 <div className={`profile-dropdown ${profileDropdownOpen ? 'open' : ''}`}>
                                     <div className="dropdown-header">
                                         <div className="dropdown-username">
-                                            {userData.current_rank?.abbreviation || userData.rank?.abbreviation || ''} {userData.username}
+                                            {rank?.abbreviation || rank?.abbreviation || ''} {userData.username}
                                         </div>
                                         <div className="dropdown-unit">
                                             {userData.primary_unit?.name || userData.unit?.name || 'No Unit Assignment'}
