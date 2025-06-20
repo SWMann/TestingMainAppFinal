@@ -69,11 +69,15 @@ const PositionsTablePage = () => {
             let userPositions = [];
 
             try {
-                const userPositionsResponse = await api.get(`/users/${currentUser.id}/positions/`);
-                console.log('User positions response:', userPositionsResponse.data);
-                userPositions = Array.isArray(userPositionsResponse.data)
-                    ? userPositionsResponse.data
-                    : userPositionsResponse.data.results || [];
+                const userPositionsResponse = await api.get(`/users/positions/`);
+                if (userPositionsResponse !== null, userPositionsResponse.current_holder===currentUser.id) {
+
+                    console.log('User positions response:', userPositionsResponse.data);
+                    userPositions = Array.isArray(userPositionsResponse.data)
+                        ? userPositionsResponse.data
+                        : userPositionsResponse.data.results || [];
+                }
+
             } catch (error) {
                 console.log('positions/ endpoint failed, trying position_assignments/');
                 // Try alternative endpoint
