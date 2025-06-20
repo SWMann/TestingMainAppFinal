@@ -9,6 +9,7 @@ import api from "../../../../services/api";
 import PromotionModal from "../../../modals/PromotionModal";
 import UnitAssignmentModal from "../../../modals/UnitAssignmentModal";
 import PositionAssignmentModal from "../../../modals/PositionAssignmentModal";
+import EditUserDetailsModal from "../../../modals/EditUserDetailsModal";
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -22,6 +23,7 @@ const UserManagement = () => {
     const [showPromotionModal, setShowPromotionModal] = useState(false);
     const [showUnitModal, setShowUnitModal] = useState(false);
     const [showPositionModal, setShowPositionModal] = useState(false);
+    const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
 
     useEffect(() => {
@@ -170,6 +172,23 @@ const UserManagement = () => {
         } catch (error) {
             console.error('Error toggling admin status:', error);
             showNotification('Failed to update admin status', 'error');
+        }
+    };
+
+    const handleEditUserDetails = async (formData) => {
+        try {
+            await api.patch(`/users/${selectedUser.id}/`, formData);
+
+            // Refresh user data
+            await fetchUsers();
+            await fetchUserDetails(selectedUser.id);
+            setShowEditDetailsModal(false);
+
+            showNotification('User details updated successfully', 'success');
+        } catch (error) {
+            console.error('Error updating user details:', error);
+            showNotification('Failed to update user details', 'error');
+            throw error; // Re-throw to handle in modal
         }
     };
 
@@ -379,6 +398,16 @@ const UserManagement = () => {
                                                             <button
                                                                 onClick={() => {
                                                                     setSelectedUser(user);
+                                                                    setShowEditDetailsModal(true);
+                                                                    setActiveDropdown(null);
+                                                                }}
+                                                            >
+                                                                <Edit size={16} />
+                                                                Edit Details
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedUser(user);
                                                                     setShowPromotionModal(true);
                                                                     setActiveDropdown(null);
                                                                 }}
@@ -452,6 +481,7 @@ const UserManagement = () => {
                     onPromote={() => setShowPromotionModal(true)}
                     onAssignUnit={() => setShowUnitModal(true)}
                     onAssignPosition={() => setShowPositionModal(true)}
+                    onEditDetails={() => setShowEditDetailsModal(true)}
                 />
             )}
 
@@ -480,12 +510,20 @@ const UserManagement = () => {
                     onAssign={handlePositionAssignment}
                 />
             )}
+
+            {showEditDetailsModal && selectedUser && (
+                <EditUserDetailsModal
+                    user={selectedUser}
+                    onClose={() => setShowEditDetailsModal(false)}
+                    onSave={handleEditUserDetails}
+                />
+            )}
         </div>
     );
 };
 
 // User Details Panel Component (updated to use ranks map)
-const UserDetailsPanel = ({ user, ranks, onClose, onPromote, onAssignUnit, onAssignPosition }) => {
+const UserDetailsPanel = ({ user, ranks, onClose, onPromote, onAssignUnit, onAssignPosition, onEditDetails }) => {
     const getUserRank = () => {
         if (!user.current_rank) return null;
 
@@ -502,9 +540,14 @@ const UserDetailsPanel = ({ user, ranks, onClose, onPromote, onAssignUnit, onAss
         <div className="details-panel">
             <div className="panel-header">
                 <h3>User Details</h3>
-                <button className="close-btn" onClick={onClose}>
-                    <X size={20} />
-                </button>
+                <div className="panel-header-actions">
+                    <button className="icon-btn" onClick={onEditDetails} title="Edit Details">
+                        <Edit size={18} />
+                    </button>
+                    <button className="close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
+                </div>
             </div>
 
             <div className="panel-content">
