@@ -1232,7 +1232,6 @@ body {
 }
 
 .unit-info {
-    position: absolute;
     bottom: 0.75rem;
     left: 0.75rem;
     display: flex;
