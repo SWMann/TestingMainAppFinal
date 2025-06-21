@@ -402,29 +402,51 @@ const PositionsTablePage = () => {
         alert(`Successfully created ${createdPositions.length} positions from template`);
     };
 
-    // Handle individual position creation
-    const handleCreatePosition = async (positionData) => {
+// Add notification state (optional, for better UX)
+    const [notification, setNotification] = useState(null);
+
+// Message functions
+    const showSuccessMessage = (message) => {
+        console.log('Success:', message);
+        // For now, use alert. Later, implement a proper notification system
+        alert(message);
+        // Or if using notification state:
+        // setNotification({ type: 'success', message });
+        // setTimeout(() => setNotification(null), 5000);
+    };
+
+    const showErrorMessage = (message) => {
+        console.error('Error:', message);
+        alert(`Error: ${message}`);
+        // Or if using notification state:
+        // setNotification({ type: 'error', message });
+    };
+
+// Fixed handleCreatePosition
+    const handlePositionCreate = async (positionData) => {
         try {
             console.log('Creating position with data:', positionData);
 
-            // Make the API call
             const response = await api.post('/units/positions/', positionData);
             console.log('Position created:', response.data);
 
-            // Show success message
             showSuccessMessage('Position created successfully');
 
             // Refresh the positions list
             await fetchData();
 
-            // Close the modal
-            setShowCreateModal(false);
+            // Close the modal with correct state setter
+            setShowCreatePositionModal(false);
+            setSelectedUnit(null);
         } catch (error) {
             console.error('Error creating position:', error);
             console.error('Error response:', error.response?.data);
             showErrorMessage(error.response?.data?.detail || 'Failed to create position');
         }
     };
+
+// Fix the modal rendering
+
 
     const openTemplateModal = (unit) => {
         setSelectedUnit(unit);
@@ -801,7 +823,7 @@ const PositionsTablePage = () => {
                         setShowCreatePositionModal(false);
                         setSelectedUnit(null);
                     }}
-                    onCreate={handlePositionCreate}
+                    onCreate={handlePositionCreate}  // Fixed function name
                 />
             )}
         </div>
