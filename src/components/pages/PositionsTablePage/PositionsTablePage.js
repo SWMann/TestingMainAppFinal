@@ -5,7 +5,7 @@ import {
     ChevronRight, ChevronDown, Users, Shield, Search,
     Filter, Download, Maximize2, User, Building,
     AlertCircle, Hash, MapPin, Calendar, Star, Target,
-    Package, Plus
+    Package, Plus, MoreVertical, Eye, Trash2
 } from 'lucide-react';
 import './PositionsTablePage.css';
 import { ApplyPositionTemplateModal } from '../../modals/ApplyPositionTemplateModal';
@@ -36,9 +36,13 @@ const PositionsTablePage = () => {
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [roles, setRoles] = useState([]);
 
+    // State for dropdown menus
+    const [openDropdownId, setOpenDropdownId] = useState(null);
+
     // Refs for scrolling
     const tableRef = useRef(null);
     const highlightedRowRef = useRef(null);
+    const dropdownRefs = useRef({});
 
     useEffect(() => {
         fetchData();
@@ -64,6 +68,19 @@ const PositionsTablePage = () => {
             }, 500);
         }
     }, [isLoading, currentUserPositionId]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (openDropdownId && dropdownRefs.current[openDropdownId] &&
+                !dropdownRefs.current[openDropdownId].contains(event.target)) {
+                setOpenDropdownId(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openDropdownId]);
 
     const fetchUserPosition = async () => {
         if (!currentUser || !currentUser.id || isFetchingUserPosition) return;
@@ -399,13 +416,13 @@ const PositionsTablePage = () => {
         fetchData();
 
         // Show success message
-        alert(`Successfully created ${createdPositions.length} positions from template`);
+        showSuccessMessage(`Successfully created ${createdPositions.length} positions from template`);
     };
 
-// Add notification state (optional, for better UX)
+    // Add notification state (optional, for better UX)
     const [notification, setNotification] = useState(null);
 
-// Message functions
+    // Message functions
     const showSuccessMessage = (message) => {
         console.log('Success:', message);
         // For now, use alert. Later, implement a proper notification system
@@ -422,7 +439,7 @@ const PositionsTablePage = () => {
         // setNotification({ type: 'error', message });
     };
 
-// Fixed handleCreatePosition
+    // Fixed handleCreatePosition
     const handlePositionCreate = async (positionData) => {
         try {
             console.log('Creating position with data:', positionData);
@@ -445,8 +462,33 @@ const PositionsTablePage = () => {
         }
     };
 
-// Fix the modal rendering
+    // Delete position handler
+    const handleDeletePosition = async (positionId, positionTitle) => {
+        if (!currentUser?.is_admin) {
+            showErrorMessage('You do not have permission to delete positions');
+            return;
+        }
 
+        const confirmDelete = window.confirm(
+            `Are you sure you want to delete the position "${positionTitle}"?\n\nThis action cannot be undone.`
+        );
+
+        if (!confirmDelete) return;
+
+        try {
+            await api.delete(`/units/positions/${positionId}/`);
+            showSuccessMessage('Position deleted successfully');
+
+            // Close dropdown
+            setOpenDropdownId(null);
+
+            // Refresh data
+            await fetchData();
+        } catch (error) {
+            console.error('Error deleting position:', error);
+            showErrorMessage(error.response?.data?.detail || 'Failed to delete position');
+        }
+    };
 
     const openTemplateModal = (unit) => {
         setSelectedUnit(unit);
@@ -456,6 +498,10 @@ const PositionsTablePage = () => {
     const openCreatePositionModal = (unit) => {
         setSelectedUnit(unit);
         setShowCreatePositionModal(true);
+    };
+
+    const toggleDropdown = (positionId) => {
+        setOpenDropdownId(openDropdownId === positionId ? null : positionId);
     };
 
     const renderUnit = (unit, level = 0) => {
@@ -591,13 +637,37 @@ const PositionsTablePage = () => {
                             {unit.branch_name || '-'}
                         </td>
                         <td>
-                            <div className="position-actions">
+                            <div className="position-actions-dropdown" ref={el => dropdownRefs.current[position.id] = el}>
                                 <button
-                                    className="action-btn view"
-                                    onClick={() => navigate(`/positions/${position.id}`)}
+                                    className="action-dropdown-btn"
+                                    onClick={() => toggleDropdown(position.id)}
+                                    aria-label="Position actions"
                                 >
-                                    View
+                                    <MoreVertical size={16} />
                                 </button>
+                                {openDropdownId === position.id && (
+                                    <div className="dropdown-menu">
+                                        <button
+                                            className="dropdown-item"
+                                            onClick={() => {
+                                                navigate(`/positions/${position.id}`);
+                                                setOpenDropdownId(null);
+                                            }}
+                                        >
+                                            <Eye size={14} />
+                                            View Position
+                                        </button>
+                                        {currentUser?.is_admin && (
+                                            <button
+                                                className="dropdown-item danger"
+                                                onClick={() => handleDeletePosition(position.id, position.display_title)}
+                                            >
+                                                <Trash2 size={14} />
+                                                Delete Position
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </td>
                     </tr>
