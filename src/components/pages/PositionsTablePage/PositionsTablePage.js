@@ -463,6 +463,10 @@ const PositionsTablePage = () => {
         const hasChildren = unit.children.length > 0;
         const filteredPositions = filterPositions(unit.positions);
         const sortedPositions = sortPositionsByRank(filteredPositions);
+
+        // Check if unit has children OR positions to show
+        const hasExpandableContent = hasChildren || sortedPositions.length > 0;
+
         const hasVisibleContent = sortedPositions.length > 0 ||
             unit.children.some(child => hasVisiblePositions(child));
 
@@ -476,18 +480,18 @@ const PositionsTablePage = () => {
                     <td colSpan="7">
                         <div
                             className="unit-header"
-                            onClick={() => hasChildren && toggleUnit(unit.id)}
-                            onKeyDown={(e) => e.key === 'Enter' && hasChildren && toggleUnit(unit.id)}
+                            onClick={() => hasExpandableContent && toggleUnit(unit.id)}
+                            onKeyDown={(e) => e.key === 'Enter' && hasExpandableContent && toggleUnit(unit.id)}
                             style={{ paddingLeft: `${level * 24}px` }}
-                            tabIndex={hasChildren ? 0 : -1}
-                            role={hasChildren ? "button" : undefined}
-                            aria-expanded={hasChildren ? isExpanded : undefined}
+                            tabIndex={hasExpandableContent ? 0 : -1}
+                            role={hasExpandableContent ? "button" : undefined}
+                            aria-expanded={hasExpandableContent ? isExpanded : undefined}
                             aria-label={`${unit.name} unit with ${sortedPositions.length} positions`}
                         >
-                            {hasChildren && (
+                            {hasExpandableContent && (
                                 <span className="expand-icon">
-                                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                </span>
+                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </span>
                             )}
                             <Building size={16} className="unit-icon" />
                             <span className="unit-name">{unit.name}</span>
@@ -496,37 +500,37 @@ const PositionsTablePage = () => {
                                 <span className="unit-type">{unit.unit_type}</span>
                             )}
                             <span className="position-count">
-                                {sortedPositions.length} direct positions
+                            {sortedPositions.length} direct positions
                                 {hasChildren && !isExpanded && (
                                     <span className="total-count">
-                                        ({countAllPositions(unit)} total)
-                                    </span>
+                                    ({countAllPositions(unit)} total)
+                                </span>
                                 )}
-                            </span>
+                        </span>
                             {/* Unit action buttons */}
                             {currentUser?.is_admin && (
                                 <span className="unit-actions" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        className="unit-action-btn"
-                                        onClick={() => openTemplateModal(unit)}
-                                        title="Apply position template"
-                                    >
-                                        <Package size={14} />
-                                    </button>
-                                    <button
-                                        className="unit-action-btn"
-                                        onClick={() => openCreatePositionModal(unit)}
-                                        title="Add position"
-                                    >
-                                        <Plus size={14} />
-                                    </button>
-                                </span>
+                                <button
+                                    className="unit-action-btn"
+                                    onClick={() => openTemplateModal(unit)}
+                                    title="Apply position template"
+                                >
+                                    <Package size={14} />
+                                </button>
+                                <button
+                                    className="unit-action-btn"
+                                    onClick={() => openCreatePositionModal(unit)}
+                                    title="Add position"
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            </span>
                             )}
                         </div>
                     </td>
                 </tr>
 
-                {/* Unit's Positions */}
+                {/* Unit's Positions - Show if expanded and has positions */}
                 {isExpanded && sortedPositions.map(position => (
                     <tr
                         key={position.id}
@@ -545,14 +549,14 @@ const PositionsTablePage = () => {
                             </div>
                         </td>
                         <td>
-                            <span className={`role-category ${position.role_category}`}>
-                                {position.role_name}
-                                {position.role_typical_rank_tier && (
-                                    <span className="rank-tier" title={`Rank Tier: ${position.role_typical_rank_tier}`}>
-                                        T{position.role_typical_rank_tier}
-                                    </span>
-                                )}
-                            </span>
+                        <span className={`role-category ${position.role_category}`}>
+                            {position.role_name}
+                            {position.role_typical_rank_tier && (
+                                <span className="rank-tier" title={`Rank Tier: ${position.role_typical_rank_tier}`}>
+                                    T{position.role_typical_rank_tier}
+                                </span>
+                            )}
+                        </span>
                         </td>
                         <td>
                             {position.is_vacant ? (
@@ -567,11 +571,11 @@ const PositionsTablePage = () => {
                                         />
                                     )}
                                     <span className="holder-rank">
-                                        {position.current_holder.rank}
-                                    </span>
+                                    {position.current_holder.rank}
+                                </span>
                                     <span className="holder-name">
-                                        {position.current_holder.username}
-                                    </span>
+                                    {position.current_holder.username}
+                                </span>
                                 </div>
                             ) : (
                                 <span className="unknown">Unknown</span>
@@ -599,8 +603,8 @@ const PositionsTablePage = () => {
                     </tr>
                 ))}
 
-                {/* Child Units */}
-                {isExpanded && unit.children
+                {/* Child Units - Show if expanded and has children */}
+                {isExpanded && hasChildren && unit.children
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map(child => renderUnit(child, level + 1))}
             </React.Fragment>
