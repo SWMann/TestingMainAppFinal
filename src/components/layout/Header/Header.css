@@ -228,6 +228,14 @@ body.nav-open {
     color: #f59e0b;
 }
 
+.mos-abbr {
+    color: #999999;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+
+
 .profile-service-number {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.6);

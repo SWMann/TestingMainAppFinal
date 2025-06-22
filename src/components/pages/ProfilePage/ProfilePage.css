@@ -7,6 +7,106 @@
     color: #ffffff;
 }
 
+/* MOS Assignment */
+.mos-assignment {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.primary-mos h4,
+.secondary-mos h4 {
+    font-size: 0.875rem;
+    color: #999999;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.mos-display {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.mos-badge {
+    background-color: #ffd700;
+    color: #1a1a1a;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    min-width: 80px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mos-code {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.mos-details h5 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #ffffff;
+}
+
+.mos-category {
+    color: #ffd700;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.skill-level {
+    color: #cccccc;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.qualified-date {
+    color: #999999;
+    font-size: 0.875rem;
+}
+
+.secondary-mos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.secondary-mos-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background-color: rgba(255, 215, 0, 0.1);
+    border-radius: 0.375rem;
+}
+
+.mos-code-small {
+    background-color: #ffd700;
+    color: #1a1a1a;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Ships Section */
+.ships-section h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #ffd700;
+}
+
 /* Loading & Error States */
 .profile-loading,
 .profile-error {
