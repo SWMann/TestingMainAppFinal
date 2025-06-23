@@ -37,6 +37,43 @@ button {
   cursor: pointer;
 }
 
+/* Add this to your global CSS file (App.css or index.css) */
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Optional: If you still have scrolling issues, try this alternative approach */
+html.modal-open,
+body.modal-open {
+  overflow: hidden;
+  height: 100%;
+}
+
+/* Optional: Preserve scroll position when modal opens */
+body.modal-open {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
+
+/* If using the position: fixed approach above, you'll need to save/restore scroll position in your React component:
+
+// When opening modal:
+const scrollY = window.scrollY;
+document.body.style.position = 'fixed';
+document.body.style.top = `-${scrollY}px`;
+document.body.classList.add('modal-open');
+
+// When closing modal:
+document.body.classList.remove('modal-open');
+document.body.style.position = '';
+document.body.style.top = '';
+window.scrollTo(0, parseInt(scrollY || '0'));
+*/
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
