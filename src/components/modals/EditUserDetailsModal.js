@@ -4,6 +4,7 @@ import {
     Calendar, Award, GraduationCap, AlertCircle,
     Save, Info
 } from 'lucide-react';
+import api from "../../services/api";
 import './AdminModals.css';
 
 const EditUserDetailsModal = ({ user, onClose, onSave }) => {
@@ -23,10 +24,16 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
         onboarding_status: '',
         recruit_status: true,
         officer_candidate: false,
-        warrant_officer_candidate: false
+        warrant_officer_candidate: false,
+        primary_mos: '',
+        secondary_mos: [],
+        mos_skill_level: 10,
+        mos_qualified_date: ''
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [availableMOS, setAvailableMOS] = useState([]);
+    const [loadingMOS, setLoadingMOS] = useState(false);
 
     // Timezone options
     const timezones = [
@@ -55,6 +62,14 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
         { value: 'Active', label: 'Active' }
     ];
 
+    // MOS Skill levels
+    const mosSkillLevels = [
+        { value: 10, label: 'Skill Level 10 - Entry' },
+        { value: 20, label: 'Skill Level 20 - Journeyman' },
+        { value: 30, label: 'Skill Level 30 - Senior' },
+        { value: 40, label: 'Skill Level 40 - Master' }
+    ];
+
     useEffect(() => {
         if (user) {
             console.log('EditUserDetailsModal: Setting form data for user:', user);
@@ -72,10 +87,32 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
                 onboarding_status: user.onboarding_status || '',
                 recruit_status: user.recruit_status ?? true,
                 officer_candidate: user.officer_candidate ?? false,
-                warrant_officer_candidate: user.warrant_officer_candidate ?? false
+                warrant_officer_candidate: user.warrant_officer_candidate ?? false,
+                primary_mos: user.primary_mos?.id || user.primary_mos || '',
+                secondary_mos: user.secondary_mos?.map(mos => mos.id || mos) || [],
+                mos_skill_level: user.mos_skill_level || 10,
+                mos_qualified_date: user.mos_qualified_date || ''
             });
         }
     }, [user]);
+
+    useEffect(() => {
+        fetchAvailableMOS();
+    }, []);
+
+    const fetchAvailableMOS = async () => {
+        setLoadingMOS(true);
+        try {
+            const response = await api.get('/units/mos/', {
+                params: { is_active: true }
+            });
+            setAvailableMOS(response.data.results || response.data);
+        } catch (error) {
+            console.error('Error fetching MOS:', error);
+        } finally {
+            setLoadingMOS(false);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -88,6 +125,15 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
+    };
+
+    const handleSecondaryMOSToggle = (mosId) => {
+        setFormData(prev => ({
+            ...prev,
+            secondary_mos: prev.secondary_mos.includes(mosId)
+                ? prev.secondary_mos.filter(id => id !== mosId)
+                : [...prev.secondary_mos, mosId]
+        }));
     };
 
     const validateForm = () => {
@@ -141,6 +187,15 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
             setLoading(false);
         }
     };
+
+    // Group MOS by category
+    const mosByCategory = availableMOS.reduce((acc, mos) => {
+        if (!acc[mos.category]) {
+            acc[mos.category] = [];
+        }
+        acc[mos.category].push(mos);
+        return acc;
+    }, {});
 
     if (!user) {
         console.log('EditUserDetailsModal: No user provided');
@@ -274,6 +329,89 @@ const EditUserDetailsModal = ({ user, onClose, onSave }) => {
                                 placeholder="Brief description or bio..."
                             />
                         </div>
+                    </div>
+
+                    {/* MOS Information Section */}
+                    <div className="form-section">
+                        <h3>
+                            <Award size={16} />
+                            Military Occupational Specialty (MOS)
+                        </h3>
+
+                        {loadingMOS ? (
+                            <div className="loading-state">
+                                <div className="spinner small"></div>
+                                <p>Loading MOS options...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Primary MOS</label>
+                                        <select
+                                            name="primary_mos"
+                                            value={formData.primary_mos}
+                                            onChange={handleChange}
+                                        >
+                                            <option value="">No Primary MOS</option>
+                                            {availableMOS.map(mos => (
+                                                <option key={mos.id} value={mos.id}>
+                                                    {mos.code} - {mos.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>MOS Skill Level</label>
+                                        <select
+                                            name="mos_skill_level"
+                                            value={formData.mos_skill_level}
+                                            onChange={handleChange}
+                                        >
+                                            {mosSkillLevels.map(level => (
+                                                <option key={level.value} value={level.value}>
+                                                    {level.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>MOS Qualified Date</label>
+                                    <input
+                                        type="date"
+                                        name="mos_qualified_date"
+                                        value={formData.mos_qualified_date}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Secondary MOS</label>
+                                    <p className="field-hint">Select additional MOS qualifications</p>
+                                    {Object.entries(mosByCategory).map(([category, mosList]) => (
+                                        <div key={category} className="mos-category-group">
+                                            <h5>{category.replace(/_/g, ' ').toUpperCase()}</h5>
+                                            <div className="checkbox-grid">
+                                                {mosList
+                                                    .filter(mos => mos.id !== formData.primary_mos)
+                                                    .map(mos => (
+                                                        <label key={mos.id} className="checkbox-item">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={formData.secondary_mos.includes(mos.id)}
+                                                                onChange={() => handleSecondaryMOSToggle(mos.id)}
+                                                            />
+                                                            <span>{mos.code} - {mos.title}</span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Preferences */}

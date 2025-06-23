@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
     X, Shield, Building, FileText, MapPin, Calendar, Flag,
-    User, Search, Briefcase, Plus, Trash2, GitBranch
+    User, Search, Briefcase, Plus, Trash2, GitBranch, Award
 } from 'lucide-react';
 import api from "../../services/api";
 import './AdminModals.css';
 
-// CreateUnitModal.js
 export const CreateUnitModal = ({ branches, units, onClose, onCreate }) => {
     const [formData, setFormData] = useState({
         name: '',
@@ -20,8 +19,32 @@ export const CreateUnitModal = ({ branches, units, onClose, onCreate }) => {
         motto: '',
         location: '',
         established_date: '',
-        is_active: true
+        is_active: true,
+        authorized_mos: [],
+        primary_mos: [],
+        mos_training_capability: []
     });
+
+    const [availableMOS, setAvailableMOS] = useState([]);
+    const [loadingMOS, setLoadingMOS] = useState(false);
+
+    useEffect(() => {
+        fetchAvailableMOS();
+    }, []);
+
+    const fetchAvailableMOS = async () => {
+        setLoadingMOS(true);
+        try {
+            const response = await api.get('/units/mos/', {
+                params: { is_active: true }
+            });
+            setAvailableMOS(response.data.results || response.data);
+        } catch (error) {
+            console.error('Error fetching MOS:', error);
+        } finally {
+            setLoadingMOS(false);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -35,7 +58,10 @@ export const CreateUnitModal = ({ branches, units, onClose, onCreate }) => {
         const submitData = {
             ...formData,
             branch: formData.branch, // Keep as string UUID
-            parent_unit: formData.parent_unit || null // Keep as string UUID or null
+            parent_unit: formData.parent_unit || null, // Keep as string UUID or null
+            authorized_mos: formData.authorized_mos,
+            primary_mos: formData.primary_mos,
+            mos_training_capability: formData.mos_training_capability
         };
         onCreate(submitData);
     };
@@ -48,9 +74,27 @@ export const CreateUnitModal = ({ branches, units, onClose, onCreate }) => {
         }));
     };
 
+    const handleMOSToggle = (mosId, field) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: prev[field].includes(mosId)
+                ? prev[field].filter(id => id !== mosId)
+                : [...prev[field], mosId]
+        }));
+    };
+
+    // Group MOS by category
+    const mosByCategory = availableMOS.reduce((acc, mos) => {
+        if (!acc[mos.category]) {
+            acc[mos.category] = [];
+        }
+        acc[mos.category].push(mos);
+        return acc;
+    }, {});
+
     return (
         <div className="modal-overlay">
-            <div className="modal-container">
+            <div className="modal-container large">
                 <div className="modal-header">
                     <h2>
                         <Shield size={24} />
@@ -187,6 +231,89 @@ export const CreateUnitModal = ({ branches, units, onClose, onCreate }) => {
                                 placeholder="e.g., Fort Bragg, NC"
                             />
                         </div>
+                    </div>
+
+                    {/* MOS Configuration Section */}
+                    <div className="form-section">
+                        <h3>
+                            <Award size={16} />
+                            MOS Configuration
+                        </h3>
+
+                        {loadingMOS ? (
+                            <div className="loading-state">
+                                <div className="spinner small"></div>
+                                <p>Loading MOS options...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="form-group">
+                                    <label>Authorized MOS</label>
+                                    <p className="field-hint">Select MOS that are authorized for this unit</p>
+                                    {Object.entries(mosByCategory).map(([category, mosList]) => (
+                                        <div key={category} className="mos-category-group">
+                                            <h5>{category.replace(/_/g, ' ').toUpperCase()}</h5>
+                                            <div className="checkbox-grid">
+                                                {mosList.map(mos => (
+                                                    <label key={mos.id} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.authorized_mos.includes(mos.id)}
+                                                            onChange={() => handleMOSToggle(mos.id, 'authorized_mos')}
+                                                        />
+                                                        <span>{mos.code} - {mos.title}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Primary MOS</label>
+                                    <p className="field-hint">Select the primary MOS for this unit type</p>
+                                    {Object.entries(mosByCategory).map(([category, mosList]) => (
+                                        <div key={category} className="mos-category-group">
+                                            <h5>{category.replace(/_/g, ' ').toUpperCase()}</h5>
+                                            <div className="checkbox-grid">
+                                                {mosList.filter(mos => formData.authorized_mos.includes(mos.id)).map(mos => (
+                                                    <label key={mos.id} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.primary_mos.includes(mos.id)}
+                                                            onChange={() => handleMOSToggle(mos.id, 'primary_mos')}
+                                                        />
+                                                        <span>{mos.code} - {mos.title}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>MOS Training Capability</label>
+                                    <p className="field-hint">Select MOS this unit can provide training for</p>
+                                    {Object.entries(mosByCategory).map(([category, mosList]) => (
+                                        <div key={category} className="mos-category-group">
+                                            <h5>{category.replace(/_/g, ' ').toUpperCase()}</h5>
+                                            <div className="checkbox-grid">
+                                                {mosList.map(mos => (
+                                                    <label key={mos.id} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.mos_training_capability.includes(mos.id)}
+                                                            onChange={() => handleMOSToggle(mos.id, 'mos_training_capability')}
+                                                        />
+                                                        <span>{mos.code} - {mos.title}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="form-row">
