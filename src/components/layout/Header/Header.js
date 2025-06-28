@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
     Home, Users, Calendar, Award, FileText, BarChart3,
     Shield, Settings, LogOut, User, Building, School,
-    Ship, Map
+    Ship, Map, Send
 } from 'lucide-react';
 import './Header.css';
 import api, { setLoggingOut } from '../../../services/api';
@@ -20,6 +20,7 @@ const Header = () => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [rankData, setRankData] = useState(null);
     const [rankLoading, setRankLoading] = useState(false);
+    const [hasApplication, setHasApplication] = useState(null); // null = loading, true/false = result
     const profileRef = useRef(null);
 
     // Get user data - check if it's nested
@@ -37,6 +38,34 @@ const Header = () => {
             }
         }
     }, [user, userData]);
+
+    // Check if user has an application
+    useEffect(() => {
+        const checkApplication = async () => {
+            if (isAuthenticated && userData?.discord_id) {
+                try {
+                    // Check if user has an application using their Discord ID
+                    const response = await api.get(`/applications/status/${userData.discord_id}/`);
+                    setHasApplication(true);
+                    console.log('User has application:', response.data);
+                } catch (error) {
+                    if (error.response?.status === 404) {
+                        // No application found
+                        setHasApplication(false);
+                        console.log('No application found for user');
+                    } else {
+                        console.error('Failed to check application status:', error);
+                        // Don't show the button if we can't determine status
+                        setHasApplication(null);
+                    }
+                }
+            } else {
+                setHasApplication(null);
+            }
+        };
+
+        checkApplication();
+    }, [isAuthenticated, userData?.discord_id]);
 
     // Fetch rank details when user has a current_rank
     // This fetches the complete rank object including abbreviation, insignia_image_url, etc.
@@ -196,6 +225,11 @@ const Header = () => {
         navigate('/settings');
     };
 
+    const handleApplyClick = () => {
+        setProfileDropdownOpen(false);
+        navigate('/apply');
+    };
+
     const isActive = (path) => {
         if (path === '/') {
             return location.pathname === '/';
@@ -210,6 +244,12 @@ const Header = () => {
         userData.current_rank?.is_officer ||
         userData.rank?.is_officer
     );
+
+    // Check if user should see apply button
+    const shouldShowApplyButton = isAuthenticated &&
+        userData &&
+        hasApplication === false &&
+        !userData.service_number; // Don't show if they already have a service number
 
     // Format avatar URL if it's a Discord avatar
     const getAvatarUrl = () => {
@@ -283,88 +323,107 @@ const Header = () => {
                     {/* Right Section */}
                     <div className="nav-container">
                         {isAuthenticated && userData ? (
-                            <div className="profile-widget" ref={profileRef}>
-                                <button
-                                    className="profile-button"
-                                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                                    aria-expanded={profileDropdownOpen}
-                                    aria-haspopup="true"
-                                >
-                                    <div className="profile-avatar">
-                                        {getAvatarUrl() ? (
-                                            <img
-                                                src={getAvatarUrl()}
-                                                alt={userData.username}
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    const icon = e.target.parentElement.querySelector('svg');
-                                                    if (icon) icon.style.display = 'flex';
-                                                }}
-                                            />
-                                        ) : null}
-                                        <User
-                                            size={16}
-                                            style={{ display: getAvatarUrl() ? 'none' : 'flex' }}
-                                        />
-                                    </div>
-                                    <div className="profile-info">
-                                        <div className={`profile-rank ${!rankData?.abbreviation ? 'no-rank' : ''}`}>
-                                            {rankData?.abbreviation ? (
-                                                <span className="rank-abbr">{rankData.abbreviation}</span>
-                                            ) : null}
-                                            <span>{userData.username || 'Unknown'}</span>
-                                            {userData.primary_mos?.code && (
-                                                <span className="mos-abbr">({userData.primary_mos.code})</span>
-                                            )}
-                                        </div>
-                                        <div className="profile-service-number">
-                                            {userData.service_number || userData.serviceNumber || 'NO-SN'}
-                                        </div>
-                                    </div>
-                                    {rankData?.insignia_image_url && (
-                                        <img
-                                            src={rankData.insignia_image_url}
-                                            alt={rankData.name || 'Rank insignia'}
-                                            className="rank-insignia-small"
-                                        />
-                                    )}
-                                </button>
+                            <>
+                                {/* Apply Now button - shown before profile widget */}
+                                {shouldShowApplyButton && (
+                                    <Link to="/apply" className="apply-now-button">
+                                        <Send size={16} />
+                                        <span>Apply Now</span>
+                                    </Link>
+                                )}
 
-                                {/* Profile Dropdown */}
-                                <div className={`profile-dropdown ${profileDropdownOpen ? 'open' : ''}`}>
-                                    <div className="dropdown-header">
-                                        <div className="dropdown-username">
-                                            {rankData?.abbreviation || ''} {userData.username}
+                                <div className="profile-widget" ref={profileRef}>
+                                    <button
+                                        className="profile-button"
+                                        onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                                        aria-expanded={profileDropdownOpen}
+                                        aria-haspopup="true"
+                                    >
+                                        <div className="profile-avatar">
+                                            {getAvatarUrl() ? (
+                                                <img
+                                                    src={getAvatarUrl()}
+                                                    alt={userData.username}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        const icon = e.target.parentElement.querySelector('svg');
+                                                        if (icon) icon.style.display = 'flex';
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <User
+                                                size={16}
+                                                style={{ display: getAvatarUrl() ? 'none' : 'flex' }}
+                                            />
                                         </div>
-                                        <div className="dropdown-unit">
-                                            {userData.primary_unit?.name || userData.unit?.name || 'No Unit Assignment'}
+                                        <div className="profile-info">
+                                            <div className={`profile-rank ${!rankData?.abbreviation ? 'no-rank' : ''}`}>
+                                                {rankData?.abbreviation ? (
+                                                    <span className="rank-abbr">{rankData.abbreviation}</span>
+                                                ) : null}
+                                                <span>{userData.username || 'Unknown'}</span>
+                                                {userData.primary_mos?.code && (
+                                                    <span className="mos-abbr">({userData.primary_mos.code})</span>
+                                                )}
+                                            </div>
+                                            <div className="profile-service-number">
+                                                {userData.service_number || userData.serviceNumber || 'NO-SN'}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="dropdown-menu">
-                                        <button
-                                            className="dropdown-item"
-                                            onClick={handleProfileClick}
-                                        >
-                                            <User size={16} />
-                                            <span>My Profile</span>
-                                        </button>
-                                        <button
-                                            className="dropdown-item"
-                                            onClick={handleSettingsClick}
-                                        >
-                                            <Settings size={16} />
-                                            <span>Settings</span>
-                                        </button>
-                                        <button
-                                            className="dropdown-item logout"
-                                            onClick={handleLogout}
-                                        >
-                                            <LogOut size={16} />
-                                            <span>Logout</span>
-                                        </button>
+                                        {rankData?.insignia_image_url && (
+                                            <img
+                                                src={rankData.insignia_image_url}
+                                                alt={rankData.name || 'Rank insignia'}
+                                                className="rank-insignia-small"
+                                            />
+                                        )}
+                                    </button>
+
+                                    {/* Profile Dropdown */}
+                                    <div className={`profile-dropdown ${profileDropdownOpen ? 'open' : ''}`}>
+                                        <div className="dropdown-header">
+                                            <div className="dropdown-username">
+                                                {rankData?.abbreviation || ''} {userData.username}
+                                            </div>
+                                            <div className="dropdown-unit">
+                                                {userData.primary_unit?.name || userData.unit?.name || 'No Unit Assignment'}
+                                            </div>
+                                        </div>
+                                        <div className="dropdown-menu">
+                                            {shouldShowApplyButton && (
+                                                <button
+                                                    className="dropdown-item apply-item"
+                                                    onClick={handleApplyClick}
+                                                >
+                                                    <Send size={16} />
+                                                    <span>Apply to Join</span>
+                                                </button>
+                                            )}
+                                            <button
+                                                className="dropdown-item"
+                                                onClick={handleProfileClick}
+                                            >
+                                                <User size={16} />
+                                                <span>My Profile</span>
+                                            </button>
+                                            <button
+                                                className="dropdown-item"
+                                                onClick={handleSettingsClick}
+                                            >
+                                                <Settings size={16} />
+                                                <span>Settings</span>
+                                            </button>
+                                            <button
+                                                className="dropdown-item logout"
+                                                onClick={handleLogout}
+                                            >
+                                                <LogOut size={16} />
+                                                <span>Logout</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         ) : (
                             <Link to="/login" className="login-button">
                                 <User size={16} />
@@ -381,6 +440,21 @@ const Header = () => {
                 data-menu-open={menuOpen}
             >
                 <div className="nav-links">
+                    {/* Apply Now link in mobile menu for eligible users */}
+                    {shouldShowApplyButton && (
+                        <>
+                            <Link
+                                to="/apply"
+                                className="nav-link apply-link"
+                                onClick={() => setMenuOpen(false)}
+                            >
+                                <Send />
+                                <span>Apply Now</span>
+                            </Link>
+                            <div className="nav-divider" />
+                        </>
+                    )}
+
                     {navigationItems.map(item => {
                         const Icon = item.icon;
                         return (
