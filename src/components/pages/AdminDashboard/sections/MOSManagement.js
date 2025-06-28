@@ -132,8 +132,8 @@ const MOSManagement = () => {
     // Filter and sort MOS list
     const filteredMOS = mosList.filter(mos => {
         const matchesSearch =
-            mos.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            mos.title.toLowerCase().includes(searchTerm.toLowerCase());
+            (mos.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (mos.title || '').toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesBranch = filterBranch === 'all' || mos.branch === filterBranch;
         const matchesCategory = filterCategory === 'all' || mos.category === filterCategory;
@@ -148,20 +148,20 @@ const MOSManagement = () => {
     const sortedMOS = [...filteredMOS].sort((a, b) => {
         switch (sortBy) {
             case 'code':
-                return a.code.localeCompare(b.code);
+                return (a.code || '').localeCompare(b.code || '');
             case 'title':
-                return a.title.localeCompare(b.title);
+                return (a.title || '').localeCompare(b.title || '');
             case 'branch':
                 return (a.branch_name || '').localeCompare(b.branch_name || '');
             case 'category':
-                return a.category.localeCompare(b.category);
+                return (a.category || '').localeCompare(b.category || '');
             default:
                 return 0;
         }
     });
 
     // Get unique categories
-    const categories = [...new Set(mosList.map(mos => mos.category))].sort();
+    const categories = [...new Set(mosList.map(mos => mos.category).filter(Boolean))].sort();
 
     return (
         <div className="management-section">
@@ -263,25 +263,25 @@ const MOSManagement = () => {
                                 <tr key={mos.id}>
                                     <td>
                                         <div className="mos-code">
-                                            <strong>{mos.code}</strong>
+                                            <strong>{mos.code || 'N/A'}</strong>
                                         </div>
                                     </td>
                                     <td>
                                         <div className="mos-title">
-                                            {mos.title}
+                                            {mos.title || 'Untitled'}
                                         </div>
                                     </td>
                                     <td>
-                                        <span className="branch-name">{mos.branch_name}</span>
+                                        <span className="branch-name">{mos.branch_name || 'Unassigned'}</span>
                                     </td>
                                     <td>
-                                            <span className={`category-badge ${mos.category}`}>
-                                                {mos.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                            <span className={`category-badge ${mos.category || ''}`}>
+                                                {mos.category ? mos.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown'}
                                             </span>
                                     </td>
                                     <td>
                                         <div className="requirements-cell">
-                                            {mos.security_clearance_required !== 'none' && (
+                                            {mos.security_clearance_required && mos.security_clearance_required !== 'none' && (
                                                 <div className="requirement-item">
                                                     <Shield size={14} />
                                                     <span>{mos.security_clearance_required.toUpperCase()}</span>
@@ -299,7 +299,7 @@ const MOSManagement = () => {
                                         <div className="training-info">
                                             <div className="training-item">
                                                 <Clock size={14} />
-                                                <span>{mos.ait_weeks} weeks</span>
+                                                <span>{mos.ait_weeks || 0} weeks</span>
                                             </div>
                                             {mos.ait_location && (
                                                 <div className="training-item">
@@ -427,10 +427,10 @@ const MOSDetailsPanel = ({ mos, onClose, onEdit }) => {
 
             <div className="panel-content">
                 <div className="mos-header-section">
-                    <h2>{mos.code} - {mos.title}</h2>
+                    <h2>{mos.code || 'N/A'} - {mos.title || 'Untitled'}</h2>
                     <div className="mos-badges">
-                        <span className={`category-badge ${mos.category}`}>
-                            {mos.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        <span className={`category-badge ${mos.category || ''}`}>
+                            {mos.category ? mos.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown'}
                         </span>
                         {mos.is_active && <span className="status-badge active">Active</span>}
                         {mos.is_entry_level && <span className="status-badge entry-level">Entry Level</span>}
@@ -442,12 +442,12 @@ const MOSDetailsPanel = ({ mos, onClose, onEdit }) => {
                         <h4>Basic Information</h4>
                         <div className="detail-row">
                             <span className="label">Branch:</span>
-                            <span className="value">{mos.branch?.name}</span>
+                            <span className="value">{mos.branch?.name || 'Unassigned'}</span>
                         </div>
                         <div className="detail-row">
                             <span className="label">Category:</span>
                             <span className="value">
-                                {mos.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                {mos.category ? mos.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown'}
                             </span>
                         </div>
                         {mos.description && (
@@ -467,7 +467,7 @@ const MOSDetailsPanel = ({ mos, onClose, onEdit }) => {
                         <div className="detail-row">
                             <span className="label">Security Clearance:</span>
                             <span className="value">
-                                {mos.security_clearance_required === 'none'
+                                {!mos.security_clearance_required || mos.security_clearance_required === 'none'
                                     ? 'None Required'
                                     : mos.security_clearance_required.toUpperCase()}
                             </span>
@@ -475,7 +475,9 @@ const MOSDetailsPanel = ({ mos, onClose, onEdit }) => {
                         <div className="detail-row">
                             <span className="label">Physical Demand:</span>
                             <span className="value">
-                                {mos.physical_demand_rating.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                {mos.physical_demand_rating
+                                    ? mos.physical_demand_rating.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                                    : 'Not Specified'}
                             </span>
                         </div>
                     </div>
@@ -484,7 +486,7 @@ const MOSDetailsPanel = ({ mos, onClose, onEdit }) => {
                         <h4>Training Information</h4>
                         <div className="detail-row">
                             <span className="label">AIT Duration:</span>
-                            <span className="value">{mos.ait_weeks} weeks</span>
+                            <span className="value">{mos.ait_weeks || 0} weeks</span>
                         </div>
                         {mos.ait_location && (
                             <div className="detail-row">
