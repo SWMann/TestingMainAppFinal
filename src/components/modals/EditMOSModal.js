@@ -2,11 +2,28 @@ import React, { useState } from 'react';
 import { X, Briefcase, FileText, Shield, Clock, MapPin, Edit } from 'lucide-react';
 import './AdminModals.css';
 
-const EditMOSModal = ({ mos, branches, onClose, onUpdate }) => {
+/**
+ * EditMOSModal - Modal for editing an existing Military Occupational Specialty
+ *
+ * @param {Object} mos - MOS object to edit
+ * @param {Array} branches - Array of branch objects with { id, name }
+ * @param {Function} onClose - Callback when modal is closed
+ * @param {Function} onUpdate - Callback when MOS is updated, receives (mosId, formData)
+ */
+const EditMOSModal = ({ mos, branches = [], onClose, onUpdate }) => {
+    // Handle branch value - could be an object or just an ID
+    const getBranchValue = () => {
+        if (!mos.branch) return '';
+        if (typeof mos.branch === 'object' && mos.branch.id) {
+            return mos.branch.id;
+        }
+        return mos.branch;
+    };
+
     const [formData, setFormData] = useState({
         code: mos.code || '',
         title: mos.title || '',
-        branch: mos.branch || '',
+        branch: getBranchValue(),
         category: mos.category || 'combat_arms',
         description: mos.description || '',
         is_active: mos.is_active !== undefined ? mos.is_active : true,
@@ -71,7 +88,7 @@ const EditMOSModal = ({ mos, branches, onClose, onUpdate }) => {
 
                 <form onSubmit={handleSubmit} className="modal-form">
                     {/* Current MOS Info */}
-                    {(mos.holders_count > 0 || mos.positions_count > 0) && (
+                    {((mos.holders_count && mos.holders_count > 0) || (mos.positions_count && mos.positions_count > 0)) && (
                         <div className="info-message">
                             <Briefcase size={18} />
                             <div>
@@ -115,11 +132,15 @@ const EditMOSModal = ({ mos, branches, onClose, onUpdate }) => {
                                     className={errors.branch ? 'error' : ''}
                                 >
                                     <option value="">Select Branch...</option>
-                                    {branches.map(branch => (
-                                        <option key={branch.id} value={branch.id}>
-                                            {branch.name}
-                                        </option>
-                                    ))}
+                                    {branches && branches.length > 0 ? (
+                                        branches.map(branch => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option disabled>No branches available</option>
+                                    )}
                                 </select>
                                 {errors.branch && <span className="error-message">{errors.branch}</span>}
                             </div>

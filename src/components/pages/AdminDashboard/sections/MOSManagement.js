@@ -71,26 +71,44 @@ const MOSManagement = () => {
 
     const handleCreate = async (mosData) => {
         try {
-            await api.post('/units/mos/', mosData);
+            // Ensure branch is sent as ID
+            const dataToSend = {
+                ...mosData,
+                branch: mosData.branch ? parseInt(mosData.branch) : null
+            };
+
+            await api.post('/units/mos/', dataToSend);
             await fetchData();
             setShowCreateModal(false);
             showNotification('MOS created successfully', 'success');
         } catch (error) {
             console.error('Error creating MOS:', error);
-            showNotification('Failed to create MOS', 'error');
+            const errorMessage = error.response?.data?.detail ||
+                error.response?.data?.message ||
+                'Failed to create MOS';
+            showNotification(errorMessage, 'error');
         }
     };
 
     const handleUpdate = async (mosId, mosData) => {
         try {
-            await api.put(`/units/mos/${mosId}/`, mosData);
+            // Ensure branch is sent as ID
+            const dataToSend = {
+                ...mosData,
+                branch: mosData.branch ? parseInt(mosData.branch) : null
+            };
+
+            await api.put(`/units/mos/${mosId}/`, dataToSend);
             await fetchData();
             setShowEditModal(false);
             setSelectedMOS(null);
             showNotification('MOS updated successfully', 'success');
         } catch (error) {
             console.error('Error updating MOS:', error);
-            showNotification('Failed to update MOS', 'error');
+            const errorMessage = error.response?.data?.detail ||
+                error.response?.data?.message ||
+                'Failed to update MOS';
+            showNotification(errorMessage, 'error');
         }
     };
 

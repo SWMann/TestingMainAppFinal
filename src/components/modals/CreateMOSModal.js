@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { X, Briefcase, FileText, Shield, Clock, MapPin } from 'lucide-react';
+import { X, Briefcase, FileText, Shield, Clock, MapPin, AlertCircle } from 'lucide-react';
 import './AdminModals.css';
 
-const CreateMOSModal = ({ branches, onClose, onCreate }) => {
+/**
+ * CreateMOSModal - Modal for creating a new Military Occupational Specialty
+ *
+ * @param {Array} branches - Array of branch objects with { id, name }
+ * @param {Function} onClose - Callback when modal is closed
+ * @param {Function} onCreate - Callback when MOS is created, receives formData
+ */
+const CreateMOSModal = ({ branches = [], onClose, onCreate }) => {
     const [formData, setFormData] = useState({
         code: '',
         title: '',
@@ -100,11 +107,15 @@ const CreateMOSModal = ({ branches, onClose, onCreate }) => {
                                     className={errors.branch ? 'error' : ''}
                                 >
                                     <option value="">Select Branch...</option>
-                                    {branches.map(branch => (
-                                        <option key={branch.id} value={branch.id}>
-                                            {branch.name}
-                                        </option>
-                                    ))}
+                                    {branches && branches.length > 0 ? (
+                                        branches.map(branch => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option disabled>No branches available</option>
+                                    )}
                                 </select>
                                 {errors.branch && <span className="error-message">{errors.branch}</span>}
                             </div>
@@ -276,7 +287,11 @@ const CreateMOSModal = ({ branches, onClose, onCreate }) => {
                         <button type="button" className="cancel-button" onClick={onClose}>
                             Cancel
                         </button>
-                        <button type="submit" className="submit-button">
+                        <button
+                            type="submit"
+                            className="submit-button"
+                            disabled={branches.length === 0}
+                        >
                             Create MOS
                         </button>
                     </div>
