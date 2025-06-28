@@ -4,7 +4,7 @@ import {
     Shield, Users, Calendar, GraduationCap, FileText, MessageSquare,
     Home, Settings, Bell, Search, Menu, X, ChevronRight, AlertCircle,
     Ship, Truck, ClipboardList, BookOpen, UserPlus, Activity,
-    CheckCircle, Clock, XCircle, TrendingUp, TrendingDown, ChevronUp
+    CheckCircle, Clock, XCircle, TrendingUp, TrendingDown, ChevronUp, Briefcase
 } from 'lucide-react';
 import './AdminDashboard.css';
 import api from "../../../services/api";
@@ -15,6 +15,7 @@ import UnitManagement from "./sections/UnitManagement";
 import EventManagement from "./sections/EventManagement";
 import OperationManagement from "./sections/OperationManagement";
 import TrainingManagement from "./sections/TrainingManagement";
+import MOSManagement from "./sections/MOSManagement";
 import UnitsHierarchyView from '../UnitHierarchyPage/UnitHierarchyView';
 // Import section components
 // Note: Create these components in the admin/sections directory
@@ -121,6 +122,7 @@ const AdminDashboard = ({ user }) => {
         { id: 'users', label: 'User Management', icon: Users },
         { id: 'ranks', label: 'Rank Management', icon: ChevronUp },
         { id: 'units', label: 'Units & Positions', icon: Shield },
+        { id: 'mos', label: 'MOS Management', icon: Briefcase }, // ADD THIS LINE
         { id: 'events', label: 'Events', icon: Calendar },
         { id: 'operations', label: 'Opord', icon: ClipboardList },
         { id: 'training', label: 'Training & Certs', icon: GraduationCap },
@@ -142,6 +144,8 @@ const AdminDashboard = ({ user }) => {
                 return <UserManagement />;
             case 'units':
                 return <UnitManagement />;
+            case 'mos':
+                return <MOSManagement />; // ADD THIS CASE
             case 'events':
                 return <EventManagement />;
             case 'training':
