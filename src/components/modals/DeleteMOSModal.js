@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, X } from 'lucide-react';
-import './Modal.css';
+import './AdminModals.css';
 
 const DeleteMOSModal = ({ mos, onClose, onDelete }) => {
     const [confirmText, setConfirmText] = useState('');

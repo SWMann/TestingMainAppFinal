@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import './Modal.css';
+import './AdminModals.css';
 
 const CreateMOSModal = ({ branches, onClose, onCreate }) => {
     const [formData, setFormData] = useState({
