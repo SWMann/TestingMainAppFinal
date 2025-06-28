@@ -1,33 +1,25 @@
-// authService.js - Fixed auth service with proper logout handling
-
+// src/services/authService.js
 import api, { setLoggingOut } from './api';
 
-// Discord OAuth constants
-const DISCORD_CLIENT_ID = process.env.REACT_APP_DISCORD_CLIENT_ID;
-const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || `${window.location.origin}/auth/discord/callback`;
-const DISCORD_AUTH_URL = `https://discord.com/oauth2/authorize?client_id=1368998293098598401&response_type=code&redirect_uri=https%3A%2F%2Fshark-app-wnufa.ondigitalocean.app%2Fanotherbackendagain-backend2%2Fapi%2Fauth%2Fdiscord%2Fcallback%2F&scope=identify+email+guilds`;
-
 const authService = {
-    // Redirect to Discord OAuth
-    loginWithDiscord: () => {
-        window.location.href = DISCORD_AUTH_URL;
+    // Get Discord OAuth URL from backend
+    getDiscordAuthUrl: async () => {
+        try {
+            const response = await api.get('/auth/discord/');
+            return response.data.auth_url;
+        } catch (error) {
+            console.error('Failed to get Discord auth URL:', error);
+            // Fallback to constructed URL if API fails
+            const clientId = process.env.REACT_APP_DISCORD_CLIENT_ID || '1368998293098598401';
+            const redirectUri = encodeURIComponent('https://shark-app-wnufa.ondigitalocean.app/anotherbackendagain-backend2/api/auth/discord/callback/');
+            return `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=identify+email+guilds`;
+        }
     },
 
-    // Handle the OAuth callback
-    handleDiscordCallback: async (code) => {
-        try {
-            const response = await api.post('/auth/discord/', { code });
-            const { access, refresh, user } = response.data;
-
-            // Store the tokens
-            localStorage.setItem('token', access);
-            localStorage.setItem('refreshToken', refresh);
-
-            return { success: true, user };
-        } catch (error) {
-            console.error('Discord auth error:', error);
-            return { success: false, error: error.response?.data || 'Authentication failed' };
-        }
+    // Redirect to Discord OAuth
+    loginWithDiscord: async () => {
+        const authUrl = await authService.getDiscordAuthUrl();
+        window.location.href = authUrl;
     },
 
     // Check if the user is authenticated
@@ -41,7 +33,7 @@ const authService = {
             // Set the logging out flag to prevent token refresh attempts
             setLoggingOut(true);
 
-            // Try to call logout endpoint (it might not exist or might fail)
+            // Try to call logout endpoint
             try {
                 await api.post('/auth/logout/');
             } catch (error) {
@@ -55,8 +47,6 @@ const authService = {
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
             setLoggingOut(false);
-
-            // NO REDIRECTS HERE - let React handle the UI update
         }
     },
 
