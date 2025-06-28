@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    X, Briefcase, Star, Users, Hash, Tag
+    X, Briefcase, Star, Users, Hash, Tag, Award
 } from 'lucide-react';
+import api from "../../services/api";
 import './AdminModals.css';
 
 export const EditPositionModal = ({ position, units, roles, onClose, onUpdate }) => {
@@ -16,25 +17,50 @@ export const EditPositionModal = ({ position, units, roles, onClose, onUpdate })
         additional_requirements: position.additional_requirements || '',
         notes: position.notes || '',
         is_active: position.is_active !== false,
-        is_vacant: position.is_vacant !== false
+        is_vacant: position.is_vacant !== false,
+        required_mos: position.required_mos?.map(mos => mos.id || mos) || [],
+        preferred_mos: position.preferred_mos?.map(mos => mos.id || mos) || []
     });
 
+    const [availableMOS, setAvailableMOS] = useState([]);
+    const [loadingMOS, setLoadingMOS] = useState(false);
+
     const selectedRole = formData.role ? roles.find(r => r.id === formData.role) : null;
+
+    useEffect(() => {
+        fetchAvailableMOS();
+    }, []);
+
+    const fetchAvailableMOS = async () => {
+        setLoadingMOS(true);
+        try {
+            const response = await api.get('/units/mos/', {
+                params: { is_active: true }
+            });
+            setAvailableMOS(response.data.results || response.data);
+        } catch (error) {
+            console.error('Error fetching MOS:', error);
+        } finally {
+            setLoadingMOS(false);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         const submitData = {
-            role: formData.role || null,  // Keep as string/UUID
-            unit: formData.unit || null,  // Keep as string/UUID
+            role: formData.role || null,
+            unit: formData.unit || null,
             identifier: formData.identifier || null,
             title: formData.title || null,
-            parent_position: formData.parent_position || null,  // Keep as string/UUID
-            override_min_rank: formData.override_min_rank || null,  // Keep as string/UUID
-            override_max_rank: formData.override_max_rank || null,  // Keep as string/UUID
+            parent_position: formData.parent_position || null,
+            override_min_rank: formData.override_min_rank || null,
+            override_max_rank: formData.override_max_rank || null,
             additional_requirements: formData.additional_requirements || null,
             notes: formData.notes || null,
             is_active: formData.is_active,
-            is_vacant: formData.is_vacant
+            is_vacant: formData.is_vacant,
+            required_mos: formData.required_mos,
+            preferred_mos: formData.preferred_mos
         };
         onUpdate(submitData);
     };
@@ -47,9 +73,27 @@ export const EditPositionModal = ({ position, units, roles, onClose, onUpdate })
         }));
     };
 
+    const handleMOSToggle = (mosId, field) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: prev[field].includes(mosId)
+                ? prev[field].filter(id => id !== mosId)
+                : [...prev[field], mosId]
+        }));
+    };
+
+    // Group MOS by category
+    const mosByCategory = availableMOS.reduce((acc, mos) => {
+        if (!acc[mos.category]) {
+            acc[mos.category] = [];
+        }
+        acc[mos.category].push(mos);
+        return acc;
+    }, {});
+
     return (
         <div className="modal-overlay">
-            <div className="modal-container">
+            <div className="modal-container large">
                 <div className="modal-header">
                     <h2>
                         <Briefcase size={24} />
@@ -150,6 +194,67 @@ export const EditPositionModal = ({ position, units, roles, onClose, onUpdate })
                                 placeholder="e.g., Senior Company Commander"
                             />
                         </div>
+                    </div>
+
+                    {/* MOS Requirements Section */}
+                    <div className="form-section">
+                        <h3>
+                            <Award size={16} />
+                            MOS Requirements
+                        </h3>
+
+                        {loadingMOS ? (
+                            <div className="loading-state">
+                                <div className="spinner small"></div>
+                                <p>Loading MOS options...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="form-group">
+                                    <label>Required MOS</label>
+                                    <p className="field-hint">Select MOS that are required for this position</p>
+                                    {Object.entries(mosByCategory).map(([category, mosList]) => (
+                                        <div key={category} className="mos-category-group">
+                                            <h5>{category.replace(/_/g, ' ').toUpperCase()}</h5>
+                                            <div className="checkbox-grid">
+                                                {mosList.map(mos => (
+                                                    <label key={mos.id} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.required_mos.includes(mos.id)}
+                                                            onChange={() => handleMOSToggle(mos.id, 'required_mos')}
+                                                        />
+                                                        <span>{mos.code} - {mos.title}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Preferred MOS</label>
+                                    <p className="field-hint">Select MOS that are preferred but not required</p>
+                                    {Object.entries(mosByCategory).map(([category, mosList]) => (
+                                        <div key={category} className="mos-category-group">
+                                            <h5>{category.replace(/_/g, ' ').toUpperCase()}</h5>
+                                            <div className="checkbox-grid">
+                                                {mosList.filter(mos => !formData.required_mos.includes(mos.id)).map(mos => (
+                                                    <label key={mos.id} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.preferred_mos.includes(mos.id)}
+                                                            onChange={() => handleMOSToggle(mos.id, 'preferred_mos')}
+                                                        />
+                                                        <span>{mos.code} - {mos.title}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="form-group checkbox-group">

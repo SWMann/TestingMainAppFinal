@@ -557,6 +557,11 @@ const HomePage = () => {
                                             <div className="welcome-name">
                                                 {getRankAbbreviation()} {user?.username || 'Soldier'}
                                             </div>
+                                            {user?.primary_mos && (
+                                                <div className="welcome-mos">
+                                                    {user.primary_mos.code} - {user.primary_mos.title}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

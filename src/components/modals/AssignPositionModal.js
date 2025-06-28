@@ -17,9 +17,11 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
     const [forceAssign, setForceAssign] = useState(false);
     const [userRequirements, setUserRequirements] = useState({});
     const [checkingRequirements, setCheckingRequirements] = useState(false);
+    const [positionMOSRequirements, setPositionMOSRequirements] = useState(null);
 
     useEffect(() => {
         fetchEligibleUsers();
+        fetchPositionMOSRequirements();
     }, []);
 
     useEffect(() => {
@@ -27,6 +29,18 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
             checkUserRequirements(selectedUser.id);
         }
     }, [selectedUser]);
+
+    const fetchPositionMOSRequirements = async () => {
+        try {
+            const response = await api.get(`/positions/${position.id}/`);
+            setPositionMOSRequirements({
+                required_mos: response.data.required_mos || [],
+                preferred_mos: response.data.preferred_mos || []
+            });
+        } catch (error) {
+            console.error('Error fetching position MOS requirements:', error);
+        }
+    };
 
     const fetchEligibleUsers = async () => {
         try {
@@ -69,6 +83,35 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
         } finally {
             setCheckingRequirements(false);
         }
+    };
+
+    const checkMOSRequirement = (user) => {
+        if (!positionMOSRequirements || positionMOSRequirements.required_mos.length === 0) {
+            return { meets: true, message: 'No MOS requirements' };
+        }
+
+        const userMOSIds = [
+            user.primary_mos?.id || user.primary_mos,
+            ...(user.secondary_mos?.map(mos => mos.id || mos) || [])
+        ].filter(Boolean);
+
+        const hasRequiredMOS = positionMOSRequirements.required_mos.some(requiredMOS =>
+            userMOSIds.includes(requiredMOS.id || requiredMOS)
+        );
+
+        if (!hasRequiredMOS) {
+            const requiredMOSCodes = positionMOSRequirements.required_mos
+                .map(mos => mos.code || 'Unknown')
+                .join(', ');
+            return {
+                meets: false,
+                message: `Requires one of: ${requiredMOSCodes}`,
+                required: requiredMOSCodes,
+                userHas: user.primary_mos?.code || 'None'
+            };
+        }
+
+        return { meets: true, message: 'MOS requirement met' };
     };
 
     const displayedUsers = showAllUsers ? allUsers : eligibleUsers;
@@ -173,6 +216,16 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
                                     <span>{position.role_details.min_time_in_service} days minimum</span>
                                 </div>
                             )}
+                            {positionMOSRequirements?.required_mos.length > 0 && (
+                                <div className="detail-item">
+                                    <span className="label">Required MOS:</span>
+                                    <span>
+                                        {positionMOSRequirements.required_mos
+                                            .map(mos => mos.code || 'Unknown')
+                                            .join(', ')}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -228,6 +281,7 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
                                     <div className="users-list">
                                         {filteredUsers.map(user => {
                                             const eligible = isUserEligible(user);
+                                            const mosCheck = checkMOSRequirement(user);
 
                                             return (
                                                 <div
@@ -248,6 +302,12 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
                                                             {user.primary_unit?.name || 'No unit assigned'}
                                                             {user.service_number && ` • ${user.service_number}`}
                                                         </div>
+                                                        {user.primary_mos && (
+                                                            <div className="user-mos">
+                                                                <Award size={12} />
+                                                                {user.primary_mos.code} - {user.primary_mos.title}
+                                                            </div>
+                                                        )}
                                                         {user.commission_stage && (
                                                             <div className="user-stage">
                                                                 <Award size={12} />
@@ -256,7 +316,7 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
                                                         )}
                                                     </div>
                                                     <div className="user-status">
-                                                        {eligible ? (
+                                                        {eligible && mosCheck.meets ? (
                                                             <span className="eligible-badge">
                                                                 <Check size={14} />
                                                                 Eligible
@@ -264,7 +324,7 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
                                                         ) : (
                                                             <span className="ineligible-badge">
                                                                 <Info size={14} />
-                                                                Check Requirements
+                                                                {!mosCheck.meets ? 'MOS Mismatch' : 'Check Requirements'}
                                                             </span>
                                                         )}
                                                     </div>
@@ -287,37 +347,52 @@ export const AssignPositionModal = ({ position, onClose, onAssign }) => {
                                             <div className="spinner small"></div>
                                             <p>Checking requirements...</p>
                                         </div>
-                                    ) : userRequirements.requirement_checks ? (
+                                    ) : (
                                         <div className="requirements-list">
-                                            {userRequirements.requirement_checks.map((check, index) => (
+                                            {/* MOS Requirement Check */}
+                                            {positionMOSRequirements && positionMOSRequirements.required_mos.length > 0 && (
+                                                <RequirementCheck
+                                                    check={{
+                                                        requirement: 'MOS Requirement',
+                                                        required: positionMOSRequirements.required_mos
+                                                            .map(mos => mos.code || 'Unknown')
+                                                            .join(', '),
+                                                        user_has: selectedUser.primary_mos?.code || 'None',
+                                                        meets: checkMOSRequirement(selectedUser).meets,
+                                                        message: checkMOSRequirement(selectedUser).message
+                                                    }}
+                                                />
+                                            )}
+
+                                            {/* Other requirement checks */}
+                                            {userRequirements.requirement_checks?.map((check, index) => (
                                                 <RequirementCheck key={index} check={check} />
                                             ))}
 
-                                            {!userRequirements.meets_all_requirements && (
-                                                <div className="requirements-summary warning">
-                                                    <AlertTriangle size={18} />
-                                                    <p>
-                                                        This user does not meet all requirements for this position.
-                                                        You can force the assignment if needed.
-                                                    </p>
-                                                </div>
-                                            )}
+                                            {userRequirements.requirement_checks && (
+                                                <>
+                                                    {!userRequirements.meets_all_requirements && (
+                                                        <div className="requirements-summary warning">
+                                                            <AlertTriangle size={18} />
+                                                            <p>
+                                                                This user does not meet all requirements for this position.
+                                                                You can force the assignment if needed.
+                                                            </p>
+                                                        </div>
+                                                    )}
 
-                                            {userRequirements.meets_all_requirements && (
-                                                <div className="requirements-summary success">
-                                                    <Check size={18} />
-                                                    <p>This user meets all requirements for this position.</p>
-                                                </div>
+                                                    {userRequirements.meets_all_requirements && checkMOSRequirement(selectedUser).meets && (
+                                                        <div className="requirements-summary success">
+                                                            <Check size={18} />
+                                                            <p>This user meets all requirements for this position.</p>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
-                                        </div>
-                                    ) : (
-                                        <div className="no-requirements-info">
-                                            <Info size={18} />
-                                            <p>Requirement information will appear here once you select a user.</p>
                                         </div>
                                     )}
 
-                                    {!userRequirements.meets_all_requirements && userRequirements.requirement_checks && (
+                                    {(!userRequirements.meets_all_requirements || !checkMOSRequirement(selectedUser).meets) && (
                                         <div className="force-assignment-section">
                                             <label className="force-assignment-label">
                                                 <input

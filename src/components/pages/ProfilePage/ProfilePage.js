@@ -384,6 +384,7 @@ const UserProfile = () => {
                             </div>
 
                             {/* Current Assignment */}
+                            {/* Current Assignment */}
                             <div className="info-card">
                                 <h3>Current Assignment</h3>
                                 {user.primary_unit ? (
@@ -408,6 +409,53 @@ const UserProfile = () => {
                                     </div>
                                 ) : (
                                     <p className="no-data">No unit assignment</p>
+                                )}
+                            </div>
+
+                            {/* MOS Information */}
+                            <div className="info-card">
+                                <h3>Military Occupational Specialty</h3>
+                                {user.primary_mos || user.secondary_mos?.length > 0 ? (
+                                    <div className="mos-assignment">
+                                        {user.primary_mos && (
+                                            <div className="primary-mos">
+                                                <h4>Primary MOS</h4>
+                                                <div className="mos-display">
+                                                    <div className="mos-badge">
+                                                        <span className="mos-code">{user.primary_mos.code}</span>
+                                                    </div>
+                                                    <div className="mos-details">
+                                                        <h5>{user.primary_mos.title}</h5>
+                                                        <p className="mos-category">{user.primary_mos.category?.replace(/_/g, ' ').toUpperCase()}</p>
+                                                        {user.mos_skill_level && (
+                                                            <p className="skill-level">Skill Level: {user.mos_skill_level}</p>
+                                                        )}
+                                                        {user.mos_qualified_date && (
+                                                            <p className="qualified-date">
+                                                                Qualified: {formatDate(user.mos_qualified_date)}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {user.secondary_mos?.length > 0 && (
+                                            <div className="secondary-mos">
+                                                <h4>Additional MOS Qualifications</h4>
+                                                <div className="secondary-mos-list">
+                                                    {user.secondary_mos.map(mos => (
+                                                        <div key={mos.id} className="secondary-mos-item">
+                                                            <span className="mos-code-small">{mos.code}</span>
+                                                            <span>{mos.title}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="no-data">No MOS assigned</p>
                                 )}
                             </div>
 

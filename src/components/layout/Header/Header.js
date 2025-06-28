@@ -313,6 +313,9 @@ const Header = () => {
                                                 <span className="rank-abbr">{rankData.abbreviation}</span>
                                             ) : null}
                                             <span>{userData.username || 'Unknown'}</span>
+                                            {userData.primary_mos?.code && (
+                                                <span className="mos-abbr">({userData.primary_mos.code})</span>
+                                            )}
                                         </div>
                                         <div className="profile-service-number">
                                             {userData.service_number || userData.serviceNumber || 'NO-SN'}

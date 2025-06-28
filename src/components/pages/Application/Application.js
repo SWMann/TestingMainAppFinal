@@ -4,7 +4,7 @@ import {
     Shield, ChevronRight, ChevronLeft, CheckCircle,
     Calendar, MapPin, Clock, Users, Award, Briefcase,
     AlertCircle, Target, Plane, Crosshair, Truck,
-    Loader
+    Loader, Wrench, GraduationCap, Star
 } from 'lucide-react';
 import api from "../../../services/api";
 import './Application.css'
@@ -20,14 +20,17 @@ const ApplicationForm = () => {
     // API data state
     const [brigades, setBrigades] = useState([]);
     const [platoons, setPlatoons] = useState([]);
+    const [mosList, setMosList] = useState([]);
     const [isLoadingBrigades, setIsLoadingBrigades] = useState(false);
     const [isLoadingPlatoons, setIsLoadingPlatoons] = useState(false);
+    const [isLoadingMOS, setIsLoadingMOS] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState({
         selectedBrigade: null,
         selectedPlatoon: null,
         selectedPath: null,
+        selectedMOS: [], // Array of up to 3 MOS choices
         discordId: '',
         email: '',
         age: '',
@@ -44,12 +47,19 @@ const ApplicationForm = () => {
         trainingAgreed: false
     });
 
-    const totalSteps = 7;
+    const totalSteps = 8; // Added MOS selection step
 
     // Fetch brigades on component mount
     useEffect(() => {
         fetchBrigades();
     }, []);
+
+    // Fetch MOS list when career path is selected
+    useEffect(() => {
+        if (formData.selectedPath && formData.selectedBrigade) {
+            fetchMOSList();
+        }
+    }, [formData.selectedPath, formData.selectedBrigade]);
 
     // Fetch brigades from API
     const fetchBrigades = async () => {
@@ -80,6 +90,34 @@ const ApplicationForm = () => {
         }
     };
 
+    // Fetch MOS list based on selected career path
+    const fetchMOSList = async () => {
+        setIsLoadingMOS(true);
+        try {
+            // Fetch entry-level MOS options
+            const response = await api.get('/units/mos/entry_level/');
+            setMosList(response.data);
+        } catch (err) {
+            console.error('Error fetching MOS list:', err);
+            setError('Failed to load MOS options. Please try again.');
+        } finally {
+            setIsLoadingMOS(false);
+        }
+    };
+
+    // Check MOS eligibility
+    const checkMOSEligibility = async (mosIds) => {
+        try {
+            const response = await api.post('/onboarding/applications/check_eligibility/', {
+                mos_ids: mosIds
+            });
+            return response.data;
+        } catch (err) {
+            console.error('Error checking MOS eligibility:', err);
+            return null;
+        }
+    };
+
     // Auto-skip to warrant path for aviation units
     useEffect(() => {
         if (currentStep === 4 && formData.selectedBrigade) {
@@ -98,7 +136,8 @@ const ApplicationForm = () => {
         setFormData(prev => ({
             ...prev,
             selectedBrigade: brigadeId,
-            selectedPlatoon: null // Reset platoon when brigade changes
+            selectedPlatoon: null, // Reset platoon when brigade changes
+            selectedMOS: [] // Reset MOS selection
         }));
 
         // Fetch platoons for selected brigade
@@ -110,7 +149,16 @@ const ApplicationForm = () => {
     };
 
     const handlePathSelect = (path) => {
-        setFormData(prev => ({ ...prev, selectedPath: path }));
+        setFormData(prev => ({ ...prev, selectedPath: path, selectedMOS: [] }));
+    };
+
+    const handleMOSSelect = (mosId, priority) => {
+        setFormData(prev => {
+            const newMOS = [...prev.selectedMOS];
+            newMOS[priority - 1] = mosId;
+            // Filter out any undefined values
+            return { ...prev, selectedMOS: newMOS.filter(Boolean) };
+        });
     };
 
     const validateStep = () => {
@@ -134,18 +182,24 @@ const ApplicationForm = () => {
                 }
                 break;
             case 5:
+                if (formData.selectedMOS.length === 0) {
+                    setError('Please select at least one MOS preference');
+                    return false;
+                }
+                break;
+            case 6:
                 if (!formData.discordId || !formData.email || !formData.age || !formData.timezone) {
                     setError('Please fill in all required fields');
                     return false;
                 }
                 break;
-            case 6:
+            case 7:
                 if (!formData.milsimExperience || !formData.divisionMotivation || !formData.weeklyAvailability) {
                     setError('Please fill in all required fields');
                     return false;
                 }
                 break;
-            case 7:
+            case 8:
                 if (!formData.conductAgreed || !formData.attendanceAgreed || !formData.trainingAgreed) {
                     setError('Please agree to all division standards');
                     return false;
@@ -186,7 +240,7 @@ const ApplicationForm = () => {
         setIsLoading(true);
 
         try {
-            // Try to check eligibility first, but don't fail if endpoint doesn't exist
+            // Try to check eligibility first
             try {
                 const eligibilityCheck = await api.post('/onboarding/recruitment/check-eligibility/', {
                     discord_id: formData.discordId
@@ -198,16 +252,29 @@ const ApplicationForm = () => {
                     return;
                 }
             } catch (eligibilityErr) {
-                // If eligibility check fails, continue with application
                 console.log('Eligibility check skipped:', eligibilityErr);
             }
 
-            const selectedBrigadeData = brigades.find(b => b.id === formData.selectedBrigade);
-            const selectedPlatoonData = platoons.find(p => p.id === formData.selectedPlatoon);
+            // Check MOS eligibility if MOS were selected
+            if (formData.selectedMOS.length > 0) {
+                const mosEligibility = await checkMOSEligibility(formData.selectedMOS);
+                if (mosEligibility) {
+                    // Show any MOS-specific warnings
+                    const warnings = [];
+                    formData.selectedMOS.forEach(mosId => {
+                        if (mosEligibility[mosId] && !mosEligibility[mosId].eligible) {
+                            warnings.push(`${mosEligibility[mosId].mos_code}: ${mosEligibility[mosId].reasons.join(', ')}`);
+                        }
+                    });
+                    if (warnings.length > 0) {
+                        console.warn('MOS eligibility warnings:', warnings);
+                    }
+                }
+            }
 
             const applicationData = {
                 discord_id: formData.discordId,
-                username: formData.discordId.split('#')[0] || formData.discordId, // Parse username from Discord ID
+                username: formData.discordId.split('#')[0] || formData.discordId,
                 email: formData.email,
                 preferred_brigade: formData.selectedBrigade,
                 preferred_platoon: formData.selectedPlatoon,
@@ -215,7 +282,13 @@ const ApplicationForm = () => {
                 experience: formData.milsimExperience,
                 referrer: formData.referrer || null,
                 has_flight_experience: formData.selectedPath === 'warrant' && formData.flightExperience ? true : false,
-                flight_hours: formData.selectedPath === 'warrant' ? parseInt(formData.flightExperience || 0) : 0
+                flight_hours: formData.selectedPath === 'warrant' ? parseInt(formData.flightExperience || 0) : 0,
+                // MOS preferences
+                mos_priority_1: formData.selectedMOS[0] || null,
+                mos_priority_2: formData.selectedMOS[1] || null,
+                mos_priority_3: formData.selectedMOS[2] || null,
+                mos_waiver_requested: formData.mosWaiverRequested || false,
+                mos_waiver_reason: formData.mosWaiverReason || null
             };
 
             const response = await api.post('/onboarding/applications/', applicationData);
@@ -223,7 +296,7 @@ const ApplicationForm = () => {
             // Store application reference for success page
             localStorage.setItem('applicationReference', response.data.id);
 
-            setCurrentStep(8); // Success state
+            setCurrentStep(9); // Success state
         } catch (err) {
             console.error('Error submitting application:', err);
             if (err.response?.data?.detail) {
@@ -231,7 +304,6 @@ const ApplicationForm = () => {
             } else if (err.response?.data?.error) {
                 setError(err.response.data.error);
             } else if (err.response?.data) {
-                // Handle field-specific errors
                 const errors = Object.entries(err.response.data)
                     .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                     .join('; ');
@@ -249,6 +321,18 @@ const ApplicationForm = () => {
 
     const getSelectedPlatoonData = () => {
         return platoons.find(p => p.id === formData.selectedPlatoon);
+    };
+
+    const getSelectedMOSData = (priority) => {
+        const mosId = formData.selectedMOS[priority - 1];
+        if (!mosId || !mosList) return null;
+
+        // mosList is grouped by branch
+        for (const branch in mosList) {
+            const mos = mosList[branch].find(m => m.id === mosId);
+            if (mos) return mos;
+        }
+        return null;
     };
 
     const progressPercentage = (currentStep / totalSteps) * 100;
@@ -280,33 +364,47 @@ const ApplicationForm = () => {
                     onSelect={handlePathSelect}
                 />;
             case 5:
+                return <MOSSelectionStep
+                    mosList={mosList}
+                    selectedMOS={formData.selectedMOS}
+                    selectedPath={formData.selectedPath}
+                    selectedBrigade={getSelectedBrigadeData()}
+                    onSelect={handleMOSSelect}
+                    isLoading={isLoadingMOS}
+                />;
+            case 6:
                 return <BasicInfoStep
                     formData={formData}
                     onChange={handleInputChange}
                 />;
-            case 6:
+            case 7:
                 return <ExperienceStep
                     formData={formData}
                     selectedPath={formData.selectedPath}
                     onChange={handleInputChange}
                 />;
-            case 7:
+            case 8:
                 return <AgreementStep
                     formData={formData}
                     onChange={handleInputChange}
                 />;
-            case 8:
+            case 9:
                 return <SuccessStep
                     formData={formData}
                     selectedBrigade={getSelectedBrigadeData()}
                     selectedPlatoon={getSelectedPlatoonData()}
+                    selectedMOS={[
+                        getSelectedMOSData(1),
+                        getSelectedMOSData(2),
+                        getSelectedMOSData(3)
+                    ].filter(Boolean)}
                 />;
             default:
                 return null;
         }
     };
 
-    if (currentStep === 8) {
+    if (currentStep === 9) {
         return renderStepContent();
     }
 
@@ -364,7 +462,7 @@ const ApplicationForm = () => {
                     <button
                         className="nav-btn next"
                         onClick={handleNext}
-                        disabled={isLoading || (currentStep === 3 && isLoadingPlatoons)}
+                        disabled={isLoading || (currentStep === 3 && isLoadingPlatoons) || (currentStep === 5 && isLoadingMOS)}
                     >
                         {currentStep === 1 ? 'Begin Application' : 'Next'}
                         <ChevronRight size={20} />
@@ -393,7 +491,7 @@ const ApplicationForm = () => {
     );
 };
 
-// Step Components
+// Existing Step Components (WelcomeStep, BrigadeSelectionStep, etc.)
 const WelcomeStep = () => (
     <div className="welcome-section">
         <h2>Join the Red Diamond Division</h2>
@@ -436,7 +534,6 @@ const WelcomeStep = () => (
 
 const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }) => {
     const getUnitIcon = (brigade) => {
-        // Determine icon based on unit type or name
         if (brigade.name.includes('Aviation')) {
             return <Plane size={24} />;
         } else if (brigade.name.includes('Artillery')) {
@@ -464,7 +561,6 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
         );
     }
 
-    // Filter for open brigades
     const openBrigades = brigades.filter(b => b.recruitment_status === 'open' || b.recruitment_status === 'limited');
 
     if (openBrigades.length === 0) {
@@ -554,7 +650,6 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
         );
     }
 
-    // Group platoons by battalion and company
     const groupedPlatoons = platoons.reduce((acc, platoon) => {
         const battalion = platoon.battalion || 'Unassigned';
         const company = platoon.company || 'Unassigned';
@@ -629,7 +724,6 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
 };
 
 const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSelect }) => {
-    // Check if platoon has specific career track limitations
     const availableTracks = selectedPlatoon?.career_tracks_available || ['enlisted', 'warrant', 'officer'];
 
     return (
@@ -734,6 +828,139 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
                         </div>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+// New MOS Selection Step Component
+const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedBrigade, onSelect, isLoading }) => {
+    if (isLoading) {
+        return (
+            <div className="loading-container">
+                <Loader className="spinning" size={40} />
+                <p>Loading MOS options...</p>
+            </div>
+        );
+    }
+
+    const getMOSIcon = (category) => {
+        const icons = {
+            'combat_arms': <Target size={20} />,
+            'combat_support': <Shield size={20} />,
+            'combat_service_support': <Truck size={20} />,
+            'aviation': <Plane size={20} />,
+            'medical': <Award size={20} />,
+            'intelligence': <AlertCircle size={20} />,
+            'signal': <Users size={20} />,
+            'logistics': <Truck size={20} />,
+            'maintenance': <Wrench size={20} />,
+            'special_operations': <Star size={20} />
+        };
+        return icons[category] || <Briefcase size={20} />;
+    };
+
+    return (
+        <div className="mos-selection">
+            <h2>Select Your Military Occupational Specialty (MOS)</h2>
+            <div className="selection-summary">
+                <h4>Career Path:</h4>
+                <p>{selectedPath?.charAt(0).toUpperCase() + selectedPath?.slice(1)} Track</p>
+            </div>
+            <p className="step-description">Choose up to 3 MOS preferences in order of priority</p>
+
+            {selectedMOS.length > 0 && (
+                <div className="mos-priority-display">
+                    <h4>Your MOS Preferences:</h4>
+                    <div className="priority-list">
+                        {[1, 2, 3].map(priority => {
+                            const mosId = selectedMOS[priority - 1];
+                            let mos = null;
+                            if (mosId && mosList) {
+                                for (const branch in mosList) {
+                                    mos = mosList[branch].find(m => m.id === mosId);
+                                    if (mos) break;
+                                }
+                            }
+                            return (
+                                <div key={priority} className={`priority-item ${mos ? 'selected' : ''}`}>
+                                    <span className="priority-number">{priority}.</span>
+                                    {mos ? (
+                                        <>
+                                            <strong>{mos.code}</strong> - {mos.title}
+                                        </>
+                                    ) : (
+                                        <span className="placeholder">Select {priority === 1 ? '1st' : priority === 2 ? '2nd' : '3rd'} choice</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            <div className="mos-categories">
+                {Object.entries(mosList).map(([branchName, mosList]) => (
+                    <div key={branchName} className="mos-branch-section">
+                        <h3 className="branch-header">{branchName}</h3>
+                        <div className="mos-grid">
+                            {mosList.map(mos => {
+                                const isSelected = selectedMOS.includes(mos.id);
+                                const priority = selectedMOS.indexOf(mos.id) + 1;
+
+                                return (
+                                    <div
+                                        key={mos.id}
+                                        className={`mos-card ${isSelected ? 'selected' : ''} ${selectedMOS.length >= 3 && !isSelected ? 'disabled' : ''}`}
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                // Remove from selection
+                                                onSelect(null, priority);
+                                            } else if (selectedMOS.length < 3) {
+                                                // Add to next available priority
+                                                onSelect(mos.id, selectedMOS.length + 1);
+                                            }
+                                        }}
+                                    >
+                                        <div className="mos-header">
+                                            <div className={`mos-icon ${mos.category}`}>
+                                                {getMOSIcon(mos.category)}
+                                            </div>
+                                            <div className="mos-info">
+                                                <h4>{mos.code}</h4>
+                                                <p>{mos.title}</p>
+                                            </div>
+                                            {isSelected && (
+                                                <div className="priority-badge">
+                                                    #{priority}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="mos-details">
+                                            <div className="mos-stat">
+                                                <span className="stat-label">AIT:</span>
+                                                <span className="stat-value">{mos.ait_weeks} weeks</span>
+                                            </div>
+                                            {mos.security_clearance_required !== 'none' && (
+                                                <div className="mos-stat">
+                                                    <span className="stat-label">Clearance:</span>
+                                                    <span className="stat-value">{mos.security_clearance_required.toUpperCase()}</span>
+                                                </div>
+                                            )}
+                                            <div className="mos-stat">
+                                                <span className="stat-label">Physical:</span>
+                                                <span className="stat-value">{mos.physical_demand_rating}</span>
+                                            </div>
+                                        </div>
+                                        {mos.description && (
+                                            <p className="mos-description">{mos.description}</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -939,7 +1166,7 @@ const AgreementStep = ({ formData, onChange }) => (
     </div>
 );
 
-const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon }) => {
+const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }) => {
     const navigate = useNavigate();
     const applicationReference = localStorage.getItem('applicationReference') || `5ID-2024-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
@@ -961,13 +1188,28 @@ const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon }) => {
                     </div>
                 </div>
 
+                {selectedMOS.length > 0 && (
+                    <div className="mos-summary">
+                        <h3>MOS Preferences</h3>
+                        <div className="mos-preferences">
+                            {selectedMOS.map((mos, index) => (
+                                <div key={index} className="mos-preference">
+                                    <span className="priority">#{index + 1}</span>
+                                    <strong>{mos.code}</strong> - {mos.title}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="next-steps">
                     <h3>Next Steps</h3>
                     <ol>
                         <li>Check Discord for recruiter contact (24-48 hours)</li>
                         <li>Complete your interview</li>
-                        <li>Receive unit assignment confirmation</li>
+                        <li>Receive MOS assignment confirmation</li>
                         <li>Report for Basic Individual Training</li>
+                        <li>Complete AIT for your assigned MOS</li>
                         <li>Join your assigned platoon</li>
                     </ol>
                 </div>
