@@ -20,7 +20,6 @@ const Header = () => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [rankData, setRankData] = useState(null);
     const [rankLoading, setRankLoading] = useState(false);
-    const [hasApplication, setHasApplication] = useState(null); // null = loading, true/false = result
     const profileRef = useRef(null);
 
     // Get user data - check if it's nested
@@ -35,37 +34,10 @@ const Header = () => {
                 console.log('Header - Username:', userData.username);
                 console.log('Header - Current rank:', userData.current_rank);
                 console.log('Header - Service number:', userData.service_number);
+                console.log('Header - Application date:', userData.application_date);
             }
         }
     }, [user, userData]);
-
-    // Check if user has an application
-    useEffect(() => {
-        const checkApplication = async () => {
-            if (isAuthenticated && userData?.discord_id) {
-                try {
-                    // Check if user has an application using their Discord ID
-                    const response = await api.get(`/applications/status/${userData.discord_id}/`);
-                    setHasApplication(true);
-                    console.log('User has application:', response.data);
-                } catch (error) {
-                    if (error.response?.status === 404) {
-                        // No application found
-                        setHasApplication(false);
-                        console.log('No application found for user');
-                    } else {
-                        console.error('Failed to check application status:', error);
-                        // Don't show the button if we can't determine status
-                        setHasApplication(null);
-                    }
-                }
-            } else {
-                setHasApplication(null);
-            }
-        };
-
-        checkApplication();
-    }, [isAuthenticated, userData?.discord_id]);
 
     // Fetch rank details when user has a current_rank
     // This fetches the complete rank object including abbreviation, insignia_image_url, etc.
@@ -248,7 +220,7 @@ const Header = () => {
     // Check if user should see apply button
     const shouldShowApplyButton = isAuthenticated &&
         userData &&
-        hasApplication === false &&
+        userData.application_date === null &&
         !userData.service_number; // Don't show if they already have a service number
 
     // Format avatar URL if it's a Discord avatar
