@@ -1,15 +1,18 @@
 // src/components/auth/DiscordCallback.js
+// Version without Material-UI dependencies
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/actions/authActions';
-import { CircularProgress, Box, Typography, Alert } from '@mui/material';
+import './DiscordCallback.css'; // You'll need to create this CSS file
 
 const DiscordCallback = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const handleCallback = async () => {
@@ -23,6 +26,7 @@ const DiscordCallback = () => {
             // Handle error from backend
             if (errorParam) {
                 setError(`Authentication failed: ${errorParam}`);
+                setLoading(false);
                 setTimeout(() => navigate('/login'), 3000);
                 return;
             }
@@ -59,10 +63,12 @@ const DiscordCallback = () => {
                 } catch (err) {
                     console.error('Error fetching user data:', err);
                     setError('Failed to complete authentication');
+                    setLoading(false);
                     setTimeout(() => navigate('/login'), 3000);
                 }
             } else {
                 setError('No authentication tokens received');
+                setLoading(false);
                 setTimeout(() => navigate('/login'), 3000);
             }
         };
@@ -71,30 +77,22 @@ const DiscordCallback = () => {
     }, [location, navigate, dispatch]);
 
     return (
-        <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            minHeight="100vh"
-            bgcolor="background.default"
-        >
+        <div className="discord-callback-container">
             {error ? (
-                <>
-                    <Alert severity="error" sx={{ mb: 2 }}>
+                <div className="error-container">
+                    <div className="error-alert">
+                        <span className="error-icon">⚠️</span>
                         {error}
-                    </Alert>
-                    <Typography>Redirecting to login...</Typography>
-                </>
+                    </div>
+                    <p className="redirect-text">Redirecting to login...</p>
+                </div>
             ) : (
-                <>
-                    <CircularProgress size={60} thickness={4} />
-                    <Typography variant="h6" sx={{ mt: 2 }}>
-                        Completing Discord authentication...
-                    </Typography>
-                </>
+                <div className="loading-container">
+                    <div className="spinner"></div>
+                    <h2>Completing Discord authentication...</h2>
+                </div>
             )}
-        </Box>
+        </div>
     );
 };
 
