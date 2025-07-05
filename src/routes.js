@@ -19,6 +19,7 @@ import ApplicationForm from "./components/pages/Application/Application";
 import PositionsTablePage from "./components/pages/PositionsTablePage/PositionsTablePage";
 import PositionTemplateManagement from "./components/pages/PositionTemplateManagement/PositionTemplateManagement";
 import MOSListings from "./components/pages/MOSListings/MOSListings";
+import TrainingPage from "./components/pages/TrainingPage/TrainingPage";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -89,6 +90,10 @@ const routes = (isAuthenticated) => [
     {
         path: '/MOSList',
         element: <MOSListings/>
+    },
+    {
+        path: '/training',
+        element: <TrainingPage />
     },
 
 
