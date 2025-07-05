@@ -541,17 +541,12 @@ const RankOption = ({ rank, isSelected, isCurrent, currentRankTier, onClick }) =
             className={`rank-option ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''}`}
             onClick={onClick}
         >
-            {rank.insignia_image_url ? (
+            {(rank.insignia_display_url || rank.insignia_image_url) && (
                 <img
-                    src={rank.insignia_image_url}
+                    src={rank.insignia_display_url || rank.insignia_image_url}
                     alt={rank.name}
-                    className="rank-option-insignia"
-                    onError={(e) => e.target.style.display = 'none'}
+                    className="rank-insignia-modal"
                 />
-            ) : (
-                <div className="rank-insignia-placeholder small">
-                    <Shield size={24} />
-                </div>
             )}
             <div className="rank-option-info">
                 <div className="rank-option-name">{rank.name}</div>

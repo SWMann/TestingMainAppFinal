@@ -17,7 +17,6 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
 // Create an Axios instance with configuration
 const api = axios.create({
     baseURL: '/anotherbackendagain-backend2/api', // This will use the proxy configuration in package.json during development
@@ -65,6 +64,11 @@ api.interceptors.request.use(
             if (csrfToken) {
                 config.headers['X-CSRFToken'] = csrfToken;
             }
+        }
+
+        // Don't override Content-Type if FormData is being sent
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
         }
 
         return config;

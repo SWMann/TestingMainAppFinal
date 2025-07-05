@@ -635,14 +635,20 @@ const UserDetailsPanel = ({ user, ranks, onClose, onPromote, onAssignUnit, onAss
                             <span className="label">Current Rank:</span>
                             <span className="value">
                                 {userRank ? (
-                                    <div className="rank-display">
-                                        {userRank.insignia_image_url && (
-                                            <img src={userRank.insignia_image_url} alt="" />
+                                    <div className="rank-cell">
+                                        {(userRank.insignia_display_url || userRank.insignia_image_url) && (
+                                            <img
+                                                src={userRank.insignia_display_url || userRank.insignia_image_url}
+                                                alt={userRank.name}
+                                                className="rank-insignia"
+                                            />
                                         )}
-                                        <span>{userRank.name}</span>
+                                        <span>
+                                                        {userRank.abbreviation || userRank.name}
+                                                    </span>
                                     </div>
                                 ) : (
-                                    'No rank assigned'
+                                    <span className="no-data">No rank</span>
                                 )}
                             </span>
                             <button className="inline-action-btn" onClick={onPromote}>
