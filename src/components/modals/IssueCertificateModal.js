@@ -90,6 +90,7 @@ const IssueCertificateModal = ({ certificate, onClose, onSuccess }) => {
 
         try {
             const data = {
+                certificate_id: certificate.id,
                 user_id: formData.user_id,
                 training_event_id: formData.training_event_id || null,
                 certificate_file_url: formData.certificate_file_url || '',
