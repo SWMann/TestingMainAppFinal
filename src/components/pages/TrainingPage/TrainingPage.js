@@ -5,7 +5,7 @@ import {
     BookOpen, Award, Search, Filter, ChevronRight, ChevronDown,
     Plus, Edit, Trash2, FileText, Clock, Shield, Users,
     CheckCircle, XCircle, AlertCircle, Download, ExternalLink,
-    Tag, Calendar, User, Building, Lock, Unlock
+    Tag, Calendar, User, Building, Lock, Unlock, ChevronUp
 } from 'lucide-react';
 import api from '../../../services/api';
 import './TrainingPage.css';
