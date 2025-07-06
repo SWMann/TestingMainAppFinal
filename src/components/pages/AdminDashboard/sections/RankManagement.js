@@ -46,7 +46,12 @@ const RankManagement = () => {
 
     const handleCreate = async (rankData) => {
         try {
-            await api.post('/ranks/', rankData);
+            // Use FormData for file upload
+            const response = await api.post('/ranks/', rankData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
             await fetchData();
             setShowCreateModal(false);
             showNotification('Rank created successfully', 'success');
@@ -58,7 +63,12 @@ const RankManagement = () => {
 
     const handleUpdate = async (rankId, rankData) => {
         try {
-            await api.put(`/ranks/${rankId}/`, rankData);
+            // Use FormData for file upload
+            const response = await api.put(`/ranks/${rankId}/`, rankData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
             await fetchData();
             setShowEditModal(false);
             setSelectedRank(null);
@@ -303,11 +313,12 @@ const RankCategory = ({ title, ranks, onEdit, onDelete }) => {
                 {sortedRanks.map(rank => (
                     <div key={rank.id} className="rank-card">
                         <div className="rank-card-header">
-                            {rank.insignia_image_url && (
+
+                            {(rank.insignia_display_url || rank.insignia_image_url) && (
                                 <img
-                                    src={rank.insignia_image_url}
+                                    src={rank.insignia_display_url || rank.insignia_image_url}
                                     alt={rank.name}
-                                    className="rank-insignia-large"
+                                    className="rank-insignia-modal"
                                 />
                             )}
                             <div className="rank-info">

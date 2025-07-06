@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Shield, Upload, AlertCircle } from 'lucide-react';
+import { X, Shield, Upload, AlertCircle, Image } from 'lucide-react';
 import './AdminModals.css';
 
 const CreateRankModal = ({ branches, onClose, onCreate }) => {
@@ -18,6 +18,8 @@ const CreateRankModal = ({ branches, onClose, onCreate }) => {
         is_warrant: false
     });
     const [errors, setErrors] = useState({});
+    const [insigniaFile, setInsigniaFile] = useState(null);
+    const [insigniaPreview, setInsigniaPreview] = useState(null);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -30,6 +32,45 @@ const CreateRankModal = ({ branches, onClose, onCreate }) => {
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
+            if (!validTypes.includes(file.type)) {
+                setErrors(prev => ({ ...prev, insignia_image: 'Please upload a JPG, PNG, GIF, or SVG file' }));
+                return;
+            }
+
+            // Validate file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                setErrors(prev => ({ ...prev, insignia_image: 'File size must be less than 5MB' }));
+                return;
+            }
+
+            setInsigniaFile(file);
+            setErrors(prev => ({ ...prev, insignia_image: '' }));
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setInsigniaPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+
+            // Clear URL field if file is selected
+            setFormData(prev => ({ ...prev, insignia_image_url: '' }));
+        }
+    };
+
+    const removeFile = () => {
+        setInsigniaFile(null);
+        setInsigniaPreview(null);
+        // Reset file input
+        const fileInput = document.getElementById('insignia-file-input');
+        if (fileInput) fileInput.value = '';
     };
 
     const validateForm = () => {
@@ -63,7 +104,22 @@ const CreateRankModal = ({ branches, onClose, onCreate }) => {
         e.preventDefault();
 
         if (validateForm()) {
-            onCreate(formData);
+            // Create FormData for file upload
+            const submitData = new FormData();
+
+            // Add all form fields
+            Object.keys(formData).forEach(key => {
+                if (key !== 'insignia_image_url' || !insigniaFile) {
+                    submitData.append(key, formData[key]);
+                }
+            });
+
+            // Add file if present
+            if (insigniaFile) {
+                submitData.append('insignia_image', insigniaFile);
+            }
+
+            onCreate(submitData);
         }
     };
 
@@ -218,41 +274,78 @@ const CreateRankModal = ({ branches, onClose, onCreate }) => {
                         </div>
                     </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label>Insignia Image URL</label>
-                            <input
-                                type="url"
-                                name="insignia_image_url"
-                                value={formData.insignia_image_url}
-                                onChange={handleChange}
-                                placeholder="https://example.com/insignia.png"
-                            />
-                        </div>
+                    <div className="form-group">
+                        <label>Insignia Image</label>
+                        <div className="insignia-upload-section">
+                            {!insigniaFile && !formData.insignia_image_url && (
+                                <div className="file-upload-area">
+                                    <input
+                                        type="file"
+                                        id="insignia-file-input"
+                                        accept="image/jpeg,image/png,image/gif,image/svg+xml"
+                                        onChange={handleFileChange}
+                                        className="file-input"
+                                    />
+                                    <label htmlFor="insignia-file-input" className="file-upload-label">
+                                        <Upload size={24} />
+                                        <span>Upload Insignia Image</span>
+                                        <span className="file-help">JPG, PNG, GIF, or SVG (Max 5MB)</span>
+                                    </label>
+                                </div>
+                            )}
 
-                        <div className="form-group">
-                            <label>Color Code</label>
-                            <div className="color-input-group">
-                                <input
-                                    type="color"
-                                    name="color_code"
-                                    value={formData.color_code}
-                                    onChange={handleChange}
-                                    className="color-picker"
-                                />
-                                <input
-                                    type="text"
-                                    value={formData.color_code}
-                                    onChange={(e) => handleChange({
-                                        target: { name: 'color_code', value: e.target.value }
-                                    })}
-                                    placeholder="#4a5d23"
-                                />
-                            </div>
+                            {insigniaPreview && (
+                                <div className="insignia-preview-box">
+                                    <img src={insigniaPreview} alt="Insignia preview" />
+                                    <button type="button" className="remove-file-btn" onClick={removeFile}>
+                                        <X size={16} />
+                                        Remove
+                                    </button>
+                                </div>
+                            )}
+
+                            {!insigniaFile && (
+                                <>
+                                    <div className="upload-divider">
+                                        <span>OR</span>
+                                    </div>
+                                    <input
+                                        type="url"
+                                        name="insignia_image_url"
+                                        value={formData.insignia_image_url}
+                                        onChange={handleChange}
+                                        placeholder="https://example.com/insignia.png"
+                                        disabled={!!insigniaFile}
+                                    />
+                                    <span className="field-help">Provide a URL to an existing image</span>
+                                </>
+                            )}
+                        </div>
+                        {errors.insignia_image && <span className="error-message">{errors.insignia_image}</span>}
+                    </div>
+
+                    <div className="form-group">
+                        <label>Color Code</label>
+                        <div className="color-input-group">
+                            <input
+                                type="color"
+                                name="color_code"
+                                value={formData.color_code}
+                                onChange={handleChange}
+                                className="color-picker"
+                            />
+                            <input
+                                type="text"
+                                value={formData.color_code}
+                                onChange={(e) => handleChange({
+                                    target: { name: 'color_code', value: e.target.value }
+                                })}
+                                placeholder="#4a5d23"
+                            />
                         </div>
                     </div>
 
-                    {formData.insignia_image_url && (
+                    {formData.insignia_image_url && !insigniaFile && (
                         <div className="insignia-preview">
                             <h4>Insignia Preview</h4>
                             <img
