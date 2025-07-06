@@ -91,8 +91,10 @@ const UserManagement = () => {
         }
     };
 
-    const handlePromote = async (newRankId) => {
+    const handlePromote = async (newRankId, reason) => {
         try {
+            console.log('Promoting user:', selectedUser.id, 'to rank:', newRankId, 'reason:', reason);
+
             await api.put(`/users/${selectedUser.id}/sensitive-fields/`, {
                 current_rank: newRankId
             });
@@ -442,6 +444,7 @@ const UserManagement = () => {
                                                             </button>
                                                             <button
                                                                 onClick={() => {
+                                                                    console.log('Opening promotion modal for user:', user);
                                                                     setSelectedUser(user);
                                                                     setShowPromotionModal(true);
                                                                     setActiveDropdown(null);
@@ -523,7 +526,10 @@ const UserManagement = () => {
             {/* Modals */}
             {showPromotionModal && selectedUser && (
                 <PromotionModal
-                    user={selectedUser}
+                    user={{
+                        ...selectedUser,
+                        current_rank: selectedUser.current_rank || null
+                    }}
                     ranks={ranks}
                     onClose={() => setShowPromotionModal(false)}
                     onPromote={handlePromote}
@@ -635,14 +641,20 @@ const UserDetailsPanel = ({ user, ranks, onClose, onPromote, onAssignUnit, onAss
                             <span className="label">Current Rank:</span>
                             <span className="value">
                                 {userRank ? (
-                                    <div className="rank-display">
-                                        {userRank.insignia_image_url && (
-                                            <img src={userRank.insignia_image_url} alt="" />
+                                    <div className="rank-cell">
+                                        {(userRank.insignia_display_url || userRank.insignia_image_url) && (
+                                            <img
+                                                src={userRank.insignia_display_url || userRank.insignia_image_url}
+                                                alt={userRank.name}
+                                                className="rank-insignia"
+                                            />
                                         )}
-                                        <span>{userRank.name}</span>
+                                        <span>
+                                                        {userRank.abbreviation || userRank.name}
+                                                    </span>
                                     </div>
                                 ) : (
-                                    'No rank assigned'
+                                    <span className="no-data">No rank</span>
                                 )}
                             </span>
                             <button className="inline-action-btn" onClick={onPromote}>

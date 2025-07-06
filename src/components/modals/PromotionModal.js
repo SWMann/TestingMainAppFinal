@@ -4,6 +4,7 @@ import api from '../../services/api';
 import './AdminModals.css';
 
 const PromotionModal = ({ user, onClose, onPromote }) => {
+    // All hooks must be called before any conditional returns
     const [ranks, setRanks] = useState([]);
     const [selectedRank, setSelectedRank] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +23,8 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
     // Acknowledgment state
     const [acknowledged, setAcknowledged] = useState(false);
 
+
+
     // Debug selected rank changes
     useEffect(() => {
         console.log('Selected rank changed to:', selectedRank);
@@ -29,6 +32,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
 
     useEffect(() => {
         console.log('PromotionModal mounted with user:', user);
+        console.log('User current_rank:', user?.current_rank);
         fetchRanks();
     }, [user]);
 
@@ -44,9 +48,17 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
         }
     }, [ranks, user.current_rank, selectedRank]);
 
+    // Ensure user object exists - after hooks
+    if (!user) {
+        console.error('PromotionModal: No user provided');
+        return null;
+    }
     const fetchRanks = async () => {
         try {
             setError(null);
+
+            console.log('fetchRanks called, user:', user);
+            console.log('user.current_rank:', user?.current_rank);
 
             // First, try to get the branch ID
             let branchId = null;
@@ -54,7 +66,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
             // Check if user has branch as an object or just an ID
             if (user.branch) {
                 branchId = typeof user.branch === 'object' ? user.branch.id : user.branch;
-            } else if (user.current_rank?.branch) {
+            } else if (user.current_rank && user.current_rank.branch) {
                 // Fallback to rank's branch if user doesn't have branch directly
                 branchId = typeof user.current_rank.branch === 'object'
                     ? user.current_rank.branch.id
@@ -63,6 +75,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
 
             console.log('Branch ID:', branchId);
             console.log('Current rank:', user.current_rank);
+            console.log('User has current rank:', !!user.current_rank);
 
             let ranksData = [];
 
@@ -89,7 +102,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                 const allRanks = response.data.results || response.data;
 
                 // Filter by user's current rank's branch if available
-                if (user.current_rank?.branch_name) {
+                if (user.current_rank && user.current_rank.branch_name) {
                     ranksData = allRanks.filter(rank =>
                         rank.branch_name === user.current_rank.branch_name
                     );
@@ -153,7 +166,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const currentRankId = typeof user.current_rank === 'object'
+        const currentRankId = user.current_rank && typeof user.current_rank === 'object'
             ? user.current_rank.id
             : user.current_rank;
 
@@ -165,11 +178,11 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
     // Calculate if user meets typical requirements (mock implementation)
     const calculateRequirements = () => {
         // This would typically come from the API based on the user's data
-        const timeInGrade = user.days_in_rank >= 30; // Example: 30 days minimum
-        const trainingComplete = user.training_completion_rate >= 80; // Example: 80% completion
-        const goodStanding = !user.has_disciplinary_actions;
+        const timeInGrade = (user?.days_in_rank || 0) >= 30; // Example: 30 days minimum
+        const trainingComplete = (user?.training_completion_rate || 0) >= 80; // Example: 80% completion
+        const goodStanding = !user?.has_disciplinary_actions;
         const leadershipApproval = true; // Would come from API
-        const operationParticipation = user.operations_attended >= 2; // Example: 2 ops minimum
+        const operationParticipation = (user?.operations_attended || 0) >= 2; // Example: 2 ops minimum
 
         return {
             timeInGrade,
@@ -200,7 +213,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
     const currentRankData = getCurrentRankData();
     const currentRankTier = currentRankData?.tier || 0;
     const selectedRankData = ranks.find(r => r.id === selectedRank);
-    const isPromotion = selectedRankData && selectedRankData.tier > currentRankTier;
+    const isPromotion = selectedRankData && currentRankData && selectedRankData.tier > currentRankTier;
 
     // Check if the selected rank is the current rank
     const isCurrentRankSelected = () => {
@@ -234,8 +247,8 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
             <div className="modal-content promotion" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>
-                        {isPromotion ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        {isPromotion ? 'Promote' : 'Change Rank'} - {user.username}
+                        {isPromotion ? <ChevronUp size={20} /> : (!currentRankData ? <Shield size={20} /> : <ChevronDown size={20} />)}
+                        {!currentRankData ? 'Assign Rank' : (isPromotion ? 'Promote' : 'Change Rank')} - {user.username}
                     </h2>
                     <button className="close-button" onClick={onClose}>
                         <X size={20} />
@@ -280,11 +293,11 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                 <div className="change-details">
                                     <div className="from-rank">
                                         <span className="label">From:</span>
-                                        <span>{currentRankData?.name || 'No Rank'} (Tier {currentRankTier})</span>
+                                        <span>{currentRankData?.name || 'No Rank'} {currentRankData ? `(Tier ${currentRankTier})` : ''}</span>
                                     </div>
                                     <div className="to-rank">
                                         <span className="label">To:</span>
-                                        <span className={isPromotion ? 'promotion' : 'demotion'}>
+                                        <span className={currentRankData ? (isPromotion ? 'promotion' : 'demotion') : 'assignment'}>
                                             {selectedRankData.name} (Tier {selectedRankData.tier})
                                         </span>
                                     </div>
@@ -308,7 +321,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                             Member has served sufficient time in current rank
                                         </div>
                                         <div className="requirement-status">
-                                            {user.days_in_rank ? (
+                                            {user?.days_in_rank !== undefined ? (
                                                 <span className={user.days_in_rank >= 30 ? 'requirement-met' : 'requirement-not-met'}>
                                                     {user.days_in_rank >= 30 ? <Check size={14} /> : <AlertCircle size={14} />}
                                                     {user.days_in_rank} days in current rank
@@ -333,7 +346,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                             Required training courses completed for this rank
                                         </div>
                                         <div className="requirement-status">
-                                            {user.training_completion_rate !== undefined ? (
+                                            {user?.training_completion_rate !== undefined ? (
                                                 <span className={user.training_completion_rate >= 80 ? 'requirement-met' : 'requirement-not-met'}>
                                                     {user.training_completion_rate >= 80 ? <Check size={14} /> : <AlertCircle size={14} />}
                                                     {user.training_completion_rate}% training completed
@@ -358,9 +371,9 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                             No recent disciplinary actions or violations
                                         </div>
                                         <div className="requirement-status">
-                                            <span className={!user.has_disciplinary_actions ? 'requirement-met' : 'requirement-not-met'}>
-                                                {!user.has_disciplinary_actions ? <Check size={14} /> : <AlertCircle size={14} />}
-                                                {!user.has_disciplinary_actions ? 'Clean record' : 'Has disciplinary actions'}
+                                            <span className={!user?.has_disciplinary_actions ? 'requirement-met' : 'requirement-not-met'}>
+                                                {!user?.has_disciplinary_actions ? <Check size={14} /> : <AlertCircle size={14} />}
+                                                {!user?.has_disciplinary_actions ? 'Clean record' : 'Has disciplinary actions'}
                                             </span>
                                         </div>
                                     </div>
@@ -394,7 +407,7 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                                             Active participation in unit operations
                                         </div>
                                         <div className="requirement-status">
-                                            {user.operations_attended !== undefined ? (
+                                            {user?.operations_attended !== undefined ? (
                                                 <span className={user.operations_attended >= 2 ? 'requirement-met' : 'requirement-not-met'}>
                                                     {user.operations_attended >= 2 ? <Check size={14} /> : <AlertCircle size={14} />}
                                                     {user.operations_attended} operations attended
@@ -485,11 +498,11 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                         </div>
 
                         <div className="form-group">
-                            <label>Reason for {isPromotion ? 'Promotion' : 'Rank Change'}</label>
+                            <label>Reason for {!currentRankData ? 'Rank Assignment' : (isPromotion ? 'Promotion' : 'Rank Change')}</label>
                             <textarea
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
-                                placeholder={`Enter reason for ${isPromotion ? 'promotion' : 'rank change'}...`}
+                                placeholder={`Enter reason for ${!currentRankData ? 'rank assignment' : (isPromotion ? 'promotion' : 'rank change')}...`}
                                 rows={3}
                             />
                         </div>
@@ -519,10 +532,10 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
                         </button>
                         <button
                             type="submit"
-                            className={`submit-button ${isPromotion ? 'promote' : 'demote'}`}
+                            className={`submit-button ${isPromotion ? 'promote' : (!currentRankData ? 'assign' : 'demote')}`}
                             disabled={!selectedRank || isCurrentRankSelected() || !acknowledged}
                         >
-                            {isPromotion ? 'Promote' : 'Update Rank'}
+                            {!currentRankData ? 'Assign Rank' : (isPromotion ? 'Promote' : 'Update Rank')}
                         </button>
                     </div>
                 </form>
@@ -533,25 +546,21 @@ const PromotionModal = ({ user, onClose, onPromote }) => {
 
 // Rank Option Component
 const RankOption = ({ rank, isSelected, isCurrent, currentRankTier, onClick }) => {
-    const isPromotion = rank.tier > currentRankTier;
-    const isDemotion = rank.tier < currentRankTier;
+    const hasCurrentRank = currentRankTier > 0;
+    const isPromotion = hasCurrentRank && rank.tier > currentRankTier;
+    const isDemotion = hasCurrentRank && rank.tier < currentRankTier;
 
     return (
         <div
             className={`rank-option ${isSelected ? 'selected' : ''} ${isCurrent ? 'current' : ''}`}
             onClick={onClick}
         >
-            {rank.insignia_image_url ? (
+            {(rank.insignia_display_url || rank.insignia_image_url) && (
                 <img
-                    src={rank.insignia_image_url}
+                    src={rank.insignia_display_url || rank.insignia_image_url}
                     alt={rank.name}
-                    className="rank-option-insignia"
-                    onError={(e) => e.target.style.display = 'none'}
+                    className="rank-insignia-modal"
                 />
-            ) : (
-                <div className="rank-insignia-placeholder small">
-                    <Shield size={24} />
-                </div>
             )}
             <div className="rank-option-info">
                 <div className="rank-option-name">{rank.name}</div>
