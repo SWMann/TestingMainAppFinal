@@ -538,16 +538,16 @@ const HomePage = () => {
                                             />
                                             {userRank && (
                                                 <div className={`rank-bubble ${getRankBubbleClass()}`}>
-                                                    {userRank.icon_url ? (
+                                                    {(userRank.insignia_display_url || userRank.insignia_image || userRank.icon_url) ? (
                                                         <img
-                                                            src={userRank.icon_url}
+                                                            src={userRank.insignia_display_url || userRank.insignia_image || userRank.icon_url}
                                                             alt={userRank.abbreviation}
                                                             className="rank-icon"
                                                         />
                                                     ) : (
                                                         <span className="rank-text">
-                                                            {userRank.abbreviation?.slice(0, 3) || 'PVT'}
-                                                        </span>
+                                                    {userRank.abbreviation?.slice(0, 3) || 'PVT'}
+                                                </span>
                                                     )}
                                                 </div>
                                             )}

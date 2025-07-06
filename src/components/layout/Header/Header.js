@@ -342,9 +342,9 @@ const Header = () => {
                                                 {userData.service_number || userData.serviceNumber || 'NO-SN'}
                                             </div>
                                         </div>
-                                        {rankData?.insignia_image_url && (
+                                        {(rankData?.insignia_display_url || rankData?.insignia_image || rankData?.insignia_image_url) && (
                                             <img
-                                                src={rankData.insignia_image_url}
+                                                src={rankData.insignia_display_url || rankData.insignia_image || rankData.insignia_image_url}
                                                 alt={rankData.name || 'Rank insignia'}
                                                 className="rank-insignia-small"
                                             />
