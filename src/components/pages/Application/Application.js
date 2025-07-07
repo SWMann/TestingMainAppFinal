@@ -4,7 +4,8 @@ import {
     Shield, ChevronRight, ChevronLeft, CheckCircle,
     Calendar, MapPin, Clock, Users, Award, Briefcase,
     AlertCircle, Target, Plane, Crosshair, Truck,
-    Loader, Wrench, GraduationCap, Star
+    Loader, Wrench, GraduationCap, Star, Rocket,
+    Ship, Zap, Globe, Activity
 } from 'lucide-react';
 import api from "../../../services/api";
 import './Application.css'
@@ -47,7 +48,7 @@ const ApplicationForm = () => {
         trainingAgreed: false
     });
 
-    const totalSteps = 8; // Added MOS selection step
+    const totalSteps = 8;
 
     // Fetch brigades on component mount
     useEffect(() => {
@@ -69,7 +70,7 @@ const ApplicationForm = () => {
             setBrigades(response.data);
         } catch (err) {
             console.error('Error fetching brigades:', err);
-            setError('Failed to load brigade data. Please try again.');
+            setError('Failed to load fleet data. Please try again.');
         } finally {
             setIsLoadingBrigades(false);
         }
@@ -84,7 +85,7 @@ const ApplicationForm = () => {
             setPlatoons(response.data);
         } catch (err) {
             console.error('Error fetching platoons:', err);
-            setError('Failed to load platoon data. Please try again.');
+            setError('Failed to load squadron data. Please try again.');
         } finally {
             setIsLoadingPlatoons(false);
         }
@@ -99,7 +100,7 @@ const ApplicationForm = () => {
             setMosList(response.data);
         } catch (err) {
             console.error('Error fetching MOS list:', err);
-            setError('Failed to load MOS options. Please try again.');
+            setError('Failed to load specialization options. Please try again.');
         } finally {
             setIsLoadingMOS(false);
         }
@@ -165,13 +166,13 @@ const ApplicationForm = () => {
         switch (currentStep) {
             case 2:
                 if (!formData.selectedBrigade) {
-                    setError('Please select a brigade to continue');
+                    setError('Please select a fleet division to continue');
                     return false;
                 }
                 break;
             case 3:
                 if (!formData.selectedPlatoon) {
-                    setError('Please select a platoon assignment');
+                    setError('Please select a squadron assignment');
                     return false;
                 }
                 break;
@@ -183,7 +184,7 @@ const ApplicationForm = () => {
                 break;
             case 5:
                 if (formData.selectedMOS.length === 0) {
-                    setError('Please select at least one MOS preference');
+                    setError('Please select at least one specialization preference');
                     return false;
                 }
                 break;
@@ -201,7 +202,7 @@ const ApplicationForm = () => {
                 break;
             case 8:
                 if (!formData.conductAgreed || !formData.attendanceAgreed || !formData.trainingAgreed) {
-                    setError('Please agree to all division standards');
+                    setError('Please agree to all fleet standards');
                     return false;
                 }
                 break;
@@ -413,10 +414,10 @@ const ApplicationForm = () => {
             {/* Header */}
             <div className="application-header">
                 <div className="division-emblem">
-                    <Shield size={40} />
+                    <Rocket size={40} />
                 </div>
-                <h1>5th Infantry Division</h1>
-                <p>"Red Diamond" - We Will</p>
+                <h1>5TH EXPEDITIONARY GROUP</h1>
+                <p>"Beyond the Stars" - Elite Space Operations</p>
             </div>
 
             {/* Progress Bar */}
@@ -476,7 +477,7 @@ const ApplicationForm = () => {
                         {isLoading ? (
                             <>
                                 <Loader className="spinning" size={20} />
-                                Submitting...
+                                Transmitting...
                             </>
                         ) : (
                             <>
@@ -491,42 +492,40 @@ const ApplicationForm = () => {
     );
 };
 
-// Existing Step Components (WelcomeStep, BrigadeSelectionStep, etc.)
+// Step Components
 const WelcomeStep = () => (
     <div className="welcome-section">
-        <h2>Join the Red Diamond Division</h2>
-        <p>Welcome to the 5th Infantry Division (Mechanized) application portal</p>
+        <h2>Join the Elite Fleet</h2>
+        <p className="step-description">Welcome to the 5th Expeditionary Group recruitment portal</p>
 
         <div className="features">
             <div className="feature-card">
-                <Target size={24} className="feature-icon" />
-                <h3>Historic Legacy</h3>
-                <p>Serving since WWI, the Red Diamond has a proud tradition of excellence in mechanized warfare</p>
+                <h3><Rocket size={24} className="feature-icon" />Deep Space Operations</h3>
+                <p>Execute high-risk missions in uncharted systems, pushing the boundaries of known space</p>
             </div>
             <div className="feature-card">
-                <Truck size={24} className="feature-icon" />
-                <h3>Mechanized Operations</h3>
-                <p>Combined arms tactics with M2 Bradleys, M1 Abrams, and integrated support elements</p>
+                <h3><Ship size={24} className="feature-icon" />Advanced Fleet Assets</h3>
+                <p>Access to cutting-edge vessels from fighters to capital ships, equipped with the latest technology</p>
             </div>
             <div className="feature-card">
-                <MapPin size={24} className="feature-icon" />
-                <h3>REFORGER Ready</h3>
-                <p>Rapid deployment capabilities to reinforce NATO forces in Central Europe</p>
+                <h3><Globe size={24} className="feature-icon" />Strategic Deployment</h3>
+                <p>Rapid response capabilities across multiple star systems, protecting UEE interests</p>
             </div>
         </div>
 
         <div className="feature-card highlight">
-            <h3><Target size={20} /> Division Mission</h3>
-            <p>As part of III Corps, the 5th Infantry Division stands ready to deploy to the NORTHAG sector, conducting mechanized operations against Warsaw Pact forces in the Fulda Gap and North German Plain.</p>
+            <h3><Target size={20} /> Mission Profile</h3>
+            <p>The 5th Expeditionary Group specializes in deep space reconnaissance, combat operations, and establishing forward operating bases in contested sectors. Our crews are the tip of the spear in humanity's expansion.</p>
         </div>
 
         <div className="feature-card requirements">
             <h3><AlertCircle size={20} /> Requirements</h3>
             <ul>
-                <li>✓ Minimum age: 16 years</li>
-                <li>✓ Own Arma Reforger</li>
-                <li>✓ Working microphone</li>
-                <li>✓ Discord account</li>
+                <li>Minimum age: 16 years</li>
+                <li>Own Star Citizen</li>
+                <li>Working microphone</li>
+                <li>Discord account</li>
+                <li>Team-oriented mindset</li>
             </ul>
         </div>
     </div>
@@ -534,21 +533,23 @@ const WelcomeStep = () => (
 
 const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }) => {
     const getUnitIcon = (brigade) => {
-        if (brigade.name.includes('Aviation')) {
+        if (brigade.name.includes('Aviation') || brigade.name.includes('Fighter')) {
             return <Plane size={24} />;
-        } else if (brigade.name.includes('Artillery')) {
-            return <Crosshair size={24} />;
-        } else if (brigade.name.includes('Armor') || brigade.name.includes('Iron')) {
-            return '2';
+        } else if (brigade.name.includes('Capital') || brigade.name.includes('Heavy')) {
+            return <Ship size={24} />;
+        } else if (brigade.name.includes('Support') || brigade.name.includes('Logistics')) {
+            return <Truck size={24} />;
+        } else if (brigade.name.includes('Recon') || brigade.name.includes('Scout')) {
+            return <Activity size={24} />;
         } else {
-            return '1';
+            return <Rocket size={24} />;
         }
     };
 
     const getUnitIconClass = (brigade) => {
-        if (brigade.name.includes('Aviation')) return 'aviation-icon';
-        if (brigade.name.includes('Artillery')) return 'arty-icon';
-        if (brigade.name.includes('Armor') || brigade.name.includes('Iron')) return 'armor-icon';
+        if (brigade.name.includes('Aviation') || brigade.name.includes('Fighter')) return 'aviation-icon';
+        if (brigade.name.includes('Capital') || brigade.name.includes('Heavy')) return 'armor-icon';
+        if (brigade.name.includes('Support') || brigade.name.includes('Logistics')) return 'arty-icon';
         return 'infantry-icon';
     };
 
@@ -556,7 +557,7 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
         return (
             <div className="loading-container">
                 <Loader className="spinning" size={40} />
-                <p>Loading brigade information...</p>
+                <p>ACCESSING FLEET DATABASE...</p>
             </div>
         );
     }
@@ -567,16 +568,16 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
         return (
             <div className="no-brigades-message">
                 <AlertCircle size={48} />
-                <h3>No Brigades Currently Recruiting</h3>
-                <p>All brigades are currently closed for recruitment. Please check back later or contact a recruiter on Discord for more information.</p>
+                <h3>No Fleets Currently Recruiting</h3>
+                <p>All fleet divisions are currently at operational capacity. Please check back later or contact a recruitment officer on Discord for more information.</p>
             </div>
         );
     }
 
     return (
         <div className="brigade-selection">
-            <h2>Select Your Brigade</h2>
-            <p className="step-description">Choose which brigade you'd like to join within the 5th Infantry Division</p>
+            <h2>Select Your Fleet Division</h2>
+            <p className="step-description">Choose which specialized fleet you'd like to join within the 5th Expeditionary Group</p>
 
             <div className="unit-cards">
                 {brigades.map(brigade => {
@@ -605,19 +606,19 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
 
                                 {brigade.is_aviation_only && (
                                     <p className="warrant-notice">
-                                        ⚠️ WARRANT OFFICERS ONLY - Requires flight experience
+                                        ⚠️ FLIGHT CERTIFIED ONLY - Requires pilot qualifications
                                     </p>
                                 )}
 
                                 <div className="unit-stats">
                                     <div className="stat-item">
-                                        <div>Status</div>
+                                        <div>STATUS</div>
                                         <div className={`stat-value ${brigade.recruitment_status}`}>
                                             {brigade.recruitment_status.toUpperCase()}
                                         </div>
                                     </div>
                                     <div className="stat-item">
-                                        <div>Slots Open</div>
+                                        <div>BERTHS OPEN</div>
                                         <div className="stat-value">{brigade.available_slots || 0}</div>
                                     </div>
                                 </div>
@@ -628,7 +629,7 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
 
                                 {!isOpen && (
                                     <div className="unit-closed-overlay">
-                                        <p>Currently Closed for Recruitment</p>
+                                        <p>RECRUITMENT CLOSED</p>
                                     </div>
                                 )}
                             </div>
@@ -645,7 +646,7 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
         return (
             <div className="loading-container">
                 <Loader className="spinning" size={40} />
-                <p>Loading platoon information...</p>
+                <p>LOADING SQUADRON MANIFEST...</p>
             </div>
         );
     }
@@ -667,12 +668,12 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
 
     return (
         <div className="platoon-selection">
-            <h2>Select Your Platoon</h2>
+            <h2>Select Your Squadron</h2>
             <div className="selection-summary">
-                <h4>Selected Brigade:</h4>
+                <h4>Selected Fleet Division:</h4>
                 <p>{selectedBrigade?.name}</p>
             </div>
-            <p className="step-description">Choose an available platoon assignment</p>
+            <p className="step-description">Choose an available squadron assignment</p>
 
             <div className="platoon-grid">
                 {Object.entries(groupedPlatoons).map(([battalion, companies]) => (
@@ -693,24 +694,24 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
                                         </div>
                                         <div className="platoon-info">
                                             <span className="platoon-strength">
-                                                Strength: {platoon.current_strength}/{platoon.max_strength}
+                                                Crew: {platoon.current_strength}/{platoon.max_strength}
                                             </span>
                                             <span className={`platoon-slots ${
                                                 platoon.available_slots === 0 ? 'slots-full' :
                                                     platoon.available_slots <= 3 ? 'slots-limited' :
                                                         'slots-available'
                                             }`}>
-                                                {platoon.available_slots === 0 ? 'FULL' : `${platoon.available_slots} slots`}
+                                                {platoon.available_slots === 0 ? 'FULL' : `${platoon.available_slots} berths`}
                                             </span>
                                         </div>
                                         <div className="platoon-details">
-                                            PL: {platoon.leader || 'Vacant'}
+                                            CMDR: {platoon.leader || 'Vacant'}
                                             {platoon.career_tracks_available && platoon.career_tracks_available.length > 0 && (
                                                 <span> • Tracks: {platoon.career_tracks_available.join(', ')}</span>
                                             )}
                                         </div>
                                         {!platoon.is_accepting_applications && (
-                                            <div className="platoon-closed">Not accepting applications</div>
+                                            <div className="platoon-closed">RECRUITMENT SUSPENDED</div>
                                         )}
                                     </div>
                                 ))}
@@ -728,7 +729,7 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
 
     return (
         <div className="career-selection">
-            <h2>Choose Your Path</h2>
+            <h2>Choose Your Career Path</h2>
             <div className="selection-summary">
                 <h4>Your Assignment:</h4>
                 <p>{selectedPlatoon?.designation} - {selectedBrigade?.name}</p>
@@ -745,20 +746,20 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
                                 <Award size={24} />
                             </div>
                             <div className="career-info">
-                                <h3>Enlisted Soldier</h3>
-                                <p>Start as a Private</p>
+                                <h3>Fleet Crew</h3>
+                                <p>Start as Crewman</p>
                             </div>
                         </div>
                         <div className="career-details">
-                            <p><strong>The Backbone of the Army</strong></p>
+                            <p><strong>The Backbone of the Fleet</strong></p>
                             <ul className="benefits-list">
-                                <li>Immediate action after training</li>
-                                <li>Learn from experienced NCOs</li>
-                                <li>Hands-on combat experience</li>
-                                <li>Clear promotion path to NCO</li>
+                                <li>Immediate deployment after training</li>
+                                <li>Learn from experienced crew chiefs</li>
+                                <li>Hands-on ship operations</li>
+                                <li>Clear advancement to crew chief</li>
                             </ul>
                             <div className="timeline">
-                                <strong>Timeline:</strong> 2 weeks BIT → Unit assignment
+                                <strong>Timeline:</strong> 2 weeks basic → Ship assignment
                             </div>
                             <p className="requirements"><em>Requirements: 2 operations per month</em></p>
                         </div>
@@ -775,23 +776,23 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
                                 <Plane size={24} />
                             </div>
                             <div className="career-info">
-                                <h3>Warrant Officer</h3>
-                                <p>Technical Specialist</p>
+                                <h3>Flight Officer</h3>
+                                <p>Certified Pilot</p>
                             </div>
                         </div>
                         <div className="career-details">
-                            <p><strong>Master Your Craft</strong></p>
+                            <p><strong>Master the Void</strong></p>
                             <ul className="benefits-list">
-                                <li>Helicopter pilot positions</li>
-                                <li>Technical expertise roles</li>
-                                <li>Start as WO1</li>
-                                <li>Specialized equipment access</li>
+                                <li>Fighter & support craft pilot</li>
+                                <li>Flight certification program</li>
+                                <li>Start as Flight Officer</li>
+                                <li>Advanced ship systems access</li>
                             </ul>
                             <div className="timeline">
-                                <strong>Timeline:</strong> 4 weeks WOCS → 6 weeks specialization
+                                <strong>Timeline:</strong> 4 weeks flight school → Squadron assignment
                             </div>
                             <div className="challenges">
-                                <strong>Note:</strong> Limited slots, requires experience
+                                <strong>Note:</strong> Limited berths, requires flight experience
                             </div>
                         </div>
                     </div>
@@ -807,20 +808,20 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
                                 <Shield size={24} />
                             </div>
                             <div className="career-info">
-                                <h3>Commissioned Officer</h3>
-                                <p>Leader of Soldiers</p>
+                                <h3>Command Track</h3>
+                                <p>Squadron Leader</p>
                             </div>
                         </div>
                         <div className="career-details">
-                            <p><strong>Lead from the Front</strong></p>
+                            <p><strong>Lead from the Bridge</strong></p>
                             <ul className="benefits-list">
-                                <li>Platoon leadership positions</li>
-                                <li>Start as 2nd Lieutenant</li>
-                                <li>Command authority</li>
-                                <li>Strategic planning role</li>
+                                <li>Squadron command positions</li>
+                                <li>Start as Lieutenant</li>
+                                <li>Tactical command authority</li>
+                                <li>Strategic operations planning</li>
                             </ul>
                             <div className="timeline">
-                                <strong>Timeline:</strong> 6 weeks OCS → Branch assignment
+                                <strong>Timeline:</strong> 6 weeks command school → Fleet assignment
                             </div>
                             <div className="challenges">
                                 <strong>Requirements:</strong> Leadership experience, 90% attendance
@@ -833,13 +834,12 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
     );
 };
 
-// New MOS Selection Step Component
 const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedBrigade, onSelect, isLoading }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
                 <Loader className="spinning" size={40} />
-                <p>Loading MOS options...</p>
+                <p>LOADING SPECIALIZATION DATABASE...</p>
             </div>
         );
     }
@@ -855,23 +855,26 @@ const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedBrigade,
             'signal': <Users size={20} />,
             'logistics': <Truck size={20} />,
             'maintenance': <Wrench size={20} />,
-            'special_operations': <Star size={20} />
+            'special_operations': <Star size={20} />,
+            'engineering': <Zap size={20} />,
+            'navigation': <Globe size={20} />,
+            'operations': <Activity size={20} />
         };
         return icons[category] || <Briefcase size={20} />;
     };
 
     return (
         <div className="mos-selection">
-            <h2>Select Your Military Occupational Specialty (MOS)</h2>
+            <h2>Select Your Specialization</h2>
             <div className="selection-summary">
                 <h4>Career Path:</h4>
                 <p>{selectedPath?.charAt(0).toUpperCase() + selectedPath?.slice(1)} Track</p>
             </div>
-            <p className="step-description">Choose up to 3 MOS preferences in order of priority</p>
+            <p className="step-description">Choose up to 3 specialization preferences in order of priority</p>
 
             {selectedMOS.length > 0 && (
                 <div className="mos-priority-display">
-                    <h4>Your MOS Preferences:</h4>
+                    <h4>Your Specialization Preferences:</h4>
                     <div className="priority-list">
                         {[1, 2, 3].map(priority => {
                             const mosId = selectedMOS[priority - 1];
@@ -938,7 +941,7 @@ const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedBrigade,
                                         </div>
                                         <div className="mos-details">
                                             <div className="mos-stat">
-                                                <span className="stat-label">AIT:</span>
+                                                <span className="stat-label">Training:</span>
                                                 <span className="stat-value">{mos.ait_weeks} weeks</span>
                                             </div>
                                             {mos.security_clearance_required !== 'none' && (
@@ -948,7 +951,7 @@ const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedBrigade,
                                                 </div>
                                             )}
                                             <div className="mos-stat">
-                                                <span className="stat-label">Physical:</span>
+                                                <span className="stat-label">Demand:</span>
                                                 <span className="stat-value">{mos.physical_demand_rating}</span>
                                             </div>
                                         </div>
@@ -1026,7 +1029,7 @@ const BasicInfoStep = ({ formData, onChange }) => (
                 value={formData.referrer || ''}
                 onChange={(e) => onChange('referrer', e.target.value)}
             />
-            <small style={{ color: '#999', fontSize: '0.85rem' }}>
+            <small>
                 If a current member referred you, please enter their Discord username
             </small>
         </div>
@@ -1038,18 +1041,18 @@ const ExperienceStep = ({ formData, selectedPath, onChange }) => (
         <h2>Experience & Motivation</h2>
 
         <div className="form-group">
-            <label>Military Simulation Experience</label>
+            <label>Space Simulation Experience</label>
             <textarea
-                placeholder="Tell us about your milsim experience, previous units, and preferred roles..."
+                placeholder="Tell us about your experience in Star Citizen, previous organizations, and preferred roles..."
                 value={formData.milsimExperience}
                 onChange={(e) => onChange('milsimExperience', e.target.value)}
             />
         </div>
 
         <div className="form-group">
-            <label>Why this unit?</label>
+            <label>Why this fleet?</label>
             <textarea
-                placeholder="Why do you want to join this specific unit?"
+                placeholder="Why do you want to join this specific fleet division?"
                 value={formData.unitMotivation}
                 onChange={(e) => onChange('unitMotivation', e.target.value)}
             />
@@ -1057,7 +1060,7 @@ const ExperienceStep = ({ formData, selectedPath, onChange }) => (
 
         {selectedPath === 'officer' && (
             <div className="form-group">
-                <label>Leadership Experience (Officer Track)</label>
+                <label>Leadership Experience (Command Track)</label>
                 <textarea
                     placeholder="Describe your leadership experience in gaming or real life..."
                     value={formData.leadershipExperience}
@@ -1068,9 +1071,9 @@ const ExperienceStep = ({ formData, selectedPath, onChange }) => (
 
         {selectedPath === 'warrant' && (
             <div className="form-group">
-                <label>Flight Hours / Technical Experience (Warrant Track)</label>
+                <label>Flight Hours / Technical Experience (Pilot Track)</label>
                 <textarea
-                    placeholder="List your flight simulation hours and relevant technical skills..."
+                    placeholder="List your flight hours in Star Citizen and relevant piloting skills..."
                     value={formData.flightExperience}
                     onChange={(e) => onChange('flightExperience', e.target.value)}
                 />
@@ -1078,7 +1081,7 @@ const ExperienceStep = ({ formData, selectedPath, onChange }) => (
         )}
 
         <div className="form-group">
-            <label>Why do you want to join the 5th Infantry Division?</label>
+            <label>Why do you want to join the 5th Expeditionary Group?</label>
             <textarea
                 placeholder="Tell us your motivation for joining... (minimum 100 characters)"
                 value={formData.divisionMotivation}
@@ -1104,16 +1107,16 @@ const ExperienceStep = ({ formData, selectedPath, onChange }) => (
 
 const AgreementStep = ({ formData, onChange }) => (
     <div className="agreement-section">
-        <h2>Division Standards</h2>
+        <h2>Fleet Standards</h2>
 
         <div className="agreement-item">
-            <h4>Code of Honor</h4>
-            <p>As a member of the 5th Infantry Division, I agree to:</p>
+            <h4>Code of Conduct</h4>
+            <p>As a member of the 5th Expeditionary Group, I agree to:</p>
             <ul>
-                <li>Uphold the honor of the Red Diamond</li>
-                <li>Follow all lawful orders</li>
-                <li>Treat all members with respect</li>
-                <li>Maintain military bearing at all times</li>
+                <li>Uphold the honor of the fleet</li>
+                <li>Follow all operational directives</li>
+                <li>Treat all crew members with respect</li>
+                <li>Maintain professional conduct at all times</li>
             </ul>
             <div className="checkbox-group">
                 <input
@@ -1122,15 +1125,15 @@ const AgreementStep = ({ formData, onChange }) => (
                     checked={formData.conductAgreed}
                     onChange={(e) => onChange('conductAgreed', e.target.checked)}
                 />
-                <label htmlFor="conduct">I agree to the Code of Honor</label>
+                <label htmlFor="conduct">I agree to the Code of Conduct</label>
             </div>
         </div>
 
         <div className="agreement-item">
             <h4>Operational Requirements</h4>
             <ul>
-                <li>Minimum 2 operations/month (enlisted)</li>
-                <li>Minimum 3 operations/month (NCOs/Officers)</li>
+                <li>Minimum 2 operations/month (crew)</li>
+                <li>Minimum 3 operations/month (officers)</li>
                 <li>Weekly training participation</li>
                 <li>Proper use of chain of command</li>
             </ul>
@@ -1148,10 +1151,10 @@ const AgreementStep = ({ formData, onChange }) => (
         <div className="agreement-item">
             <h4>Training Standards</h4>
             <ul>
-                <li>Complete Basic Individual Training</li>
-                <li>Maintain MOS qualifications</li>
-                <li>Participate in unit exercises</li>
-                <li>Pursue professional development</li>
+                <li>Complete Basic Flight Training</li>
+                <li>Maintain specialization qualifications</li>
+                <li>Participate in fleet exercises</li>
+                <li>Pursue continuous improvement</li>
             </ul>
             <div className="checkbox-group">
                 <input
@@ -1168,19 +1171,19 @@ const AgreementStep = ({ formData, onChange }) => (
 
 const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }) => {
     const navigate = useNavigate();
-    const applicationReference = localStorage.getItem('applicationReference') || `5ID-2024-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const applicationReference = localStorage.getItem('applicationReference') || `5EXG-2954-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     return (
         <div className="success-container">
             <div className="success-message">
                 <div className="success-icon">
-                    <CheckCircle size={48} />
+                    <CheckCircle size={64} />
                 </div>
-                <h2>Application Submitted!</h2>
-                <p>Welcome to the 5th Infantry Division recruitment process</p>
+                <h2>APPLICATION TRANSMITTED!</h2>
+                <p>Welcome to the 5th Expeditionary Group recruitment pipeline</p>
 
                 <div className="assignment-summary">
-                    <h3>Your Assignment</h3>
+                    <h3>Your Assignment Request</h3>
                     <div className="assignment-details">
                         <p className="assignment-text">
                             {selectedPlatoon?.designation} - {selectedBrigade?.name} ({formData.selectedPath?.toUpperCase()} track)
@@ -1190,7 +1193,7 @@ const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }
 
                 {selectedMOS.length > 0 && (
                     <div className="mos-summary">
-                        <h3>MOS Preferences</h3>
+                        <h3>Specialization Preferences</h3>
                         <div className="mos-preferences">
                             {selectedMOS.map((mos, index) => (
                                 <div key={index} className="mos-preference">
@@ -1205,12 +1208,12 @@ const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }
                 <div className="next-steps">
                     <h3>Next Steps</h3>
                     <ol>
-                        <li>Check Discord for recruiter contact (24-48 hours)</li>
-                        <li>Complete your interview</li>
-                        <li>Receive MOS assignment confirmation</li>
-                        <li>Report for Basic Individual Training</li>
-                        <li>Complete AIT for your assigned MOS</li>
-                        <li>Join your assigned platoon</li>
+                        <li>Check Discord for recruitment officer contact (24-48 hours)</li>
+                        <li>Complete your screening interview</li>
+                        <li>Receive specialization confirmation</li>
+                        <li>Report for Basic Flight Training</li>
+                        <li>Complete advanced specialization training</li>
+                        <li>Join your assigned squadron</li>
                     </ol>
                 </div>
 
@@ -1220,14 +1223,14 @@ const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }
                 </div>
 
                 <div className="motto-box">
-                    <p>Division Motto: "We Will"</p>
+                    <p>"BEYOND THE STARS"</p>
                 </div>
 
                 <button
                     className="return-home-btn"
                     onClick={() => navigate('/')}
                 >
-                    Return to Home
+                    RETURN TO BASE
                 </button>
             </div>
         </div>

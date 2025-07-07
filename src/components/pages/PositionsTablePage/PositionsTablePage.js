@@ -5,7 +5,7 @@ import {
     ChevronRight, ChevronDown, Users, Shield, Search,
     Filter, Download, Maximize2, User, Building,
     AlertCircle, Hash, MapPin, Calendar, Star, Target,
-    Package, Plus, MoreVertical, Eye, Trash2
+    Package, Plus, MoreVertical, Eye, Trash2, Rocket
 } from 'lucide-react';
 import './PositionsTablePage.css';
 import { ApplyPositionTemplateModal } from '../../modals/ApplyPositionTemplateModal';
@@ -186,7 +186,7 @@ const PositionsTablePage = () => {
             setBranches(branchesData);
         } catch (err) {
             console.error('Error fetching data:', err);
-            setError('Failed to load positions data');
+            setError('Failed to load fleet positions data');
         } finally {
             setIsLoading(false);
         }
@@ -257,7 +257,7 @@ const PositionsTablePage = () => {
             // Check again after fetching
             if (!currentUserPositionId) {
                 setIsHighlighting(false);
-                alert('You do not currently have an assigned position.\n\nIf you believe this is an error, please contact your unit administrator.');
+                alert('You do not currently have an assigned position.\n\nIf you believe this is an error, please contact your fleet administrator.');
                 return;
             }
         }
@@ -583,7 +583,7 @@ const PositionsTablePage = () => {
                         className={`position-row ${position.id === currentUserPositionId ? 'highlighted' : ''} ${isHighlighting && position.id === currentUserPositionId ? 'highlighting' : ''}`}
                         ref={position.id === currentUserPositionId ? highlightedRowRef : null}
                     >
-                        <td style={{ paddingLeft: `${(level + 1) * 24}px` }}>
+                        <td style={{ paddingLeft: `${(level + 1) * 24 + 20}px` }}>
                             <div className="position-title">
                                 {position.id === currentUserPositionId && (
                                     <Star size={16} className="current-position-icon" />
@@ -715,7 +715,7 @@ const PositionsTablePage = () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `positions_table_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `fleet_positions_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
     };
 
@@ -724,7 +724,7 @@ const PositionsTablePage = () => {
         return (
             <div className="positions-table-loading">
                 <div className="loading-spinner"></div>
-                <p>Loading positions data...</p>
+                <p>ACCESSING FLEET DATABASE...</p>
             </div>
         );
     }
@@ -734,9 +734,9 @@ const PositionsTablePage = () => {
         return (
             <div className="positions-table-error">
                 <AlertCircle size={48} />
-                <h2>Error Loading Positions</h2>
+                <h2>ERROR LOADING POSITIONS</h2>
                 <p>{error}</p>
-                <button onClick={fetchData}>Try Again</button>
+                <button onClick={fetchData}>TRY AGAIN</button>
             </div>
         );
     }
@@ -751,11 +751,11 @@ const PositionsTablePage = () => {
             <div className="positions-table-header">
                 <div className="header-content">
                     <h1>
-                        <Shield size={32} />
-                        Unit Positions Table
+                        <Rocket size={32} />
+                        FLEET POSITIONS TABLE
                     </h1>
-                    <p>Complete organizational structure and position assignments</p>
-                    <p className="sort-info">Positions are sorted by rank tier (highest first)</p>
+                    <p>Complete organizational structure and crew assignments</p>
+                    <p className="sort-info">Positions sorted by rank tier (highest first)</p>
                 </div>
 
                 {/* Controls */}
@@ -808,20 +808,20 @@ const PositionsTablePage = () => {
                                 title={!currentUserPositionId ? 'Click to find your position' : 'Find and highlight your position'}
                             >
                                 <Target size={16} />
-                                {isFetchingUserPosition ? 'Loading...' : 'Find My Position'}
+                                {isFetchingUserPosition ? 'LOADING...' : 'FIND MY POSITION'}
                             </button>
                         )}
                         <button onClick={expandAll} className="btn-secondary">
                             <Maximize2 size={16} />
-                            Expand All
+                            EXPAND ALL
                         </button>
                         <button onClick={collapseAll} className="btn-secondary">
                             <ChevronDown size={16} />
-                            Collapse All
+                            COLLAPSE ALL
                         </button>
                         <button onClick={exportToCSV} className="btn-primary">
                             <Download size={16} />
-                            Export CSV
+                            EXPORT CSV
                         </button>
                     </div>
                 </div>
@@ -829,7 +829,7 @@ const PositionsTablePage = () => {
 
             {/* Table */}
             <div className="positions-table-wrapper" ref={tableRef}>
-                <table className="positions-table" aria-label="Military unit positions table sorted by rank tier">
+                <table className="positions-table" aria-label="Fleet positions table sorted by rank tier">
                     <thead>
                     <tr>
                         <th>Position</th>
@@ -897,7 +897,7 @@ const PositionsTablePage = () => {
                         setShowCreatePositionModal(false);
                         setSelectedUnit(null);
                     }}
-                    onCreate={handlePositionCreate}  // Fixed function name
+                    onCreate={handlePositionCreate}
                 />
             )}
         </div>
