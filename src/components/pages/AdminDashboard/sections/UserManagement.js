@@ -91,8 +91,10 @@ const UserManagement = () => {
         }
     };
 
-    const handlePromote = async (newRankId) => {
+    const handlePromote = async (newRankId, reason) => {
         try {
+            console.log('Promoting user:', selectedUser.id, 'to rank:', newRankId, 'reason:', reason);
+
             await api.put(`/users/${selectedUser.id}/sensitive-fields/`, {
                 current_rank: newRankId
             });
@@ -442,6 +444,7 @@ const UserManagement = () => {
                                                             </button>
                                                             <button
                                                                 onClick={() => {
+                                                                    console.log('Opening promotion modal for user:', user);
                                                                     setSelectedUser(user);
                                                                     setShowPromotionModal(true);
                                                                     setActiveDropdown(null);
@@ -523,7 +526,10 @@ const UserManagement = () => {
             {/* Modals */}
             {showPromotionModal && selectedUser && (
                 <PromotionModal
-                    user={selectedUser}
+                    user={{
+                        ...selectedUser,
+                        current_rank: selectedUser.current_rank || null
+                    }}
                     ranks={ranks}
                     onClose={() => setShowPromotionModal(false)}
                     onPromote={handlePromote}
