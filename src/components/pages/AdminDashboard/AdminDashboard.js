@@ -14,6 +14,8 @@ import RankManagement from "./sections/RankManagement";
 import UnitManagement from "./sections/UnitManagement";
 import EventManagement from "./sections/EventManagement";
 import OperationManagement from "./sections/OperationManagement";
+import StandardsManagement from './sections/StandardsManagement';
+
 import TrainingManagement from "./sections/TrainingManagement";
 import MOSManagement from "./sections/MOSManagement";
 import UnitsHierarchyView from '../UnitHierarchyPage/UnitHierarchyView';
@@ -23,7 +25,6 @@ import UnitsHierarchyView from '../UnitHierarchyPage/UnitHierarchyView';
 const OperationsManagement = () => <div>Operations Management Section - To be implemented</div>;
 const AnnouncementManagement = () => <div>Announcement Management Section - To be implemented</div>;
 const ForumManagement = () => <div>Forum Management Section - To be implemented</div>;
-const StandardsManagement = () => <div>Standards Management Section - To be implemented</div>;
 const ShipManagement = () => <div>Ship Management Section - To be implemented</div>;
 const VehicleManagement = () => <div>Vehicle Management Section - To be implemented</div>;
 const OnboardingManagement = () => <div>Onboarding Management Section - To be implemented</div>;
