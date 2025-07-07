@@ -2,7 +2,7 @@ import React from 'react';
 import {
     X, FileText, Download, ExternalLink, Video, Image,
     Tag, Calendar, User, Shield, Clock, Edit,
-    CheckCircle, AlertCircle, Archive, Copy, Share2
+    CheckCircle, AlertCircle, Archive, Copy, Share2, ChevronRight
 } from 'lucide-react';
 import '../modals/AdminModals.css';
 

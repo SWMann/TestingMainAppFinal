@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Folder, Link } from 'lucide-react';
+import { X, Folder, Link, ChevronRight } from 'lucide-react';
 import '../modals/AdminModals.css';
 
 const EditStandardSubGroupModal = ({ subGroup, groups, onClose, onUpdate }) => {

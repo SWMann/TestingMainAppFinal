@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, AlertCircle, Calendar, FileText, Shield } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Calendar, FileText, Shield, ChevronRight } from 'lucide-react';
 import '../modals/AdminModals.css';
 
 const ApproveStandardModal = ({ standard, onClose, onApprove }) => {

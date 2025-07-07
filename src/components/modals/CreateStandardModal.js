@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Upload, Link, Video, Image, Tag, AlertCircle } from 'lucide-react';
+import { X, FileText, Upload, Link, Video, Image, Tag, AlertCircle, ChevronRight } from 'lucide-react';
 import '../modals/AdminModals.css';
 
 const CreateStandardModal = ({ subGroups, selectedSubGroup, onClose, onCreate }) => {
