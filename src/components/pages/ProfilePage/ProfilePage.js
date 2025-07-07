@@ -5,7 +5,8 @@ import {
     Shield, User, Calendar, Award, Star, MapPin, Clock,
     ChevronRight, Mail, Hash, Briefcase, Ship, Trophy,
     Edit, UserPlus, ChevronUp, ChevronDown, AlertCircle,
-    Building, Users, FileText, Activity, Target, School
+    Building, Users, FileText, Activity, Target, School,
+    Rocket, Globe, Zap, Navigation
 } from 'lucide-react';
 import './ProfilePage.css';
 
@@ -78,7 +79,7 @@ const UserProfile = () => {
                 const users = searchResponse.data.results || searchResponse.data;
 
                 if (!Array.isArray(users) || users.length === 0) {
-                    throw new Error(`No user found with service number: ${serviceNumber}`);
+                    throw new Error(`No pilot found with service number: ${serviceNumber}`);
                 }
 
                 // Get the first matching user's ID
@@ -95,7 +96,7 @@ const UserProfile = () => {
             console.error('Error fetching profile:', err);
 
             if (err.response?.status === 404) {
-                setError('User profile not found');
+                setError('Pilot profile not found');
             } else if (err.message) {
                 setError(err.message);
             } else {
@@ -177,7 +178,7 @@ const UserProfile = () => {
         return (
             <div className="profile-loading">
                 <div className="loading-spinner"></div>
-                <p>Loading profile...</p>
+                <p>ACCESSING PERSONNEL DATABASE...</p>
             </div>
         );
     }
@@ -186,9 +187,9 @@ const UserProfile = () => {
         return (
             <div className="profile-error">
                 <AlertCircle size={48} />
-                <h2>Error Loading Profile</h2>
+                <h2>ERROR ACCESSING PROFILE</h2>
                 <p>{error}</p>
-                <button onClick={() => navigate('/')}>Return Home</button>
+                <button onClick={() => navigate('/')}>RETURN TO COMMAND</button>
             </div>
         );
     }
@@ -203,7 +204,7 @@ const UserProfile = () => {
             <div className="profile-header">
                 <div className="profile-header-bg">
                     <img
-                        src={user.background_image_url || 'https://images.unsplash.com/photo-1569163139394-de4798d0c2c6?w=1920&h=400&fit=crop'}
+                        src={user.background_image_url || 'https://media.robertsspaceindustries.com/i2gtmrav2ffcr/source.jpg'}
                         alt="Profile background"
                     />
                     <div className="profile-header-overlay"></div>
@@ -241,7 +242,7 @@ const UserProfile = () => {
                                     <span className="status-badge wocs">WOCS</span>
                                 )}
                                 {user.is_admin && (
-                                    <span className="status-badge admin">ADMIN</span>
+                                    <span className="status-badge admin">FLEET ADMIN</span>
                                 )}
                             </div>
                         </div>
@@ -256,12 +257,12 @@ const UserProfile = () => {
                                 <span>{user.current_rank?.name || 'No Rank'}</span>
                             </div>
                             <div className="detail-item">
-                                <Building size={16} />
-                                <span>{user.primary_unit?.name || 'No Unit Assignment'}</span>
+                                <Globe size={16} />
+                                <span>{user.primary_unit?.name || 'No Squadron Assignment'}</span>
                             </div>
                             <div className="detail-item">
                                 <Calendar size={16} />
-                                <span>Joined {formatDate(user.join_date)}</span>
+                                <span>Enlisted {formatDate(user.join_date)}</span>
                             </div>
                         </div>
 
@@ -273,21 +274,21 @@ const UserProfile = () => {
                                     onClick={() => setShowPromotionModal(true)}
                                 >
                                     <ChevronUp size={16} />
-                                    Promote/Demote
+                                    PROMOTE/DEMOTE
                                 </button>
                                 <button
                                     className="admin-button"
                                     onClick={() => setShowUnitModal(true)}
                                 >
-                                    <Building size={16} />
-                                    Assign Unit
+                                    <Globe size={16} />
+                                    ASSIGN SQUADRON
                                 </button>
                                 <button
                                     className="admin-button"
                                     onClick={() => setShowPositionModal(true)}
                                 >
                                     <Briefcase size={16} />
-                                    Assign Position
+                                    ASSIGN POSITION
                                 </button>
                             </div>
                         )}
@@ -296,11 +297,11 @@ const UserProfile = () => {
                     <div className="profile-stats">
                         <div className="stat-card">
                             <div className="stat-value">{statistics.days_in_service}</div>
-                            <div className="stat-label">Days in Service</div>
+                            <div className="stat-label">Days Active</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-value">{statistics.completed_operations}</div>
-                            <div className="stat-label">Operations</div>
+                            <div className="stat-label">Missions</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-value">{statistics.total_certificates}</div>
@@ -321,28 +322,28 @@ const UserProfile = () => {
                     onClick={() => setActiveTab('overview')}
                 >
                     <User size={18} />
-                    Overview
+                    OVERVIEW
                 </button>
                 <button
                     className={activeTab === 'service' ? 'tab active' : 'tab'}
                     onClick={() => setActiveTab('service')}
                 >
                     <Briefcase size={18} />
-                    Service Record
+                    SERVICE RECORD
                 </button>
                 <button
                     className={activeTab === 'training' ? 'tab active' : 'tab'}
                     onClick={() => setActiveTab('training')}
                 >
                     <Award size={18} />
-                    Training & Certs
+                    CERTIFICATIONS
                 </button>
                 <button
                     className={activeTab === 'operations' ? 'tab active' : 'tab'}
                     onClick={() => setActiveTab('operations')}
                 >
-                    <Activity size={18} />
-                    Operations
+                    <Rocket size={18} />
+                    MISSIONS
                 </button>
                 {ships.length > 0 && (
                     <button
@@ -350,7 +351,7 @@ const UserProfile = () => {
                         onClick={() => setActiveTab('ships')}
                     >
                         <Ship size={18} />
-                        Ships
+                        FLEET
                     </button>
                 )}
             </div>
@@ -362,7 +363,7 @@ const UserProfile = () => {
                         <div className="content-grid">
                             {/* Personal Information */}
                             <div className="info-card">
-                                <h3>Personal Information</h3>
+                                <h3>PILOT INFORMATION</h3>
                                 <div className="info-grid">
                                     <div className="info-item">
                                         <label>Discord ID</label>
@@ -384,9 +385,8 @@ const UserProfile = () => {
                             </div>
 
                             {/* Current Assignment */}
-                            {/* Current Assignment */}
                             <div className="info-card">
-                                <h3>Current Assignment</h3>
+                                <h3>SQUADRON ASSIGNMENT</h3>
                                 {user.primary_unit ? (
                                     <div className="unit-assignment">
                                         <div className="unit-header">
@@ -408,25 +408,25 @@ const UserProfile = () => {
                                         <p className="unit-description">{user.primary_unit.description}</p>
                                     </div>
                                 ) : (
-                                    <p className="no-data">No unit assignment</p>
+                                    <p className="no-data">No squadron assignment</p>
                                 )}
                             </div>
 
                             {/* MOS Information */}
                             <div className="info-card">
-                                <h3>Military Occupational Specialty</h3>
+                                <h3>SPECIALIZATION</h3>
                                 {user.primary_mos || user.secondary_mos?.length > 0 ? (
                                     <div className="mos-assignment">
                                         {user.primary_mos && (
                                             <div className="primary-mos">
-                                                <h4>Primary MOS</h4>
+                                                <h4>PRIMARY SPECIALIZATION</h4>
                                                 <div className="mos-display">
                                                     <div className="mos-badge">
                                                         <span className="mos-code">{user.primary_mos.code}</span>
                                                     </div>
                                                     <div className="mos-details">
                                                         <h5>{user.primary_mos.title}</h5>
-                                                        <p className="mos-category">{user.primary_mos.category?.replace(/_/g, ' ').toUpperCase()}</p>
+                                                        <p className="mos-category">{user.primary_mos.category?.replace(/_/g, ' ')}</p>
                                                         {user.mos_skill_level && (
                                                             <p className="skill-level">Skill Level: {user.mos_skill_level}</p>
                                                         )}
@@ -442,7 +442,7 @@ const UserProfile = () => {
 
                                         {user.secondary_mos?.length > 0 && (
                                             <div className="secondary-mos">
-                                                <h4>Additional MOS Qualifications</h4>
+                                                <h4>ADDITIONAL QUALIFICATIONS</h4>
                                                 <div className="secondary-mos-list">
                                                     {user.secondary_mos.map(mos => (
                                                         <div key={mos.id} className="secondary-mos-item">
@@ -455,14 +455,14 @@ const UserProfile = () => {
                                         )}
                                     </div>
                                 ) : (
-                                    <p className="no-data">No MOS assigned</p>
+                                    <p className="no-data">No specialization assigned</p>
                                 )}
                             </div>
 
                             {/* Branch Information */}
                             {user.branch && (
                                 <div className="info-card">
-                                    <h3>Branch</h3>
+                                    <h3>DIVISION</h3>
                                     <div className="branch-info">
                                         {user.branch.logo_url && (
                                             <img
@@ -484,10 +484,10 @@ const UserProfile = () => {
 
                             {/* Onboarding Status */}
                             <div className="info-card">
-                                <h3>Career Progression</h3>
+                                <h3>CAREER PROGRESSION</h3>
                                 <div className="progression-info">
                                     <div className="info-item">
-                                        <label>Onboarding Status</label>
+                                        <label>Training Status</label>
                                         <span className={`status-tag ${user.onboarding_status?.toLowerCase().replace(' ', '-')}`}>
                                             {user.onboarding_status || 'Not Started'}
                                         </span>
@@ -512,7 +512,7 @@ const UserProfile = () => {
                                     )}
                                     {user.mentor && (
                                         <div className="mentor-info">
-                                            <label>Mentor</label>
+                                            <label>Flight Instructor</label>
                                             <div className="mentor-details">
                                                 <img
                                                     src={user.mentor.avatar_url || '/api/placeholder/40/40'}
@@ -531,7 +531,7 @@ const UserProfile = () => {
                             {/* Bio */}
                             {user.bio && (
                                 <div className="info-card full-width">
-                                    <h3>Biography</h3>
+                                    <h3>PILOT BIOGRAPHY</h3>
                                     <p className="bio-text">{user.bio}</p>
                                 </div>
                             )}
@@ -542,7 +542,7 @@ const UserProfile = () => {
                 {activeTab === 'service' && (
                     <div className="tab-content">
                         <div className="service-record">
-                            <h3>Position History</h3>
+                            <h3>POSITION HISTORY</h3>
                             {positions.length > 0 ? (
                                 <div className="positions-timeline">
                                     {positions.map((pos, index) => (
@@ -558,7 +558,7 @@ const UserProfile = () => {
                                                     <span className={`status-badge ${pos.status.toLowerCase()}`}>{pos.status}</span>
                                                 </div>
                                                 <div className="position-details">
-                                                    <span><Building size={14} /> {pos.unit_details?.name || 'Unknown Unit'}</span>
+                                                    <span><Globe size={14} /> {pos.unit_details?.name || 'Unknown Unit'}</span>
                                                     <span><Calendar size={14} /> {formatDate(pos.assignment_date)}</span>
                                                 </div>
                                                 {pos.position_details?.role?.is_command_role && (
@@ -576,7 +576,7 @@ const UserProfile = () => {
                             )}
 
                             {/* Service Milestones */}
-                            <h3>Service Milestones</h3>
+                            <h3>SERVICE MILESTONES</h3>
                             <div className="milestones-grid">
                                 <div className="milestone-card">
                                     <Calendar size={24} />
@@ -585,17 +585,17 @@ const UserProfile = () => {
                                 </div>
                                 <div className="milestone-card">
                                     <School size={24} />
-                                    <h5>BIT Completion</h5>
+                                    <h5>Academy Completion</h5>
                                     <p>{formatDate(user.bit_completion_date)}</p>
                                 </div>
                                 <div className="milestone-card">
                                     <Shield size={24} />
-                                    <h5>Branch Induction</h5>
+                                    <h5>Division Induction</h5>
                                     <p>{formatDate(user.branch_induction_date)}</p>
                                 </div>
                                 <div className="milestone-card">
-                                    <Building size={24} />
-                                    <h5>Unit Assignment</h5>
+                                    <Globe size={24} />
+                                    <h5>Squadron Assignment</h5>
                                     <p>{formatDate(user.unit_assignment_date)}</p>
                                 </div>
                             </div>
@@ -606,7 +606,7 @@ const UserProfile = () => {
                 {activeTab === 'training' && (
                     <div className="tab-content">
                         <div className="training-section">
-                            <h3>Certifications ({statistics.active_certificates} Active)</h3>
+                            <h3>FLIGHT CERTIFICATIONS ({statistics.active_certificates} Active)</h3>
                             {certificates.length > 0 ? (
                                 <div className="certificates-grid">
                                     {certificates.map(cert => (
@@ -630,10 +630,10 @@ const UserProfile = () => {
                                                     )}
                                                 </div>
                                                 {cert.issuer_username && (
-                                                    <p className="cert-issuer">Issued by: {cert.issuer_username}</p>
+                                                    <p className="cert-issuer">Certified by: {cert.issuer_username}</p>
                                                 )}
                                                 {cert.training_event_title && (
-                                                    <p className="cert-event">Event: {cert.training_event_title}</p>
+                                                    <p className="cert-event">Training: {cert.training_event_title}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -661,12 +661,12 @@ const UserProfile = () => {
                                     <Target size={24} />
                                     <div>
                                         <div className="stat-number">{statistics.upcoming_operations}</div>
-                                        <div className="stat-label">Upcoming</div>
+                                        <div className="stat-label">Scheduled</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <h3>Operation History</h3>
+                            <h3>MISSION LOG</h3>
                             {events.length > 0 ? (
                                 <div className="operations-list">
                                     {events.map(event => (
@@ -680,9 +680,9 @@ const UserProfile = () => {
                                             <p className="op-description">{event.description}</p>
                                             <div className="op-details">
                                                 <span><Calendar size={14} /> {formatDateTime(event.start_time)}</span>
-                                                <span><MapPin size={14} /> {event.location}</span>
+                                                <span><Navigation size={14} /> {event.location}</span>
                                                 {event.host_unit && (
-                                                    <span><Building size={14} /> {event.host_unit.name}</span>
+                                                    <span><Globe size={14} /> {event.host_unit.name}</span>
                                                 )}
                                             </div>
                                             <div className="op-attendance">
@@ -699,7 +699,7 @@ const UserProfile = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="no-data">No operations participated</p>
+                                <p className="no-data">No missions participated</p>
                             )}
                         </div>
                     </div>
@@ -708,7 +708,7 @@ const UserProfile = () => {
                 {activeTab === 'ships' && ships.length > 0 && (
                     <div className="tab-content">
                         <div className="ships-section">
-                            <h3>Assigned Ships</h3>
+                            <h3>ASSIGNED VESSELS</h3>
                             <div className="ships-grid">
                                 {ships.map(ship => (
                                     <div key={ship.id} className="ship-card">
@@ -722,7 +722,7 @@ const UserProfile = () => {
                                                 <span>{ship.ship_class}</span>
                                             </div>
                                             <div className="detail-row">
-                                                <label>Hull Number:</label>
+                                                <label>Registry:</label>
                                                 <span>{ship.hull_number}</span>
                                             </div>
                                             <div className="detail-row">
@@ -733,7 +733,7 @@ const UserProfile = () => {
                                             </div>
                                             {ship.assigned_unit_name && (
                                                 <div className="detail-row">
-                                                    <label>Unit:</label>
+                                                    <label>Squadron:</label>
                                                     <span>{ship.assigned_unit_name}</span>
                                                 </div>
                                             )}

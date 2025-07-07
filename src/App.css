@@ -1,3 +1,30 @@
+/* App.css - Star Citizen/RSI themed global styles */
+
+/* Import futuristic fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+
+/* CSS Variables */
+:root {
+  --primary-bg: #000000;
+  --secondary-bg: #0a0a0a;
+  --accent-bg: #111111;
+  --panel-bg: rgba(10, 10, 10, 0.95);
+  --rsi-blue: #42c8f4;
+  --rsi-blue-dark: #1c8db0;
+  --rsi-blue-glow: rgba(66, 200, 244, 0.4);
+  --rsi-cyan: #00ffff;
+  --rsi-orange: #ff7b00;
+  --rsi-green: #00ff88;
+  --rsi-red: #ff3333;
+  --text-primary: #ffffff;
+  --text-secondary: #a8b2bd;
+  --text-muted: #6c757d;
+  --border-color: rgba(66, 200, 244, 0.2);
+  --success-color: #00ff88;
+  --warning-color: #ffaa00;
+  --error-color: #ff3333;
+  --info-color: #42c8f4;
+}
 
 * {
   box-sizing: border-box;
@@ -6,78 +33,127 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+  font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
   Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.6;
-  color: #333;
-  background-color: #f8f9fa;
+  color: var(--text-primary);
+  background-color: var(--primary-bg);
+  background-image:
+          radial-gradient(ellipse at top right, rgba(66, 200, 244, 0.05) 0%, transparent 50%),
+          radial-gradient(ellipse at bottom left, rgba(255, 123, 0, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rsi-blue-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rsi-blue);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--rsi-blue);
+  color: var(--primary-bg);
+}
+
+::-moz-selection {
+  background-color: var(--rsi-blue);
+  color: var(--primary-bg);
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
 }
 
 .main-content {
   flex: 1;
   padding-top: 70px; /* Accounts for fixed navbar */
+  position: relative;
+  z-index: 1;
 }
 
+/* Links */
 a {
-  color: #5865F2;
+  color: var(--rsi-blue);
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 
 a:hover {
-  text-decoration: underline;
+  color: var(--rsi-cyan);
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
+/* Buttons */
 button {
   cursor: pointer;
+  font-family: inherit;
+  transition: all 0.3s ease;
 }
 
-/* Add this to your global CSS file (App.css or index.css) */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-/* Prevent body scroll when modal is open */
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--rsi-blue);
+  outline-offset: 2px;
+}
+
+/* Modal Background Scroll Prevention */
 body.modal-open {
   overflow: hidden;
-}
-
-/* Optional: If you still have scrolling issues, try this alternative approach */
-html.modal-open,
-body.modal-open {
-  overflow: hidden;
-  height: 100%;
-}
-
-/* Optional: Preserve scroll position when modal opens */
-body.modal-open {
   position: fixed;
   width: 100%;
-  top: 0;
-  left: 0;
 }
 
-/* If using the position: fixed approach above, you'll need to save/restore scroll position in your React component:
-
-// When opening modal:
-const scrollY = window.scrollY;
-document.body.style.position = 'fixed';
-document.body.style.top = `-${scrollY}px`;
-document.body.classList.add('modal-open');
-
-// When closing modal:
-document.body.classList.remove('modal-open');
-document.body.style.position = '';
-document.body.style.top = '';
-window.scrollTo(0, parseInt(scrollY || '0'));
-*/
-
+/* Container */
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 2rem;
+}
+
+/* Typography Classes */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+h1 {
+  font-size: 3rem;
+  text-shadow: 0 0 20px var(--rsi-blue-glow);
+}
+
+h2 {
+  font-size: 2rem;
+  text-shadow: 0 0 15px var(--rsi-blue-glow);
+}
+
+h3 {
+  font-size: 1.5rem;
+  text-shadow: 0 0 10px var(--rsi-blue-glow);
 }
 
 /* Utility Classes */
@@ -85,6 +161,11 @@ window.scrollTo(0, parseInt(scrollY || '0'));
   text-align: center;
 }
 
+.text-uppercase {
+  text-transform: uppercase;
+}
+
+/* Margins */
 .mt-1 { margin-top: 0.25rem; }
 .mt-2 { margin-top: 0.5rem; }
 .mt-3 { margin-top: 1rem; }
@@ -97,9 +178,126 @@ window.scrollTo(0, parseInt(scrollY || '0'));
 .mb-4 { margin-bottom: 1.5rem; }
 .mb-5 { margin-bottom: 3rem; }
 
+/* Glow Effects */
+.glow-blue {
+  text-shadow: 0 0 10px var(--rsi-blue-glow);
+}
+
+.glow-orange {
+  text-shadow: 0 0 10px rgba(255, 123, 0, 0.5);
+}
+
+.glow-green {
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+/* Panel Styles */
+.panel {
+  background: linear-gradient(135deg, rgba(10, 10, 10, 0.95) 0%, rgba(17, 17, 17, 0.95) 100%);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--rsi-blue) 50%, transparent 100%);
+}
+
+/* Loading Animation */
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Scan Line Animation */
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--rsi-blue), transparent);
+  animation: scan 3s linear infinite;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .container {
-    padding: 0 0.5rem;
+    padding: 0 1rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: rgba(66, 200, 244, 0.5);
+  }
+
+  .panel {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .header,
+  .footer,
+  .no-print {
+    display: none;
   }
 }
