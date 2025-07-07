@@ -99,6 +99,66 @@ const StandardsManagement = () => {
         setExpandedSubGroups(newExpanded);
     };
 
+    // Handler functions for fetching full details before edit/view
+    const handleEditGroup = async (group) => {
+        try {
+            // Fetch full group details
+            const response = await api.get(`/sops/groups/${group.id}/`);
+            setSelectedGroup(response.data);
+            setShowEditGroupModal(true);
+        } catch (error) {
+            console.error('Error fetching group details:', error);
+            showNotification('Failed to load group details', 'error');
+        }
+    };
+
+    const handleEditSubGroup = async (subGroup) => {
+        try {
+            // Fetch full subgroup details
+            const response = await api.get(`/sops/subgroups/${subGroup.id}/`);
+            setSelectedSubGroup(response.data);
+            setShowEditSubGroupModal(true);
+        } catch (error) {
+            console.error('Error fetching subgroup details:', error);
+            showNotification('Failed to load subgroup details', 'error');
+        }
+    };
+
+    const handleEditStandard = async (standard) => {
+        try {
+            // Fetch full standard details including content
+            const response = await api.get(`/sops/standards/${standard.id}/`);
+            setSelectedStandard(response.data);
+            setShowEditStandardModal(true);
+        } catch (error) {
+            console.error('Error fetching standard details:', error);
+            showNotification('Failed to load standard details', 'error');
+        }
+    };
+
+    const handleViewStandard = async (standard) => {
+        try {
+            // Fetch full standard details including content
+            const response = await api.get(`/sops/standards/${standard.id}/`);
+            setSelectedStandard(response.data);
+            setShowViewStandardModal(true);
+        } catch (error) {
+            console.error('Error fetching standard details:', error);
+            showNotification('Failed to load standard details', 'error');
+        }
+    };
+
+    const handleOpenApproveModal = async (standard) => {
+        try {
+            const response = await api.get(`/sops/standards/${standard.id}/`);
+            setSelectedStandard(response.data);
+            setShowApproveStandardModal(true);
+        } catch (error) {
+            console.error('Error fetching standard details:', error);
+            showNotification('Failed to load standard details', 'error');
+        }
+    };
+
     // CRUD Operations
     const handleCreateGroup = async (data) => {
         try {
@@ -391,20 +451,14 @@ const StandardsManagement = () => {
                                         <div className="action-cell">
                                             <button
                                                 className="icon-btn"
-                                                onClick={() => {
-                                                    setSelectedStandard(standard);
-                                                    setShowViewStandardModal(true);
-                                                }}
+                                                onClick={() => handleViewStandard(standard)}
                                                 title="View"
                                             >
                                                 <Eye size={16} />
                                             </button>
                                             <button
                                                 className="icon-btn"
-                                                onClick={() => {
-                                                    setSelectedStandard(standard);
-                                                    setShowEditStandardModal(true);
-                                                }}
+                                                onClick={() => handleEditStandard(standard)}
                                                 title="Edit"
                                             >
                                                 <Edit size={16} />
@@ -412,10 +466,7 @@ const StandardsManagement = () => {
                                             {standard.status === 'Draft' && (
                                                 <button
                                                     className="icon-btn success"
-                                                    onClick={() => {
-                                                        setSelectedStandard(standard);
-                                                        setShowApproveStandardModal(true);
-                                                    }}
+                                                    onClick={() => handleOpenApproveModal(standard)}
                                                     title="Approve"
                                                 >
                                                     <CheckCircle size={16} />
@@ -489,10 +540,7 @@ const StandardsManagement = () => {
                                     <div className="group-actions">
                                         <button
                                             className="icon-btn"
-                                            onClick={() => {
-                                                setSelectedGroup(group);
-                                                setShowEditGroupModal(true);
-                                            }}
+                                            onClick={() => handleEditGroup(group)}
                                             title="Edit Group"
                                         >
                                             <Edit size={16} />
@@ -549,10 +597,7 @@ const StandardsManagement = () => {
                                                         <div className="subgroup-actions">
                                                             <button
                                                                 className="icon-btn"
-                                                                onClick={() => {
-                                                                    setSelectedSubGroup(subGroup);
-                                                                    setShowEditSubGroupModal(true);
-                                                                }}
+                                                                onClick={() => handleEditSubGroup(subGroup)}
                                                                 title="Edit Subgroup"
                                                             >
                                                                 <Edit size={16} />
@@ -606,20 +651,14 @@ const StandardsManagement = () => {
                                                                         <div className="standard-actions">
                                                                             <button
                                                                                 className="icon-btn"
-                                                                                onClick={() => {
-                                                                                    setSelectedStandard(standard);
-                                                                                    setShowViewStandardModal(true);
-                                                                                }}
+                                                                                onClick={() => handleViewStandard(standard)}
                                                                                 title="View"
                                                                             >
                                                                                 <Eye size={14} />
                                                                             </button>
                                                                             <button
                                                                                 className="icon-btn"
-                                                                                onClick={() => {
-                                                                                    setSelectedStandard(standard);
-                                                                                    setShowEditStandardModal(true);
-                                                                                }}
+                                                                                onClick={() => handleEditStandard(standard)}
                                                                                 title="Edit"
                                                                             >
                                                                                 <Edit size={14} />
@@ -767,7 +806,8 @@ const StandardsManagement = () => {
                     }}
                     onEdit={() => {
                         setShowViewStandardModal(false);
-                        setShowEditStandardModal(true);
+                        // Use handleEditStandard to fetch full details
+                        handleEditStandard(selectedStandard);
                     }}
                 />
             )}
