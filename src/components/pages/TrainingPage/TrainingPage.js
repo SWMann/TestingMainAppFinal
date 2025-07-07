@@ -5,7 +5,8 @@ import {
     BookOpen, Award, Search, Filter, ChevronRight, ChevronDown,
     Plus, Edit, Trash2, FileText, Clock, Shield, Users,
     CheckCircle, XCircle, AlertCircle, Download, ExternalLink,
-    Tag, Calendar, User, Building, Lock, Unlock, ChevronUp
+    Tag, Calendar, User, Building, Lock, Unlock, ChevronUp,
+    Cpu, Database, Terminal, Zap
 } from 'lucide-react';
 import api from '../../../services/api';
 import './TrainingPage.css';
@@ -69,7 +70,7 @@ const TrainingPage = () => {
             setBranches(branchesRes.data.results || branchesRes.data);
         } catch (err) {
             console.error('Error fetching initial data:', err);
-            setError('Failed to load training data');
+            setError('Failed to initialize training systems');
         } finally {
             setLoading(false);
         }
@@ -202,7 +203,7 @@ const TrainingPage = () => {
         return (
             <div className="training-loading">
                 <div className="spinner"></div>
-                <p>Loading training resources...</p>
+                <p>INITIALIZING TRAINING PROTOCOLS...</p>
             </div>
         );
     }
@@ -212,27 +213,29 @@ const TrainingPage = () => {
             {/* Header */}
             <div className="training-header">
                 <div className="header-content">
-                    <h1>Training & Standards</h1>
-                    <p>Access standard operating procedures and manage certifications</p>
+                    <h1>FLEET TRAINING SYSTEMS</h1>
+                    <p>Access operational protocols and certification management</p>
                 </div>
             </div>
 
             {/* Navigation Tabs */}
             <div className="training-tabs">
-                <button
-                    className={`tab ${activeTab === 'sops' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('sops')}
-                >
-                    <BookOpen size={18} />
-                    Standard Operating Procedures
-                </button>
-                <button
-                    className={`tab ${activeTab === 'certificates' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('certificates')}
-                >
-                    <Award size={18} />
-                    Training Certificates
-                </button>
+                <div className="tabs-container">
+                    <button
+                        className={`tab ${activeTab === 'sops' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('sops')}
+                    >
+                        <Database size={18} />
+                        Operational Protocols
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'certificates' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('certificates')}
+                    >
+                        <Award size={18} />
+                        Certification Registry
+                    </button>
+                </div>
             </div>
 
             {/* Content */}
@@ -241,15 +244,17 @@ const TrainingPage = () => {
                     <div className="sop-section">
                         {/* SOP Controls */}
                         <div className="section-controls">
-                            <div className="search-box">
-                                <Search size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Search standards..."
-                                    value={sopSearchTerm}
-                                    onChange={(e) => setSopSearchTerm(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && searchStandards()}
-                                />
+                            <div className="left-controls">
+                                <div className="search-box">
+                                    <Search size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search protocols..."
+                                        value={sopSearchTerm}
+                                        onChange={(e) => setSopSearchTerm(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && searchStandards()}
+                                    />
+                                </div>
                             </div>
                             {isAdmin && (
                                 <button
@@ -257,7 +262,7 @@ const TrainingPage = () => {
                                     onClick={() => setShowCreateSOPModal(true)}
                                 >
                                     <Plus size={18} />
-                                    Create SOP
+                                    CREATE PROTOCOL
                                 </button>
                             )}
                         </div>
@@ -266,7 +271,9 @@ const TrainingPage = () => {
                         <div className="sop-content">
                             {/* Groups Navigation */}
                             <div className="sop-navigation">
-                                <h3>Categories</h3>
+                                <div className="nav-header">
+                                    <h3>PROTOCOL CATEGORIES</h3>
+                                </div>
                                 <div className="groups-list">
                                     {sopGroups.map(group => (
                                         <div key={group.id} className="group-item">
@@ -292,7 +299,7 @@ const TrainingPage = () => {
                                                             className={`subgroup-item ${selectedSubGroup?.id === subgroup.id ? 'active' : ''}`}
                                                             onClick={() => handleSubGroupSelect(subgroup)}
                                                         >
-                                                            <FileText size={14} />
+                                                            <Terminal size={14} />
                                                             <span>{subgroup.name}</span>
                                                             <span className="count">{subgroup.standards_count}</span>
                                                         </div>
@@ -336,7 +343,7 @@ const TrainingPage = () => {
                                                                 {standard.difficulty_level}
                                                             </span>
                                                             {standard.is_required && (
-                                                                <span className="required-badge">Required</span>
+                                                                <span className="required-badge">MANDATORY</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -346,7 +353,7 @@ const TrainingPage = () => {
                                                     <div className="standard-meta">
                                                         <span><User size={14} /> {standard.author_username}</span>
                                                         <span><Calendar size={14} /> {formatDate(standard.effective_date)}</span>
-                                                        <span>v{standard.version}</span>
+                                                        <span><Cpu size={14} /> v{standard.version}</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -354,7 +361,9 @@ const TrainingPage = () => {
                                     </>
                                 ) : sopSearchTerm && standards.length > 0 ? (
                                     <>
-                                        <h3>Search Results</h3>
+                                        <div className="section-header">
+                                            <h3>SEARCH RESULTS</h3>
+                                        </div>
                                         <div className="standards-list">
                                             {standards.map(standard => (
                                                 <div
@@ -382,9 +391,9 @@ const TrainingPage = () => {
                                     </>
                                 ) : (
                                     <div className="empty-state">
-                                        <BookOpen size={48} />
-                                        <h3>Select a category to view standards</h3>
-                                        <p>Browse through the categories on the left or use the search bar</p>
+                                        <Database size={48} />
+                                        <h3>NO PROTOCOL SELECTED</h3>
+                                        <p>Select a category to access operational protocols or use the search function</p>
                                     </div>
                                 )}
                             </div>
@@ -397,17 +406,17 @@ const TrainingPage = () => {
                                             className="back-btn"
                                             onClick={() => setSelectedStandard(null)}
                                         >
-                                            ← Back to list
+                                            ← RETURN TO LIST
                                         </button>
                                         {isAdmin && (
                                             <div className="detail-actions">
-                                                <button className="action-btn">
+                                                <button className="action-btn small secondary">
                                                     <Edit size={16} />
-                                                    Edit
+                                                    MODIFY
                                                 </button>
-                                                <button className="action-btn danger">
+                                                <button className="action-btn small danger">
                                                     <Trash2 size={16} />
-                                                    Delete
+                                                    PURGE
                                                 </button>
                                             </div>
                                         )}
@@ -427,27 +436,27 @@ const TrainingPage = () => {
                                                     {selectedStandard.difficulty_level}
                                                 </span>
                                                 {selectedStandard.is_required && (
-                                                    <span className="required-badge">Required</span>
+                                                    <span className="required-badge">MANDATORY</span>
                                                 )}
                                             </div>
                                         </div>
 
                                         <div className="detail-info">
                                             <div className="info-row">
-                                                <span className="label">Author:</span>
+                                                <span className="label">AUTHOR</span>
                                                 <span>{selectedStandard.author_username}</span>
                                             </div>
                                             <div className="info-row">
-                                                <span className="label">Version:</span>
+                                                <span className="label">VERSION</span>
                                                 <span>{selectedStandard.version}</span>
                                             </div>
                                             <div className="info-row">
-                                                <span className="label">Effective Date:</span>
+                                                <span className="label">EFFECTIVE DATE</span>
                                                 <span>{formatDate(selectedStandard.effective_date)}</span>
                                             </div>
                                             {selectedStandard.review_date && (
                                                 <div className="info-row">
-                                                    <span className="label">Review Date:</span>
+                                                    <span className="label">REVIEW DATE</span>
                                                     <span>{formatDate(selectedStandard.review_date)}</span>
                                                 </div>
                                             )}
@@ -455,13 +464,13 @@ const TrainingPage = () => {
 
                                         {selectedStandard.summary && (
                                             <div className="detail-section">
-                                                <h3>Summary</h3>
+                                                <h3>EXECUTIVE SUMMARY</h3>
                                                 <p>{selectedStandard.summary}</p>
                                             </div>
                                         )}
 
                                         <div className="detail-section">
-                                            <h3>Content</h3>
+                                            <h3>PROTOCOL CONTENT</h3>
                                             <div className="sop-content-text">
                                                 {selectedStandard.content}
                                             </div>
@@ -469,7 +478,7 @@ const TrainingPage = () => {
 
                                         {selectedStandard.pdf_url && (
                                             <div className="detail-section">
-                                                <h3>Resources</h3>
+                                                <h3>RESOURCES</h3>
                                                 <a
                                                     href={selectedStandard.pdf_url}
                                                     target="_blank"
@@ -477,14 +486,14 @@ const TrainingPage = () => {
                                                     className="resource-link"
                                                 >
                                                     <Download size={16} />
-                                                    Download PDF
+                                                    DOWNLOAD DATAPAD
                                                 </a>
                                             </div>
                                         )}
 
                                         {selectedStandard.tags && selectedStandard.tags.length > 0 && (
                                             <div className="detail-section">
-                                                <h3>Tags</h3>
+                                                <h3>TAGS</h3>
                                                 <div className="tags-list">
                                                     {selectedStandard.tags.map((tag, index) => (
                                                         <span key={index} className="tag">
@@ -509,7 +518,7 @@ const TrainingPage = () => {
                                     <Search size={18} />
                                     <input
                                         type="text"
-                                        placeholder="Search certificates..."
+                                        placeholder="Search certifications..."
                                         value={certSearchTerm}
                                         onChange={(e) => setCertSearchTerm(e.target.value)}
                                     />
@@ -519,10 +528,10 @@ const TrainingPage = () => {
                                     value={selectedBranch}
                                     onChange={(e) => setSelectedBranch(e.target.value)}
                                 >
-                                    <option value="all">All Branches</option>
+                                    <option value="all">ALL DIVISIONS</option>
                                     {branches.map(branch => (
                                         <option key={branch.id} value={branch.id}>
-                                            {branch.name}
+                                            {branch.name.toUpperCase()}
                                         </option>
                                     ))}
                                 </select>
@@ -533,7 +542,7 @@ const TrainingPage = () => {
                                     onClick={() => setShowCreateCertModal(true)}
                                 >
                                     <Plus size={18} />
-                                    Create Certificate
+                                    CREATE CERTIFICATION
                                 </button>
                             )}
                         </div>
@@ -541,7 +550,7 @@ const TrainingPage = () => {
                         {/* User's Certificates */}
                         {currentUser && userCertificates.length > 0 && (
                             <div className="user-certificates">
-                                <h3>My Certificates</h3>
+                                <h3>MY CERTIFICATIONS</h3>
                                 <div className="cert-grid">
                                     {userCertificates.map(userCert => (
                                         <div
@@ -563,25 +572,25 @@ const TrainingPage = () => {
                                             <div className="cert-details">
                                                 <div className="detail-item">
                                                     <Calendar size={14} />
-                                                    <span>Issued: {formatDate(userCert.issue_date)}</span>
+                                                    <span>ISSUED: {formatDate(userCert.issue_date)}</span>
                                                 </div>
                                                 {userCert.expiry_date && (
                                                     <div className="detail-item">
                                                         <Clock size={14} />
                                                         <span className={new Date(userCert.expiry_date) < new Date() ? 'expired' : ''}>
-                                                            Expires: {formatDate(userCert.expiry_date)}
+                                                            EXPIRES: {formatDate(userCert.expiry_date)}
                                                         </span>
                                                     </div>
                                                 )}
                                                 <div className="detail-item">
                                                     <User size={14} />
-                                                    <span>Issued by: {userCert.issuer_username}</span>
+                                                    <span>AUTHORIZED BY: {userCert.issuer_username}</span>
                                                 </div>
                                             </div>
                                             {!userCert.is_active && userCert.revocation_reason && (
                                                 <div className="revocation-info">
                                                     <AlertCircle size={14} />
-                                                    <span>Revoked: {userCert.revocation_reason}</span>
+                                                    <span>REVOKED: {userCert.revocation_reason}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -592,7 +601,7 @@ const TrainingPage = () => {
 
                         {/* Available Certificates */}
                         <div className="available-certificates">
-                            <h3>Available Certificates</h3>
+                            <h3>CERTIFICATION REGISTRY</h3>
                             <div className="cert-list">
                                 {filteredCertificates.map(cert => (
                                     <div key={cert.id} className="cert-item">
@@ -601,7 +610,7 @@ const TrainingPage = () => {
                                                 {cert.badge_image_url ? (
                                                     <img src={cert.badge_image_url} alt={cert.name} />
                                                 ) : (
-                                                    <Award size={32} />
+                                                    <Zap size={32} />
                                                 )}
                                             </div>
                                             <div className="cert-content">
@@ -618,19 +627,19 @@ const TrainingPage = () => {
                                                     {cert.is_required_for_promotion && (
                                                         <span className="promotion-tag">
                                                             <ChevronUp size={14} />
-                                                            Required for Promotion
+                                                            PROMOTION REQUIRED
                                                         </span>
                                                     )}
                                                     {cert.min_rank_name && (
                                                         <span className="rank-req">
                                                             <Shield size={14} />
-                                                            Min: {cert.min_rank_name}
+                                                            MIN: {cert.min_rank_name}
                                                         </span>
                                                     )}
                                                     {cert.expiration_period && (
                                                         <span className="expiry-info">
                                                             <Clock size={14} />
-                                                            Expires after {cert.expiration_period} days
+                                                            VALID FOR {cert.expiration_period} DAYS
                                                         </span>
                                                     )}
                                                 </div>
@@ -638,7 +647,7 @@ const TrainingPage = () => {
                                         </div>
                                         {cert.requirements && (
                                             <div className="cert-requirements">
-                                                <h5>Requirements:</h5>
+                                                <h5>REQUIREMENTS</h5>
                                                 <p>{cert.requirements}</p>
                                             </div>
                                         )}
@@ -652,7 +661,7 @@ const TrainingPage = () => {
                                                     }}
                                                 >
                                                     <Award size={14} />
-                                                    Issue
+                                                    ISSUE
                                                 </button>
                                                 <button
                                                     className="action-btn small secondary"
@@ -662,7 +671,7 @@ const TrainingPage = () => {
                                                     }}
                                                 >
                                                     <XCircle size={14} />
-                                                    Revoke
+                                                    REVOKE
                                                 </button>
                                             </div>
                                         )}
