@@ -220,7 +220,7 @@ const UserProfile = () => {
                         {user.current_rank && (
                             <img
                                 src={user.current_rank.insignia_display_url || user.current_rank.insignia_image || user.current_rank.insignia_image_url}
-                                alt={user.current_rank.name}
+                                alt={`${user.current_rank.name} insignia`}
                                 className="rank-insignia"
                             />
                         )}
