@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import api from '../../../services/api';
 import './TrainingPage.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CreateSOPModal from '../../modals/CreateSOPModal';
 import CreateCertificateModal from '../../modals/CreateCertificateModal';
 import IssueCertificateModal from '../../modals/IssueCertificateModal';
@@ -472,7 +474,42 @@ const TrainingPage = () => {
                                         <div className="detail-section">
                                             <h3>PROTOCOL CONTENT</h3>
                                             <div className="sop-content-text">
-                                                {selectedStandard.content}
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={{
+                                                        // Custom component renderers for Star Citizen theme
+                                                        h1: ({children}) => <h1 className="sop-h1">{children}</h1>,
+                                                        h2: ({children}) => <h2 className="sop-h2">{children}</h2>,
+                                                        h3: ({children}) => <h3 className="sop-h3">{children}</h3>,
+                                                        h4: ({children}) => <h4 className="sop-h4">{children}</h4>,
+                                                        h5: ({children}) => <h5 className="sop-h5">{children}</h5>,
+                                                        h6: ({children}) => <h6 className="sop-h6">{children}</h6>,
+                                                        table: ({children}) => <table className="sop-table">{children}</table>,
+                                                        th: ({children}) => <th className="sop-th">{children}</th>,
+                                                        td: ({children}) => <td className="sop-td">{children}</td>,
+                                                        code: ({inline, children}) =>
+                                                            inline ? (
+                                                                <code className="sop-code-inline">{children}</code>
+                                                            ) : (
+                                                                <code className="sop-code-block">{children}</code>
+                                                            ),
+                                                        pre: ({children}) => <pre className="sop-pre">{children}</pre>,
+                                                        blockquote: ({children}) => <blockquote className="sop-blockquote">{children}</blockquote>,
+                                                        ul: ({children}) => <ul className="sop-ul">{children}</ul>,
+                                                        ol: ({children}) => <ol className="sop-ol">{children}</ol>,
+                                                        li: ({children}) => <li className="sop-li">{children}</li>,
+                                                        a: ({href, children}) => (
+                                                            <a href={href} className="sop-link" target="_blank" rel="noopener noreferrer">
+                                                                {children}
+                                                            </a>
+                                                        ),
+                                                        hr: () => <hr className="sop-hr" />,
+                                                        strong: ({children}) => <strong className="sop-strong">{children}</strong>,
+                                                        em: ({children}) => <em className="sop-em">{children}</em>
+                                                    }}
+                                                >
+                                                    {selectedStandard.content}
+                                                </ReactMarkdown>
                                             </div>
                                         </div>
 
