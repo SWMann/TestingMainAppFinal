@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
     Home, Users, Calendar, Award, FileText, BarChart3,
     Shield, Settings, LogOut, User, Building, School,
-    Ship, Map, Send
+    Ship, Map, Send, Rocket, Globe, Zap
 } from 'lucide-react';
 import './Header.css';
 import api, { setLoggingOut } from '../../../services/api';
@@ -40,11 +40,9 @@ const Header = () => {
     }, [user, userData]);
 
     // Fetch rank details when user has a current_rank
-    // This fetches the complete rank object including abbreviation, insignia_image_url, etc.
     useEffect(() => {
         const fetchRankData = async () => {
             if (userData?.current_rank) {
-                // Reset rank data if current_rank changed
                 if (rankData && rankData.id !== userData.current_rank) {
                     setRankData(null);
                 }
@@ -63,7 +61,6 @@ const Header = () => {
                     }
                 }
             } else {
-                // Clear rank data if user has no current_rank
                 setRankData(null);
             }
         };
@@ -75,7 +72,6 @@ const Header = () => {
     useEffect(() => {
         const fetchUserProfile = async () => {
             if (isAuthenticated && userData) {
-                // Check if we need to fetch full profile data
                 const needsFullProfile = !userData.current_rank && !userData.rank && !userData.primary_unit && !userData.unit;
 
                 if (needsFullProfile) {
@@ -84,7 +80,6 @@ const Header = () => {
                         const response = await api.get('/users/me/');
                         console.log('User profile response:', response.data);
 
-                        // Update the user in Redux store
                         dispatch({
                             type: 'auth/updateUser',
                             payload: response.data
@@ -97,25 +92,25 @@ const Header = () => {
         };
 
         fetchUserProfile();
-    }, [isAuthenticated, userData?.id, dispatch]); // Use userData.id as dependency to avoid infinite loops
+    }, [isAuthenticated, userData?.id, dispatch]);
 
-    // Navigation items
+    // Navigation items with Star Citizen theme
     const navigationItems = [
-        { path: '/', label: 'Home', icon: Home },
-        { path: '/units', label: 'Units', icon: Building },
-        { path: '/roster', label: 'Roster', icon: Users },
-        { path: '/operations', label: 'Operations', icon: Calendar },
-        { path: '/training', label: 'Training', icon: School },
-        { path: '/awards', label: 'Awards', icon: Award },
-        { path: '/documents', label: 'Documents', icon: FileText },
+        { path: '/', label: 'Command', icon: Home },
+        { path: '/units', label: 'Fleet', icon: Globe },
+        { path: '/roster', label: 'Crew', icon: Users },
+        { path: '/operations', label: 'Missions', icon: Rocket },
+        { path: '/training', label: 'Academy', icon: School },
+        { path: '/awards', label: 'Commendations', icon: Award },
+        { path: '/documents', label: 'Intel', icon: FileText },
         { path: '/ships', label: 'Ships', icon: Ship },
     ];
 
     // Admin navigation items
     const adminItems = [
-        { path: '/admindashboard', label: 'Admin Panel', icon: Settings },
+        { path: '/admindashboard', label: 'Admin Terminal', icon: Settings },
         { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-        { path: '/hierarchy', label: 'Unit Hierarchy', icon: Map },
+        { path: '/hierarchy', label: 'Fleet Structure', icon: Map },
     ];
 
     // Close dropdown when clicking outside
@@ -157,23 +152,17 @@ const Header = () => {
 
     const handleLogout = async () => {
         try {
-            // Set logging out flag to prevent token refresh during logout
             setLoggingOut(true);
 
-            // Call logout endpoint
             await api.post('/auth/logout/');
 
-            // Clear local storage
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
 
-            // Dispatch logout action
             dispatch({ type: 'auth/logout' });
 
-            // Close dropdown
             setProfileDropdownOpen(false);
 
-            // Navigate to home
             navigate('/');
         } catch (error) {
             console.error('Logout error:', error);
@@ -184,7 +173,6 @@ const Header = () => {
 
     const handleProfileClick = () => {
         setProfileDropdownOpen(false);
-        // Navigate to profile using service number if available, otherwise use 'me'
         if (userData?.service_number) {
             navigate(`/profile/${userData.service_number}`);
         } else {
@@ -221,18 +209,16 @@ const Header = () => {
     const shouldShowApplyButton = isAuthenticated &&
         userData &&
         userData.application_date === null &&
-        !userData.service_number; // Don't show if they already have a service number
+        !userData.service_number;
 
     // Format avatar URL if it's a Discord avatar
     const getAvatarUrl = () => {
         if (userData?.avatar_url) {
             return userData.avatar_url;
         }
-        // Check for avatar in different possible locations
         if (userData?.avatar) {
             return userData.avatar;
         }
-        // If no avatar URL but has Discord ID, construct default Discord avatar
         if (userData?.discord_id) {
             const discriminator = parseInt(userData.discord_id) % 5;
             return `https://cdn.discordapp.com/embed/avatars/${discriminator}.png`;
@@ -240,7 +226,7 @@ const Header = () => {
         return null;
     };
 
-    // Check if user data is still loading (but don't wait for rank data)
+    // Check if user data is still loading
     if (isAuthenticated && !userData) {
         return (
             <div className="header-wrapper">
@@ -255,12 +241,12 @@ const Header = () => {
                                 </div>
                             </button>
                             <Link to="/" className="logo-link">
-                                <Shield className="logo-icon" />
-                                <span className="logo-text">3RD CORPS</span>
+                                <Zap className="logo-icon" />
+                                <span className="logo-text">5TH EXG</span>
                             </Link>
                         </div>
                         <div className="nav-container">
-                            <div className="loading-spinner">Loading...</div>
+                            <div className="loading-spinner">LOADING...</div>
                         </div>
                     </div>
                 </header>
@@ -287,8 +273,8 @@ const Header = () => {
                             </div>
                         </button>
                         <Link to="/" className="logo-link">
-                            <Shield className="logo-icon" />
-                            <span className="logo-text">3RD CORPS</span>
+                            <Zap className="logo-icon" />
+                            <span className="logo-text">5TH EXG</span>
                         </Link>
                     </div>
 
@@ -342,9 +328,9 @@ const Header = () => {
                                                 {userData.service_number || userData.serviceNumber || 'NO-SN'}
                                             </div>
                                         </div>
-                                        {rankData?.insignia_image_url && (
+                                        {(rankData?.insignia_display_url || rankData?.insignia_image || rankData?.insignia_image_url) && (
                                             <img
-                                                src={rankData.insignia_image_url}
+                                                src={rankData.insignia_display_url || rankData.insignia_image || rankData.insignia_image_url}
                                                 alt={rankData.name || 'Rank insignia'}
                                                 className="rank-insignia-small"
                                             />
@@ -376,7 +362,7 @@ const Header = () => {
                                                 onClick={handleProfileClick}
                                             >
                                                 <User size={16} />
-                                                <span>My Profile</span>
+                                                <span>My Terminal</span>
                                             </button>
                                             <button
                                                 className="dropdown-item"

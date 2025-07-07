@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Award, Star, FileText, Calendar, Bell, Clock, Medal,
-    BookOpen, Truck, ChevronRight, ChevronDown, Edit, LogOut,
-    Menu, Search, AtSign, AlertTriangle, Info, User, Activity } from 'lucide-react';
+import { Rocket, Users, Award, Star, FileText, Calendar, Bell, Clock, Medal,
+    BookOpen, Ship, ChevronRight, ChevronDown, Edit, LogOut,
+    Menu, Search, AtSign, AlertTriangle, Info, User, Activity, Zap, Globe } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from "../../../services/api"
@@ -30,27 +30,24 @@ const HomePage = () => {
     // Fetch user's rank details
     useEffect(() => {
         const fetchUserRank = async () => {
-            console.log('User object:', user); // Debug log
+            console.log('User object:', user);
 
             if (user && user.current_rank) {
                 try {
                     const rankId = user.current_rank;
-                    console.log('Rank ID:', rankId); // Debug log
+                    console.log('Rank ID:', rankId);
 
-                    // Check if it's a UUID string (not an object)
                     if (rankId && typeof rankId === 'string') {
                         console.log('Fetching rank with UUID:', rankId);
                         const rankResponse = await api.get(`/ranks/${rankId}/`);
                         console.log('Rank response:', rankResponse.data);
                         setUserRank(rankResponse.data);
                     } else if (rankId && typeof rankId === 'object') {
-                        // If current_rank is already an object with details
                         console.log('Rank is already an object:', rankId);
                         setUserRank(rankId);
                     }
                 } catch (error) {
                     console.error('Error fetching user rank:', error);
-                    // Try to fetch all ranks and find the matching one
                     try {
                         const ranksResponse = await api.get('/ranks/');
                         const ranks = ranksResponse.data.results || ranksResponse.data;
@@ -64,7 +61,7 @@ const HomePage = () => {
                     }
                 }
             } else {
-                console.log('User has no rank information'); // Debug log
+                console.log('User has no rank information');
             }
         };
 
@@ -107,13 +104,10 @@ const HomePage = () => {
 
         const level = userRank.level || 0;
 
-        // E1-E4: Junior Enlisted
+        // Adjust for space force ranks
         if (level >= 1 && level <= 4) return 'enlisted';
-        // E5-E9: NCO
         if (level >= 5 && level <= 9) return 'nco';
-        // W1-W5: Warrant Officers
         if (level >= 10 && level <= 14) return 'warrant';
-        // O1-O10: Officers
         if (level >= 15) return 'officer';
 
         return '';
@@ -134,29 +128,19 @@ const HomePage = () => {
 
     // Function to handle logout
     const handleLogout = async () => {
-        // Prevent multiple logout calls
         if (isLoggingOut) return;
 
         try {
             setIsLoggingOut(true);
             console.log('Homepage: Starting logout');
 
-            // Clear local state first to prevent UI issues
             setIsDropdownOpen(false);
-
-            // Clear Redux state
             dispatch({ type: 'LOGOUT' });
-
-            // Call the logout service
-            // If this causes a redirect, we've already updated the UI
             await authService.logout();
 
             console.log('Homepage: Logout successful');
-
-            // No redirect needed - let React handle the UI update
         } catch (error) {
             console.error('Homepage: Logout error:', error);
-            // Still clear local state even if API call fails
             dispatch({ type: 'LOGOUT' });
             setIsDropdownOpen(false);
         } finally {
@@ -175,13 +159,12 @@ const HomePage = () => {
                 const announcementsResponse = await api.get('/announcements/');
                 const announcementsData = announcementsResponse.data.results || announcementsResponse.data;
 
-                // Sort announcements - pinned first, then by date
                 const sortedAnnouncements = Array.isArray(announcementsData)
                     ? announcementsData.sort((a, b) => {
                         if (a.is_pinned && !b.is_pinned) return -1;
                         if (!a.is_pinned && b.is_pinned) return 1;
                         return new Date(b.created_at) - new Date(a.created_at);
-                    }).slice(0, 5) // Show only 5 most recent
+                    }).slice(0, 5)
                     : [];
 
                 setAnnouncements(sortedAnnouncements);
@@ -191,11 +174,10 @@ const HomePage = () => {
                 const eventsData = eventsResponse.data.results || eventsResponse.data;
                 setUpcomingEvents(Array.isArray(eventsData) ? eventsData.slice(0, 6) : []);
 
-                // Fetch all events for recent operations (completed events)
+                // Fetch all events for recent operations
                 const allEventsResponse = await api.get('/events/');
                 const allEventsData = allEventsResponse.data.results || allEventsResponse.data;
 
-                // Filter for completed events and sort by date
                 const completedEvents = Array.isArray(allEventsData)
                     ? allEventsData.filter(event => {
                         const eventDate = new Date(event.end_time || event.start_time);
@@ -209,7 +191,6 @@ const HomePage = () => {
                 const unitsResponse = await api.get('/units/');
                 const unitsData = unitsResponse.data.results || unitsResponse.data;
 
-                // Get featured units (you might want to add a 'featured' flag to your units)
                 const featured = Array.isArray(unitsData)
                     ? unitsData.filter(unit => unit.is_active !== false).slice(0, 3)
                     : [];
@@ -223,7 +204,7 @@ const HomePage = () => {
                         ? usersData.filter(u => u.is_active).length
                         : 0;
 
-                    // Fetch vehicles for motor pool size
+                    // Fetch vehicles for fleet size
                     const vehiclesResponse = await api.get('/vehicles/');
                     const vehiclesData = vehiclesResponse.data.results || vehiclesResponse.data;
                     const approvedVehicles = Array.isArray(vehiclesData)
@@ -238,14 +219,12 @@ const HomePage = () => {
                     });
                 } catch (statsError) {
                     console.error('Error fetching stats:', statsError);
-                    // Use default stats if can't fetch
                 }
 
             } catch (err) {
                 console.error('Error fetching data:', err);
                 setError('Failed to load some data. Please try refreshing the page.');
 
-                // Set empty arrays instead of fallback data
                 setAnnouncements([]);
                 setUpcomingEvents([]);
                 setRecentOperations([]);
@@ -271,7 +250,10 @@ const HomePage = () => {
             'Ceremony': 'ceremony',
             'Operation': 'combat',
             'Routine Operation': 'routine',
-            'Rescue Operation': 'rescue'
+            'Rescue Operation': 'rescue',
+            'Mining Operation': 'logistics',
+            'Salvage Operation': 'logistics',
+            'Exploration': 'training'
         };
         return typeMap[eventType] || 'default';
     };
@@ -282,7 +264,7 @@ const HomePage = () => {
             <div className="homepage-container">
                 <div className="loading-container">
                     <div className="loading-spinner"></div>
-                    <p>Loading data...</p>
+                    <p>INITIALIZING SYSTEMS...</p>
                 </div>
             </div>
         );
@@ -290,16 +272,13 @@ const HomePage = () => {
 
     return (
         <div className="homepage-container">
-            {/* Header */}
-
-
             {/* Hero Section */}
             <section className="hero-section">
                 <div className="hero-image-container">
                     <div className="hero-overlay"></div>
                     <img
-                        src="https://images.unsplash.com/photo-1526890725091-49b05ceb2b4b?w=1920&h=600&fit=crop"
-                        alt="III Corps Operations"
+                        src="https://media.robertsspaceindustries.com/8bx5n9lza409r/source.jpg"
+                        alt="5th Expeditionary Group Operations"
                         className="hero-image"
                     />
                     <div className="hero-gradient"></div>
@@ -307,18 +286,18 @@ const HomePage = () => {
                     {/* Hero content */}
                     <div className="hero-content">
                         <div className="hero-panel">
-                            <h1 className="hero-title">III CORPS</h1>
-                            <p className="hero-subtitle">"Phantom Warriors" - Cold War 1989 CENTAG Operations</p>
+                            <h1 className="hero-title">5TH EXPEDITIONARY</h1>
+                            <p className="hero-subtitle">"Beyond the Stars" - Elite Space Operations Group</p>
 
                             {nextEvent && (
                                 <div className="next-op-container">
                                     <div className="next-op-info">
-                                        <div className="next-op-label">NEXT OPERATION</div>
+                                        <div className="next-op-label">NEXT DEPLOYMENT</div>
                                         <div className="next-op-title">{nextEvent.title}</div>
                                         <div className="next-op-time">{formatDate(nextEvent.start_time)} at {formatTime(nextEvent.start_time)}</div>
                                     </div>
                                     <button className="rsvp-button">
-                                        SIGN UP
+                                        DEPLOY
                                     </button>
                                 </div>
                             )}
@@ -346,7 +325,7 @@ const HomePage = () => {
                                 <div className="panel-header">
                                     <h2 className="panel-title">
                                         <Bell size={20} className="panel-icon" />
-                                        Command Messages
+                                        Fleet Communications
                                     </h2>
                                     <a href="#" className="view-all-link">
                                         View All <ChevronRight size={16} />
@@ -363,7 +342,7 @@ const HomePage = () => {
                                                 {announcement.is_pinned && (
                                                     <div className="pinned-label">
                                                         <AlertTriangle size={14} />
-                                                        <span>PRIORITY MESSAGE</span>
+                                                        <span>PRIORITY TRANSMISSION</span>
                                                     </div>
                                                 )}
 
@@ -374,7 +353,7 @@ const HomePage = () => {
                                                     <div className="announcement-author">
                                                         <AtSign size={14} />
                                                         <span>
-                                                            {announcement.author?.current_rank?.abbreviation || ''} {announcement.author?.username || 'Command'}
+                                                            {announcement.author?.current_rank?.abbreviation || ''} {announcement.author?.username || 'Fleet Command'}
                                                         </span>
                                                     </div>
                                                     <div className="announcement-date">{formatDate(announcement.created_at)}</div>
@@ -384,7 +363,7 @@ const HomePage = () => {
                                     ) : (
                                         <div className="empty-state">
                                             <Info size={24} />
-                                            <p>No command messages at this time</p>
+                                            <p>No fleet communications at this time</p>
                                         </div>
                                     )}
                                 </div>
@@ -394,11 +373,11 @@ const HomePage = () => {
                             <div className="panel">
                                 <div className="panel-header">
                                     <h2 className="panel-title">
-                                        <Calendar size={20} className="panel-icon" />
-                                        Upcoming Operations
+                                        <Rocket size={20} className="panel-icon" />
+                                        Mission Deployments
                                     </h2>
                                     <a href="#" className="view-all-link">
-                                        View Calendar <ChevronRight size={16} />
+                                        Mission Board <ChevronRight size={16} />
                                     </a>
                                 </div>
 
@@ -408,7 +387,7 @@ const HomePage = () => {
                                             <div key={event.id} className="event-card">
                                                 <div className="event-image-container">
                                                     <img
-                                                        src={event.image_url || 'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=200&fit=crop'}
+                                                        src={event.image_url || 'https://media.robertsspaceindustries.com/2nje8q80zlcjr/source.jpg'}
                                                         alt={event.title}
                                                         className="event-image"
                                                     />
@@ -430,35 +409,35 @@ const HomePage = () => {
 
                                                     <div className="event-meta-grid">
                                                         <div className="event-meta-item">
-                                                            <div className="event-meta-label">Date</div>
+                                                            <div className="event-meta-label">Launch Date</div>
                                                             <div className="event-meta-value">{formatDate(event.start_time)}</div>
                                                         </div>
                                                         <div className="event-meta-item">
-                                                            <div className="event-meta-label">Time</div>
+                                                            <div className="event-meta-label">Launch Time</div>
                                                             <div className="event-meta-value">{formatTime(event.start_time)}</div>
                                                         </div>
                                                         <div className="event-meta-item">
-                                                            <div className="event-meta-label">AO</div>
-                                                            <div className="event-meta-value">{event.location?.split(' - ')[0] || 'TBD'}</div>
+                                                            <div className="event-meta-label">System</div>
+                                                            <div className="event-meta-value">{event.location?.split(' - ')[0] || 'Classified'}</div>
                                                         </div>
                                                         <div className="event-meta-item">
-                                                            <div className="event-meta-label">Host Unit</div>
-                                                            <div className="event-meta-value">{event.host_unit?.abbreviation || 'III Corps'}</div>
+                                                            <div className="event-meta-label">Task Force</div>
+                                                            <div className="event-meta-value">{event.host_unit?.abbreviation || '5th EXG'}</div>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="event-footer">
                                                     <button className="event-rsvp-button">
-                                                        SIGN UP
+                                                        ACCEPT MISSION
                                                     </button>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="empty-state">
-                                            <Calendar size={24} />
-                                            <p>No upcoming operations scheduled</p>
+                                            <Rocket size={24} />
+                                            <p>No active missions</p>
                                         </div>
                                     )}
                                 </div>
@@ -469,10 +448,10 @@ const HomePage = () => {
                                 <div className="panel-header">
                                     <h2 className="panel-title">
                                         <Activity size={20} className="panel-icon" />
-                                        Recent Operations
+                                        Recent Missions
                                     </h2>
                                     <a href="#" className="view-all-link">
-                                        View All <ChevronRight size={16} />
+                                        View Archives <ChevronRight size={16} />
                                     </a>
                                 </div>
 
@@ -481,10 +460,10 @@ const HomePage = () => {
                                         <table className="operations-table">
                                             <thead>
                                             <tr>
-                                                <th>Operation</th>
+                                                <th>Mission</th>
                                                 <th>Date</th>
                                                 <th>Type</th>
-                                                <th>Personnel</th>
+                                                <th>Crew</th>
                                                 <th>Status</th>
                                             </tr>
                                             </thead>
@@ -504,7 +483,7 @@ const HomePage = () => {
                                                     <td>
                                                         <div className="rating-dots">
                                                             {operation.status === 'Completed' ? (
-                                                                <span className="status-completed">Completed</span>
+                                                                <span className="status-completed">SUCCESS</span>
                                                             ) : (
                                                                 <span className="status-other">{operation.status || 'Unknown'}</span>
                                                             )}
@@ -517,7 +496,7 @@ const HomePage = () => {
                                     ) : (
                                         <div className="empty-state">
                                             <Activity size={24} />
-                                            <p>No recent operations to display</p>
+                                            <p>No recent missions to display</p>
                                         </div>
                                     )}
                                 </div>
@@ -538,16 +517,16 @@ const HomePage = () => {
                                             />
                                             {userRank && (
                                                 <div className={`rank-bubble ${getRankBubbleClass()}`}>
-                                                    {userRank.icon_url ? (
+                                                    {(userRank.insignia_display_url || userRank.insignia_image || userRank.icon_url) ? (
                                                         <img
-                                                            src={userRank.icon_url}
+                                                            src={userRank.insignia_display_url || userRank.insignia_image || userRank.icon_url}
                                                             alt={userRank.abbreviation}
                                                             className="rank-icon"
                                                         />
                                                     ) : (
                                                         <span className="rank-text">
-                                                            {userRank.abbreviation?.slice(0, 3) || 'PVT'}
-                                                        </span>
+                                                    {userRank.abbreviation?.slice(0, 3) || 'RCT'}
+                                                </span>
                                                     )}
                                                 </div>
                                             )}
@@ -555,7 +534,7 @@ const HomePage = () => {
                                         <div className="welcome-info">
                                             <h2 className="welcome-title">Welcome back,</h2>
                                             <div className="welcome-name">
-                                                {getRankAbbreviation()} {user?.username || 'Soldier'}
+                                                {getRankAbbreviation()} {user?.username || 'Pilot'}
                                             </div>
                                             {user?.primary_mos && (
                                                 <div className="welcome-mos">
@@ -568,16 +547,16 @@ const HomePage = () => {
                                     <div className="stats-grid">
                                         <div className="stat-box">
                                             <div className="stat-value">{upcomingEvents.length}</div>
-                                            <div className="stat-label">Upcoming Operations</div>
+                                            <div className="stat-label">Active Missions</div>
                                         </div>
                                         <div className="stat-box">
                                             <div className="stat-value">0</div>
-                                            <div className="stat-label">New Messages</div>
+                                            <div className="stat-label">New Intel</div>
                                         </div>
                                     </div>
 
                                     <Link to="/profile" className="dashboard-button">
-                                        MY DASHBOARD
+                                        ACCESS TERMINAL
                                     </Link>
                                     <button
                                         onClick={handleLogout}
@@ -585,19 +564,19 @@ const HomePage = () => {
                                         disabled={isLoggingOut}
                                     >
                                         <LogOut size={16} />
-                                        <span>LOGOUT</span>
+                                        <span>LOG OUT</span>
                                     </button>
                                 </div>
                             ) : (
                                 <div className="panel">
                                     <div className="panel-header">
                                         <h2 className="panel-title">
-                                            <Info size={20} className="panel-icon" />
-                                            Join the Regiment
+                                            <Zap size={20} className="panel-icon" />
+                                            Join the Fleet
                                         </h2>
                                     </div>
                                     <p className="join-text">
-                                        Sign in with Discord to access training materials, operation schedules, and unit resources.
+                                        Authenticate with Discord to access mission briefings, fleet resources, and crew assignments.
                                     </p>
                                     <div className="join-button-container">
                                         <button onClick={handleDiscordLogin} className="discord-login-button-large">
@@ -617,7 +596,7 @@ const HomePage = () => {
                                 <div className="panel-header">
                                     <h2 className="panel-title">
                                         <Info size={20} className="panel-icon" />
-                                        III Corps Stats
+                                        Fleet Status
                                     </h2>
                                 </div>
 
@@ -629,7 +608,7 @@ const HomePage = () => {
                                             </div>
                                             <div className="org-stat-content">
                                                 <div className="org-stat-value">{orgStats.memberCount}</div>
-                                                <div className="org-stat-label">PERSONNEL</div>
+                                                <div className="org-stat-label">CREW</div>
                                             </div>
                                         </div>
                                         <div className="org-stat-box">
@@ -643,11 +622,11 @@ const HomePage = () => {
                                         </div>
                                         <div className="org-stat-box">
                                             <div className="org-stat-icon">
-                                                <Truck size={16} />
+                                                <Ship size={16} />
                                             </div>
                                             <div className="org-stat-content">
                                                 <div className="org-stat-value">{orgStats.vehicleCount}</div>
-                                                <div className="org-stat-label">MOTOR POOL</div>
+                                                <div className="org-stat-label">FLEET SIZE</div>
                                             </div>
                                         </div>
                                         <div className="org-stat-box">
@@ -656,7 +635,7 @@ const HomePage = () => {
                                             </div>
                                             <div className="org-stat-content">
                                                 <div className="org-stat-value">{orgStats.completedOperations}</div>
-                                                <div className="org-stat-label">COMPLETED</div>
+                                                <div className="org-stat-label">MISSIONS</div>
                                             </div>
                                         </div>
                                     </div>
@@ -667,8 +646,8 @@ const HomePage = () => {
                             <div className="panel">
                                 <div className="panel-header">
                                     <h2 className="panel-title">
-                                        <Shield size={20} className="panel-icon" />
-                                        Featured Units
+                                        <Globe size={20} className="panel-icon" />
+                                        Task Forces
                                     </h2>
                                 </div>
 
@@ -678,7 +657,7 @@ const HomePage = () => {
                                             <div key={unit.id} className="unit-card">
                                                 <div className="unit-banner">
                                                     <img
-                                                        src={unit.banner_image_url || 'https://images.unsplash.com/photo-1526890725091-49b05ceb2b4b?w=300&h=150&fit=crop'}
+                                                        src={unit.banner_image_url || 'https://media.robertsspaceindustries.com/c13hhzwgmj4u4/source.jpg'}
                                                         alt={unit.name}
                                                         className="unit-banner-image"
                                                     />
@@ -699,7 +678,7 @@ const HomePage = () => {
                                                 </div>
                                                 <div className="unit-footer">
                                                     <div className="unit-member-count">
-                                                        {unit.member_count || 0} Personnel
+                                                        {unit.member_count || 0} Crew
                                                     </div>
                                                     <a href="#" className="unit-details-link">View Details</a>
                                                 </div>
@@ -707,8 +686,8 @@ const HomePage = () => {
                                         ))
                                     ) : (
                                         <div className="empty-state">
-                                            <Shield size={24} />
-                                            <p>No units to display</p>
+                                            <Globe size={24} />
+                                            <p>No task forces to display</p>
                                         </div>
                                     )}
                                 </div>
@@ -730,8 +709,8 @@ const HomePage = () => {
             {!isAuthenticated && (
                 <section className="join-banner">
                     <div className="join-banner-content">
-                        <h2 className="join-banner-title">Ready to serve in the III Corps?</h2>
-                        <p className="join-banner-text">The III Corps is actively recruiting soldiers for combined arms operations in the CENTAG theater. Experience authentic Cold War military simulation with professional training and teamwork.</p>
+                        <h2 className="join-banner-title">Ready to explore the verse?</h2>
+                        <p className="join-banner-text">The 5th Expeditionary Group is recruiting experienced pilots for deep space operations. Join an elite unit dedicated to exploration, combat excellence, and pushing the boundaries of known space.</p>
                         <div className="join-banner-buttons">
                             <button onClick={handleDiscordLogin} className="join-button primary">
                                 LOGIN WITH DISCORD
@@ -754,8 +733,8 @@ const HomePage = () => {
                                     <FileText size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">SOPs & Doctrine</h3>
-                            <p className="quick-link-description">Access standard operating procedures and tactical doctrine</p>
+                            <h3 className="quick-link-title">Flight Manual</h3>
+                            <p className="quick-link-description">Access operational procedures and tactical protocols</p>
                         </a>
 
                         <a href="#" className="quick-link-card">
@@ -764,8 +743,8 @@ const HomePage = () => {
                                     <Users size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">Personnel Directory</h3>
-                            <p className="quick-link-description">View unit roster and chain of command</p>
+                            <h3 className="quick-link-title">Crew Roster</h3>
+                            <p className="quick-link-description">View squadron assignments and command structure</p>
                         </a>
 
                         <a href="#" className="quick-link-card">
@@ -774,8 +753,8 @@ const HomePage = () => {
                                     <BookOpen size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">Training Center</h3>
-                            <p className="quick-link-description">Complete courses and earn certifications</p>
+                            <h3 className="quick-link-title">Flight School</h3>
+                            <p className="quick-link-description">Complete training modules and earn certifications</p>
                         </a>
 
                         <a href="#" className="quick-link-card">
@@ -784,8 +763,8 @@ const HomePage = () => {
                                     <Medal size={24} className="quick-icon" />
                                 </div>
                             </div>
-                            <h3 className="quick-link-title">Awards Board</h3>
-                            <p className="quick-link-description">View commendations and unit citations</p>
+                            <h3 className="quick-link-title">Commendations</h3>
+                            <p className="quick-link-description">View service records and unit citations</p>
                         </a>
                     </div>
                 </div>
@@ -796,29 +775,29 @@ const HomePage = () => {
                 <div className="footer-content">
                     <div className="footer-grid">
                         <div className="footer-about">
-                            <h3 className="footer-heading">III CORPS</h3>
-                            <p className="footer-text">Professional military simulation unit conducting combined arms operations in the Cold War 1989 era. Defending freedom through tactical excellence and teamwork in Arma Reforger.</p>
+                            <h3 className="footer-heading">5TH EXPEDITIONARY</h3>
+                            <p className="footer-text">Elite space operations group conducting advanced missions throughout the verse. Specializing in exploration, combat operations, and tactical excellence in Star Citizen.</p>
                         </div>
 
                         <div className="footer-links">
                             <h4 className="footer-subheading">Navigation</h4>
                             <ul className="footer-list">
-                                <li><a href="#" className="footer-link">Home</a></li>
+                                <li><a href="#" className="footer-link">Command</a></li>
                                 <li><a href="#" className="footer-link">Operations</a></li>
                                 <li><a href="#" className="footer-link">Personnel</a></li>
-                                <li><a href="#" className="footer-link">Training</a></li>
-                                <li><a href="#" className="footer-link">Resources</a></li>
+                                <li><a href="#" className="footer-link">Fleet</a></li>
+                                <li><a href="#" className="footer-link">Intel</a></li>
                             </ul>
                         </div>
 
                         <div className="footer-links">
                             <h4 className="footer-subheading">Resources</h4>
                             <ul className="footer-list">
-                                <li><a href="#" className="footer-link">Enlistment</a></li>
-                                <li><a href="#" className="footer-link">BCT Info</a></li>
-                                <li><a href="#" className="footer-link">Unit Standards</a></li>
+                                <li><a href="#" className="footer-link">Recruitment</a></li>
+                                <li><a href="#" className="footer-link">Training Protocols</a></li>
+                                <li><a href="#" className="footer-link">Fleet Standards</a></li>
                                 <li><a href="#" className="footer-link">Contact</a></li>
-                                <li><a href="#" className="footer-link">Privacy Policy</a></li>
+                                <li><a href="#" className="footer-link">Security Policy</a></li>
                             </ul>
                         </div>
 
@@ -841,12 +820,12 @@ const HomePage = () => {
                                     </svg>
                                 </a>
                             </div>
-                            <p className="discord-text">Join our Discord for real-time coordination and communication with the regiment.</p>
+                            <p className="discord-text">Join our Discord for real-time coordination and voice comms with the fleet.</p>
                         </div>
                     </div>
 
                     <div className="footer-copyright">
-                        <p>© 2025 III Corps MILSIM. All rights reserved. Not affiliated with the United States Army. This is a gaming community for Arma Reforger.</p>
+                        <p>© 2954 5th Expeditionary Group. All rights reserved. Not affiliated with Cloud Imperium Games. This is a player organization for Star Citizen.</p>
                     </div>
                 </div>
             </footer>
