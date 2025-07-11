@@ -70,11 +70,18 @@ const getUnitCategory = (unitType) => {
     return unitType.split('_')[0];
 };
 
+// Get branch color with proper formatting
+const getBranchColor = (branch) => {
+    if (!branch || !branch.color_code) return '#42c8f4';
+    // Add # if not present
+    return branch.color_code.startsWith('#') ? branch.color_code : `#${branch.color_code}`;
+};
+
 // Custom Node Component
 const UnitNode = ({ data }) => {
     const { unit, handleClick } = data;
     const isInactive = !unit.is_active;
-    const branchColor = unit.branch_color || '#42c8f4';
+    const branchColor = getBranchColor(unit.branch);
     const unitCategory = getUnitCategory(unit.unit_type);
 
     return (
@@ -96,16 +103,14 @@ const UnitNode = ({ data }) => {
             <div className="unit-body">
                 <p className="unit-name">{unit.name}</p>
                 <p className="unit-type">{formatUnitType(unit.unit_type)}</p>
-                {unit.commander && unit.commander.username && (
-                    <p className="unit-commander">
-                        {unit.commander.rank} {unit.commander.username}
-                    </p>
+                {unit.branch && (
+                    <p className="unit-branch">{unit.branch.abbreviation}</p>
                 )}
                 <div className="unit-stats">
-                    <span>Personnel: {unit.personnel_count || 0}</span>
-                    {unit.filled_count !== undefined && unit.position_count !== undefined && (
+                    <span>Personnel: {unit.statistics?.personnel_count || unit.personnel_count || 0}</span>
+                    {unit.statistics && (
                         <span className="fill-rate">
-                            {unit.filled_count}/{unit.position_count} positions
+                            {unit.statistics.filled_positions}/{unit.statistics.total_positions} positions
                         </span>
                     )}
                 </div>
@@ -138,7 +143,7 @@ const UnitModal = ({ unit, isOpen, onClose, positions }) => {
                         </div>
                         <div className="info-item">
                             <label>Branch:</label>
-                            <span>{unit.branch_name || 'N/A'}</span>
+                            <span>{unit.branch?.name || 'N/A'}</span>
                         </div>
                         <div className="info-item">
                             <label>Status:</label>
@@ -146,6 +151,20 @@ const UnitModal = ({ unit, isOpen, onClose, positions }) => {
                                 {unit.is_active ? 'Active' : 'Inactive'}
                             </span>
                         </div>
+                        {unit.recruitment_status && (
+                            <div className="info-item">
+                                <label>Recruitment:</label>
+                                <span className={`recruitment-${unit.recruitment_status}`}>
+                                    {unit.recruitment_status.charAt(0).toUpperCase() + unit.recruitment_status.slice(1)}
+                                </span>
+                            </div>
+                        )}
+                        {unit.location && (
+                            <div className="info-item">
+                                <label>Location:</label>
+                                <span>{unit.location}</span>
+                            </div>
+                        )}
                         {unit.motto && (
                             <div className="info-item full-width">
                                 <label>Motto:</label>
@@ -160,18 +179,46 @@ const UnitModal = ({ unit, isOpen, onClose, positions }) => {
                         )}
                     </div>
 
+                    {unit.statistics && (
+                        <div className="statistics-section">
+                            <h3>Unit Statistics</h3>
+                            <div className="stats-grid">
+                                <div className="stat-item">
+                                    <label>Total Positions:</label>
+                                    <span>{unit.statistics.total_positions}</span>
+                                </div>
+                                <div className="stat-item">
+                                    <label>Filled Positions:</label>
+                                    <span className="filled">{unit.statistics.filled_positions}</span>
+                                </div>
+                                <div className="stat-item">
+                                    <label>Vacant Positions:</label>
+                                    <span className="vacant">{unit.statistics.vacant_positions}</span>
+                                </div>
+                                <div className="stat-item">
+                                    <label>Fill Rate:</label>
+                                    <span>{unit.statistics.fill_rate}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="positions-section">
                         <h3>Positions ({positions.length})</h3>
-                        <div className="positions-list">
-                            {positions.map(position => (
-                                <div key={position.id} className="position-item">
-                                    <span className="position-title">{position.display_title}</span>
-                                    <span className={`position-status ${position.is_vacant ? 'vacant' : 'filled'}`}>
-                                        {position.is_vacant ? 'Vacant' : 'Filled'}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                        {positions.length > 0 ? (
+                            <div className="positions-list">
+                                {positions.map(position => (
+                                    <div key={position.id} className="position-item">
+                                        <span className="position-title">{position.display_title}</span>
+                                        <span className={`position-status ${position.is_vacant ? 'vacant' : 'filled'}`}>
+                                            {position.is_vacant ? 'Vacant' : 'Filled'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="no-positions">No positions defined for this unit</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -294,19 +341,26 @@ const UnitOrganizationChart = () => {
         let animated = false;
         let label = 'Reports to';
 
+        // Check if units are from different branches
+        const differentBranches = sourceUnit.branch?.id !== targetUnit.branch?.id;
+
         if (!sourceActive || !targetActive) {
             edgeColor = '#666666';
             strokeDasharray = '5 5';
             label = 'Inactive Link';
-        } else if (sourceCategory !== targetCategory && sourceCategory !== 'default' && targetCategory !== 'default') {
+        } else if (differentBranches) {
             edgeColor = '#ff7b00';
             strokeDasharray = '10 5';
             label = 'Cross-Branch';
             animated = true;
+        } else if (sourceCategory !== targetCategory && sourceCategory !== 'default' && targetCategory !== 'default') {
+            edgeColor = '#ffaa00';
+            strokeDasharray = '8 4';
+            label = 'Cross-Type';
         } else if (sourceCategory === targetCategory) {
             switch (sourceCategory) {
                 case 'navy':
-                    edgeColor = '#0066CC';
+                    edgeColor = getBranchColor(sourceUnit.branch);
                     label = 'Naval Command';
                     break;
                 case 'aviation':
@@ -318,7 +372,7 @@ const UnitOrganizationChart = () => {
                     label = 'Ground Command';
                     break;
                 default:
-                    edgeColor = '#42c8f4';
+                    edgeColor = getBranchColor(sourceUnit.branch);
             }
         }
 
@@ -366,9 +420,15 @@ const UnitOrganizationChart = () => {
             setPositions(positions);
         } catch (error) {
             console.error('Failed to fetch positions:', error);
-            setPositions([]);
+            // If the endpoint fails, try to use positions from the unit data
+            const unit = unitData[unitId];
+            if (unit && unit.positions) {
+                setPositions(unit.positions);
+            } else {
+                setPositions([]);
+            }
         }
-    }, []);
+    }, [unitData]);
 
     // Handle node click
     const handleNodeClick = useCallback((unit) => {
@@ -390,8 +450,11 @@ const UnitOrganizationChart = () => {
             setLoading(true);
             setError(null);
 
-            const response = await api.get('/units/');
-            const units = response.data;
+            const response = await api.get('/units/orbat/units_list/');
+            const data = response.data;
+
+            // Extract units from results array
+            const units = data.results || [];
 
             if (!units || units.length === 0) {
                 setError('No units found in the organization.');
@@ -408,24 +471,21 @@ const UnitOrganizationChart = () => {
                 id: unit.id,
                 type: 'unitNode',
                 data: {
-                    unit: {
-                        ...unit,
-                        branch_color: unit.branch_color || '#42c8f4'
-                    },
+                    unit: unit,
                     handleClick: handleNodeClick
                 },
                 position: { x: 0, y: 0 }
             }));
 
             const flowEdges = units
-                .filter(unit => unit.parent_unit_id && unitMap[unit.parent_unit_id])
+                .filter(unit => unit.parent_unit && unitMap[unit.parent_unit])
                 .map(unit => {
-                    const parentUnit = unitMap[unit.parent_unit_id];
+                    const parentUnit = unitMap[unit.parent_unit];
                     const edgeStyle = getEdgeStyle(parentUnit, unit);
 
                     return {
-                        id: `e${unit.parent_unit_id}-${unit.id}`,
-                        source: unit.parent_unit_id,
+                        id: `e${unit.parent_unit}-${unit.id}`,
+                        source: unit.parent_unit,
                         target: unit.id,
                         type: 'smoothstep',
                         ...edgeStyle
@@ -512,6 +572,10 @@ const UnitOrganizationChart = () => {
                             <span>Cross-Branch</span>
                         </div>
                         <div className="legend-item">
+                            <div className="legend-line cross-type"></div>
+                            <span>Cross-Type</span>
+                        </div>
+                        <div className="legend-item">
                             <div className="legend-line inactive-link"></div>
                             <span>Inactive Link</span>
                         </div>
@@ -554,7 +618,8 @@ const UnitOrganizationChart = () => {
                         <MiniMap
                             nodeColor={(node) => {
                                 const unit = node.data.unit;
-                                return unit.is_active ? unit.branch_color : '#666';
+                                const branchColor = getBranchColor(unit.branch);
+                                return unit.is_active ? branchColor : '#666';
                             }}
                             style={{
                                 backgroundColor: '#111',
@@ -672,11 +737,11 @@ const UnitOrganizationChart = () => {
                 }
 
                 .legend-line.navy {
-                    background: #0066CC;
+                    background: #003F87;
                 }
 
                 .legend-line.navy::before {
-                    color: #0066CC;
+                    color: #003F87;
                 }
 
                 .legend-line.aviation {
@@ -697,11 +762,11 @@ const UnitOrganizationChart = () => {
 
                 .legend-line.cross-branch {
                     background: repeating-linear-gradient(
-                            90deg,
-                            #ff7b00 0px,
-                            #ff7b00 10px,
-                            transparent 10px,
-                            transparent 15px
+                        90deg,
+                        #ff7b00 0px,
+                        #ff7b00 10px,
+                        transparent 10px,
+                        transparent 15px
                     );
                 }
 
@@ -709,13 +774,27 @@ const UnitOrganizationChart = () => {
                     color: #ff7b00;
                 }
 
+                .legend-line.cross-type {
+                    background: repeating-linear-gradient(
+                        90deg,
+                        #ffaa00 0px,
+                        #ffaa00 8px,
+                        transparent 8px,
+                        transparent 12px
+                    );
+                }
+
+                .legend-line.cross-type::before {
+                    color: #ffaa00;
+                }
+
                 .legend-line.inactive-link {
                     background: repeating-linear-gradient(
-                            90deg,
-                            #666666 0px,
-                            #666666 5px,
-                            transparent 5px,
-                            transparent 10px
+                        90deg,
+                        #666666 0px,
+                        #666666 5px,
+                        transparent 5px,
+                        transparent 10px
                     );
                 }
 
@@ -752,7 +831,7 @@ const UnitOrganizationChart = () => {
                     position: absolute;
                     top: -10px;
                     right: -10px;
-                    background: #0066CC;
+                    background: #003F87;
                     color: white;
                     width: 24px;
                     height: 24px;
@@ -762,6 +841,7 @@ const UnitOrganizationChart = () => {
                     justify-content: center;
                     font-size: 14px;
                     border: 2px solid #0a0a0a;
+                    z-index: 1;
                 }
 
                 .unit-node.category-aviation::before {
@@ -779,6 +859,7 @@ const UnitOrganizationChart = () => {
                     justify-content: center;
                     font-size: 14px;
                     border: 2px solid #0a0a0a;
+                    z-index: 1;
                 }
 
                 .unit-node.category-ground::before {
@@ -796,6 +877,7 @@ const UnitOrganizationChart = () => {
                     justify-content: center;
                     font-size: 14px;
                     border: 2px solid #0a0a0a;
+                    z-index: 1;
                 }
 
                 .unit-header {
@@ -836,7 +918,7 @@ const UnitOrganizationChart = () => {
                     letter-spacing: 0.05em;
                 }
 
-                .unit-commander {
+                .unit-branch {
                     font-size: 0.75rem;
                     color: #42c8f4;
                     margin: 0.25rem 0;
@@ -867,6 +949,7 @@ const UnitOrganizationChart = () => {
                     font-size: 0.625rem;
                     font-weight: bold;
                     text-transform: uppercase;
+                    z-index: 1;
                 }
 
                 .position-panel {
@@ -1080,6 +1163,62 @@ const UnitOrganizationChart = () => {
                     color: #ff3333;
                 }
 
+                .info-item .recruitment-open {
+                    color: #00ff88;
+                }
+
+                .info-item .recruitment-closed {
+                    color: #ff3333;
+                }
+
+                .info-item .recruitment-limited {
+                    color: #ffaa00;
+                }
+
+                .statistics-section {
+                    margin-bottom: 2rem;
+                }
+
+                .statistics-section h3 {
+                    margin: 0 0 1rem 0;
+                    font-size: 1.125rem;
+                    color: #42c8f4;
+                    text-transform: uppercase;
+                }
+
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.75rem;
+                }
+
+                .stat-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0.5rem;
+                    background: rgba(66, 200, 244, 0.05);
+                    border: 1px solid rgba(66, 200, 244, 0.1);
+                    border-radius: 4px;
+                }
+
+                .stat-item label {
+                    font-size: 0.75rem;
+                    color: #a8b2bd;
+                }
+
+                .stat-item span {
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                }
+
+                .stat-item .filled {
+                    color: #00ff88;
+                }
+
+                .stat-item .vacant {
+                    color: #ffaa00;
+                }
+
                 .positions-section h3 {
                     margin: 0 0 1rem 0;
                     font-size: 1.125rem;
@@ -1256,6 +1395,10 @@ const UnitOrganizationChart = () => {
                     }
 
                     .info-grid {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .stats-grid {
                         grid-template-columns: 1fr;
                     }
                 }
