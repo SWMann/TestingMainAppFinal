@@ -10,18 +10,14 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactFlow, {
-    Node,
-    Edge,
     useNodesState,
     useEdgesState,
     Controls,
     Background,
     MiniMap,
-    ReactFlowProvider,
     Panel,
     ConnectionMode,
-    MarkerType,
-    Position
+    MarkerType
 } from 'reactflow';
 import dagre from 'dagre';
 import axios from 'axios';
@@ -65,14 +61,26 @@ const formatUnitType = (unitType) => {
     return formattedType;
 };
 
-const getUnitCategory = (unitType) => {
+const getUnitCategory = (unitType, branch) => {
+    // Check branch first for marines
+    if (branch && (branch.abbreviation === 'UEEM' || branch.name?.includes('Marine'))) {
+        return 'marine';
+    }
+
     if (!unitType || !unitType.includes('_')) return 'default';
     return unitType.split('_')[0];
 };
 
 // Get branch color with proper formatting
 const getBranchColor = (branch) => {
-    if (!branch || !branch.color_code) return '#42c8f4';
+    if (!branch) return '#42c8f4';
+
+    // Check for marine branch
+    if (branch.abbreviation === 'UEEM' || branch.name?.includes('Marine')) {
+        return '#ff7b00'; // Orange for marines
+    }
+
+    if (!branch.color_code) return '#42c8f4';
     // Add # if not present
     return branch.color_code.startsWith('#') ? branch.color_code : `#${branch.color_code}`;
 };
@@ -82,7 +90,7 @@ const UnitNode = ({ data }) => {
     const { unit, handleClick } = data;
     const isInactive = !unit.is_active;
     const branchColor = getBranchColor(unit.branch);
-    const unitCategory = getUnitCategory(unit.unit_type);
+    const unitCategory = getUnitCategory(unit.unit_type, unit.branch);
 
     return (
         <div
@@ -315,7 +323,6 @@ const UnitOrganizationChart = () => {
             setPositions(positions);
         } catch (error) {
             console.error('Failed to fetch positions:', error);
-            // If the endpoint fails, try to use positions from the unit data
             const unit = unitData[unitId];
             if (unit && unit.positions) {
                 setPositions(unit.positions);
@@ -345,10 +352,8 @@ const UnitOrganizationChart = () => {
                 const response = await api.get('/units/');
                 const data = response.data;
 
-                // Check if component is still mounted
                 if (!mounted) return;
 
-                // Extract units from results array
                 const units = data.results || data || [];
 
                 if (!units || units.length === 0) {
@@ -357,16 +362,16 @@ const UnitOrganizationChart = () => {
                     return;
                 }
 
-                // Store unit data
+                // Store unit data with string keys
                 const unitMap = {};
                 units.forEach(unit => {
-                    unitMap[unit.id] = unit;
+                    unitMap[String(unit.id)] = unit;
                 });
                 setUnitData(unitMap);
 
-                // Create nodes with inline click handlers
+                // Create nodes
                 const flowNodes = units.map(unit => ({
-                    id: unit.id,
+                    id: String(unit.id),
                     type: 'unitNode',
                     data: {
                         unit: unit,
@@ -380,12 +385,12 @@ const UnitOrganizationChart = () => {
                 // Create edges
                 const flowEdges = [];
                 units.forEach(unit => {
-                    if (unit.parent_unit && unitMap[unit.parent_unit]) {
-                        const parentUnit = unitMap[unit.parent_unit];
+                    if (unit.parent_unit && unitMap[String(unit.parent_unit)]) {
+                        const parentUnit = unitMap[String(unit.parent_unit)];
 
-                        // Inline edge style calculation
-                        const sourceCategory = getUnitCategory(parentUnit.unit_type);
-                        const targetCategory = getUnitCategory(unit.unit_type);
+                        // Determine edge styling
+                        const sourceCategory = getUnitCategory(parentUnit.unit_type, parentUnit.branch);
+                        const targetCategory = getUnitCategory(unit.unit_type, unit.branch);
                         const differentBranches = parentUnit.branch?.id !== unit.branch?.id;
 
                         let edgeColor = '#42c8f4';
@@ -420,37 +425,46 @@ const UnitOrganizationChart = () => {
                                     edgeColor = '#ff3333';
                                     label = 'Ground Command';
                                     break;
+                                case 'marine':
+                                    edgeColor = '#ff7b00';
+                                    label = 'Marine Command';
+                                    break;
                             }
                         }
 
                         flowEdges.push({
                             id: `e${unit.parent_unit}-${unit.id}`,
-                            source: unit.parent_unit,
-                            target: unit.id,
+                            source: String(unit.parent_unit),
+                            target: String(unit.id),
                             type: 'smoothstep',
                             style: {
                                 stroke: edgeColor,
                                 strokeWidth: 2,
-                                strokeDasharray: strokeDasharray
+                                strokeDasharray: strokeDasharray,
+                                strokeLinecap: 'round'
                             },
                             animated: animated,
                             label: label,
                             labelShowBg: true,
                             labelStyle: {
-                                fill: edgeColor,
-                                fontSize: 9,
-                                fontWeight: 500,
-                                opacity: 0.8
+                                fill: '#ffffff',
+                                fontSize: 10,
+                                fontWeight: 600,
+                                fontFamily: 'Exo 2, sans-serif'
                             },
                             labelBgStyle: {
                                 fill: '#0a0a0a',
-                                fillOpacity: 0.9,
-                                borderRadius: 2,
-                                padding: 2
+                                fillOpacity: 0.95,
+                                rx: 4,
+                                ry: 4,
+                                strokeWidth: 1,
+                                stroke: edgeColor
                             },
                             markerEnd: {
                                 type: MarkerType.ArrowClosed,
-                                color: edgeColor
+                                color: edgeColor,
+                                width: 20,
+                                height: 20
                             }
                         });
                     }
@@ -459,10 +473,10 @@ const UnitOrganizationChart = () => {
                 // Apply dagre layout
                 const dagreGraph = new dagre.graphlib.Graph();
                 dagreGraph.setDefaultEdgeLabel(() => ({}));
-                dagreGraph.setGraph({ rankdir: 'TB', nodesep: 120, ranksep: 180 });
+                dagreGraph.setGraph({ rankdir: 'TB', nodesep: 120, ranksep: 180, ranker: 'network-simplex' });
 
                 flowNodes.forEach((node) => {
-                    dagreGraph.setNode(node.id, { width: 220, height: 160 });
+                    dagreGraph.setNode(String(node.id), { width: 220, height: 160 });
                 });
 
                 flowEdges.forEach((edge) => {
@@ -472,7 +486,7 @@ const UnitOrganizationChart = () => {
                 dagre.layout(dagreGraph);
 
                 const layoutedNodes = flowNodes.map((node) => {
-                    const nodeWithPosition = dagreGraph.node(node.id);
+                    const nodeWithPosition = dagreGraph.node(String(node.id));
                     return {
                         ...node,
                         position: {
@@ -485,6 +499,10 @@ const UnitOrganizationChart = () => {
                 if (mounted) {
                     setNodes(layoutedNodes);
                     setEdges(flowEdges);
+                    console.log('Organization chart loaded:', {
+                        nodes: layoutedNodes.length,
+                        edges: flowEdges.length
+                    });
                     setLoading(false);
                 }
             } catch (error) {
@@ -498,13 +516,12 @@ const UnitOrganizationChart = () => {
 
         loadData();
 
-        // Cleanup function
         return () => {
             mounted = false;
         };
-    }, []); // Empty dependency array - only run once on mount
+    }, []);
 
-    // Separate effect to fetch positions when selected unit changes
+    // Fetch positions when selected unit changes
     useEffect(() => {
         if (selectedUnit && selectedUnit.id) {
             fetchUnitPositions(selectedUnit.id);
@@ -567,6 +584,10 @@ const UnitOrganizationChart = () => {
                             <span>Ground Command</span>
                         </div>
                         <div className="legend-item">
+                            <div className="legend-line marine"></div>
+                            <span>Marine Command</span>
+                        </div>
+                        <div className="legend-item">
                             <div className="legend-line cross-branch"></div>
                             <span>Cross-Branch</span>
                         </div>
@@ -583,58 +604,70 @@ const UnitOrganizationChart = () => {
             </div>
 
             <div className="chart-main">
-                <ReactFlowProvider>
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onNodeDoubleClick={onNodeDoubleClick}
-                        nodeTypes={nodeTypes}
-                        connectionMode={ConnectionMode.Loose}
-                        fitView
-                        fitViewOptions={{
-                            padding: 0.2,
-                            includeHiddenNodes: false
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onNodeDoubleClick={onNodeDoubleClick}
+                    nodeTypes={nodeTypes}
+                    connectionMode={ConnectionMode.Loose}
+                    fitView
+                    fitViewOptions={{
+                        padding: 0.2,
+                        includeHiddenNodes: false,
+                        minZoom: 0.1,
+                        maxZoom: 2
+                    }}
+                    attributionPosition="bottom-left"
+                    edgesFocusable={true}
+                    edgesUpdatable={false}
+                    nodesFocusable={true}
+                    nodesConnectable={false}
+                    nodesDraggable={true}
+                    panOnDrag={true}
+                    zoomOnScroll={true}
+                    selectNodesOnDrag={false}
+                    elementsSelectable={true}
+                    defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+                    defaultEdgeOptions={{
+                        type: 'smoothstep',
+                        animated: false,
+                        style: {
+                            strokeWidth: 2,
+                            stroke: '#42c8f4'
+                        },
+                        markerEnd: {
+                            type: MarkerType.ArrowClosed,
+                            width: 20,
+                            height: 20,
+                            color: '#42c8f4'
+                        }
+                    }}
+                >
+                    <Background variant="dots" gap={20} size={1} color="#333" />
+                    <Controls />
+                    <MiniMap
+                        nodeColor={(node) => {
+                            const unit = node.data.unit;
+                            const branchColor = getBranchColor(unit.branch);
+                            return unit.is_active ? branchColor : '#666';
                         }}
-                        attributionPosition="bottom-left"
-                        edgesFocusable={true}
-                        edgesUpdatable={false}
-                        nodesFocusable={true}
-                        nodesConnectable={false}
-                        nodesDraggable={true}
-                        panOnDrag={true}
-                        zoomOnScroll={true}
-                        defaultEdgeOptions={{
-                            type: 'smoothstep',
-                            markerEnd: {
-                                type: MarkerType.ArrowClosed
-                            }
+                        style={{
+                            backgroundColor: '#111',
+                            border: '1px solid #42c8f4'
                         }}
-                    >
-                        <Background variant="dots" gap={20} size={1} color="#333" />
-                        <Controls />
-                        <MiniMap
-                            nodeColor={(node) => {
-                                const unit = node.data.unit;
-                                const branchColor = getBranchColor(unit.branch);
-                                return unit.is_active ? branchColor : '#666';
-                            }}
-                            style={{
-                                backgroundColor: '#111',
-                                border: '1px solid #42c8f4'
-                            }}
-                        />
-                        <Panel position="top-right">
-                            <button
-                                className="reset-button"
-                                onClick={() => window.location.reload()}
-                            >
-                                Reset View
-                            </button>
-                        </Panel>
-                    </ReactFlow>
-                </ReactFlowProvider>
+                        nodeStrokeWidth={3}
+                    />
+                    <Panel position="top-right">
+                        <button
+                            className="reset-button"
+                            onClick={() => window.location.reload()}
+                        >
+                            Reset View
+                        </button>
+                    </Panel>
+                </ReactFlow>
             </div>
 
             {selectedUnit && (
@@ -759,6 +792,14 @@ const UnitOrganizationChart = () => {
                     color: #ff3333;
                 }
 
+                .legend-line.marine {
+                    background: #ff7b00;
+                }
+
+                .legend-line.marine::before {
+                    color: #ff7b00;
+                }
+
                 .legend-line.cross-branch {
                     background: repeating-linear-gradient(
                             90deg,
@@ -806,6 +847,50 @@ const UnitOrganizationChart = () => {
                     position: relative;
                 }
 
+                /* React Flow container */
+                .react-flow {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                /* Edge styling */
+                .react-flow__edges {
+                    z-index: 1 !important;
+                }
+
+                .react-flow__edge-path {
+                    stroke-width: 2 !important;
+                    fill: none !important;
+                }
+
+                .react-flow__edge.animated path {
+                    stroke-dasharray: 5;
+                    animation: dashdraw 0.5s linear infinite;
+                }
+
+                @keyframes dashdraw {
+                    to {
+                        stroke-dashoffset: -10;
+                    }
+                }
+
+                .react-flow__edge-textbg {
+                    fill: #0a0a0a !important;
+                    fill-opacity: 0.95 !important;
+                }
+
+                .react-flow__edge-text {
+                    fill: #ffffff !important;
+                    font-size: 10px !important;
+                    font-weight: 600 !important;
+                    font-family: 'Exo 2', sans-serif !important;
+                }
+
+                .react-flow__edge {
+                    z-index: 1;
+                }
+
+                /* Unit Node Styling */
                 .unit-node {
                     background: rgba(10, 10, 10, 0.95);
                     border: 2px solid;
@@ -867,6 +952,24 @@ const UnitOrganizationChart = () => {
                     top: -10px;
                     right: -10px;
                     background: #ff3333;
+                    color: white;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                    border: 2px solid #0a0a0a;
+                    z-index: 1;
+                }
+
+                .unit-node.category-marine::before {
+                    content: '🦅';
+                    position: absolute;
+                    top: -10px;
+                    right: -10px;
+                    background: #ff7b00;
                     color: white;
                     width: 24px;
                     height: 24px;
@@ -951,6 +1054,7 @@ const UnitOrganizationChart = () => {
                     z-index: 1;
                 }
 
+                /* Position Panel */
                 .position-panel {
                     height: 250px;
                     background: rgba(17, 17, 17, 0.95);
@@ -1057,6 +1161,7 @@ const UnitOrganizationChart = () => {
                     text-align: center;
                 }
 
+                /* Modal Styling */
                 .modal-overlay {
                     position: fixed;
                     top: 0;
@@ -1283,6 +1388,7 @@ const UnitOrganizationChart = () => {
                     border-color: #42c8f4;
                 }
 
+                /* Loading and Error States */
                 .loading-container {
                     height: 100vh;
                     display: flex;
@@ -1346,7 +1452,7 @@ const UnitOrganizationChart = () => {
                     transform: translateY(-2px);
                 }
 
-                /* Responsive improvements */
+                /* Responsive Design */
                 @media (max-width: 1024px) {
                     .chart-header {
                         flex-direction: column;
@@ -1402,7 +1508,7 @@ const UnitOrganizationChart = () => {
                     }
                 }
 
-                /* Scrollbar styling for position panels */
+                /* Scrollbar Styling */
                 .positions-container::-webkit-scrollbar,
                 .modal-body::-webkit-scrollbar {
                     width: 8px;
