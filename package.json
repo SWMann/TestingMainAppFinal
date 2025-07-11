@@ -29,6 +29,7 @@
     "reactflow": "^11.11.4",
     "redux": "^5.0.0",
     "redux-thunk": "^3.1.0",
+    "remark-gfm": "^4.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
