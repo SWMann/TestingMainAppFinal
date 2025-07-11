@@ -20,6 +20,7 @@ import PositionsTablePage from "./components/pages/PositionsTablePage/PositionsT
 import PositionTemplateManagement from "./components/pages/PositionTemplateManagement/PositionTemplateManagement";
 import MOSListings from "./components/pages/MOSListings/MOSListings";
 import TrainingPage from "./components/pages/TrainingPage/TrainingPage";
+import RankViewer from "./components/pages/RankViewer/RankViewer";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -96,6 +97,10 @@ const routes = (isAuthenticated) => [
         element: <TrainingPage />
     },
 
+    {
+        path:'/ranks',
+        element: <RankViewer/>
+    },
 
     // Protected routes
     {

@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
     Home, Users, Calendar, Award, FileText, BarChart3,
     Shield, Settings, LogOut, User, Building, School,
-    Ship, Map, Send, Rocket, Globe, Zap
+    Ship, Map, Send, Rocket, Globe, Zap, Star
 } from 'lucide-react';
 import './Header.css';
 import api, { setLoggingOut } from '../../../services/api';
@@ -104,6 +104,7 @@ const Header = () => {
         { path: '/awards', label: 'Commendations', icon: Award },
         { path: '/documents', label: 'Intel', icon: FileText },
         { path: '/ships', label: 'Ships', icon: Ship },
+        { path: '/ranks', label: 'Ranks', icon: Star},
     ];
 
     // Admin navigation items
