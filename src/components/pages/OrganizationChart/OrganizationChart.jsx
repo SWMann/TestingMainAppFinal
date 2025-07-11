@@ -82,7 +82,7 @@ api.interceptors.request.use(
 
 // Custom Node Component
 const UnitNode = ({ data }) => {
-    const { unit, onNodeClick } = data;
+    const { unit, handleClick } = data;
     const isInactive = !unit.is_active;
     const branchColor = unit.branch_color || '#42c8f4';
     const unitCategory = getUnitCategory(unit.unit_type);
@@ -90,7 +90,7 @@ const UnitNode = ({ data }) => {
     return (
         <div
             className={`unit-node ${isInactive ? 'inactive' : ''} category-${unitCategory}`}
-            onClick={() => onNodeClick(unit)}
+            onClick={() => handleClick(unit)}
             style={{
                 borderColor: branchColor,
                 boxShadow: isInactive ? 'none' : `0 0 10px ${branchColor}40`,
