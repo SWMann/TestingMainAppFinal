@@ -97,7 +97,7 @@ const Header = () => {
     // Navigation items with Star Citizen theme
     const navigationItems = [
         { path: '/', label: 'Command', icon: Home },
-        { path: '/units', label: 'Fleet', icon: Globe },
+        { path: '/organization-chart', label: 'Fleet', icon: Globe },
         { path: '/roster', label: 'Crew', icon: Users },
         { path: '/operations', label: 'Missions', icon: Rocket },
         { path: '/training', label: 'Academy', icon: School },
