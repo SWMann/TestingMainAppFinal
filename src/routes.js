@@ -107,7 +107,11 @@ const routes = (isAuthenticated) => [
         path:'/organization-chart',
         element: <UnitOrganizationChart/>
     },
+    {
+        path:"/recruiterdashboard",
+        element: <RecruiterDashboard/>
 
+    },
 
     // Protected routes
     {
@@ -116,11 +120,7 @@ const routes = (isAuthenticated) => [
             // Add protected routes here as you develop them
             // For example:
     // { path: '/settings', element: <Settings /> },
-            {
-                path:"/recruiterdashboard",
-                element: <RecruiterDashboard/>
 
-            },
         ]
     },
     // 404 route - must be last
