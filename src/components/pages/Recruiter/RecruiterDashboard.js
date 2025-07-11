@@ -56,7 +56,13 @@ const RecruiterDashboard = () => {
 
     useEffect(() => {
         // Check if user has recruiter permissions
-        if (!currentUser?.is_admin && !currentUser?.is_staff) {
+        const hasAdminAccess = currentUser && (
+            currentUser.is_admin ||
+            currentUser.is_staff ||
+            currentUser.current_rank?.is_officer ||
+            currentUser.rank?.is_officer
+        );
+        if (!hasAdminAccess) {
             navigate('/');
             return;
         }
