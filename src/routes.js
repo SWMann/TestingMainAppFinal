@@ -22,6 +22,7 @@ import MOSListings from "./components/pages/MOSListings/MOSListings";
 import TrainingPage from "./components/pages/TrainingPage/TrainingPage";
 import RankViewer from "./components/pages/RankViewer/RankViewer";
 import UnitOrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
+import RecruiterDashboard from "./components/pages/Recruiter/RecruiterDashboard";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -107,6 +108,7 @@ const routes = (isAuthenticated) => [
         element: <UnitOrganizationChart/>
     },
 
+
     // Protected routes
     {
         element: <ProtectedRoute isAuthenticated={isAuthenticated} />,
@@ -114,7 +116,11 @@ const routes = (isAuthenticated) => [
             // Add protected routes here as you develop them
             // For example:
     // { path: '/settings', element: <Settings /> },
-            // { path: '/events', element: <Events /> },
+            {
+                path:"/recruiterdashboard",
+                element: <RecruiterDashboard/>
+
+            },
         ]
     },
     // 404 route - must be last
