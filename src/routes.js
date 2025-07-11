@@ -21,6 +21,7 @@ import PositionTemplateManagement from "./components/pages/PositionTemplateManag
 import MOSListings from "./components/pages/MOSListings/MOSListings";
 import TrainingPage from "./components/pages/TrainingPage/TrainingPage";
 import RankViewer from "./components/pages/RankViewer/RankViewer";
+import UnitOrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -100,6 +101,10 @@ const routes = (isAuthenticated) => [
     {
         path:'/ranks',
         element: <RankViewer/>
+    },
+    {
+        path:'/organization-chart',
+        element: <UnitOrganizationChart/>
     },
 
     // Protected routes
