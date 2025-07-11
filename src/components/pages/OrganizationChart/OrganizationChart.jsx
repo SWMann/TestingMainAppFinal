@@ -390,7 +390,7 @@ const UnitOrganizationChart = () => {
             setLoading(true);
             setError(null);
 
-            const response = await api.get('/units/orbat/units_list/');
+            const response = await api.get('/units/');
             const units = response.data;
 
             if (!units || units.length === 0) {
