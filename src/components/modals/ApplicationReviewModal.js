@@ -5,7 +5,7 @@ import {
     ChevronRight, CheckCircle, XCircle, MessageSquare,
     Star, Briefcase, AlertCircle, Clock, Hash
 } from 'lucide-react';
-import './ApplicationReviewModal.css';
+import './AdminModals.css';
 
 const ApplicationReviewModal = ({ application, onClose, onAction }) => {
     const [reviewNotes, setReviewNotes] = useState('');
