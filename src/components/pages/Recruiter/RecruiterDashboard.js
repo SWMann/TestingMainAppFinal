@@ -1,5 +1,5 @@
 // src/components/pages/RecruiterDashboard/RecruiterDashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -18,7 +18,7 @@ import BulkActionsModal from '../../modals/BulkActionsModal';
 
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
-    const { user: currentUser } = useSelector(state => state.auth);
+    const { user: currentUser, loading: authLoading } = useSelector(state => state.auth);
 
     // State management
     const [applications, setApplications] = useState([]);
@@ -54,29 +54,63 @@ const RecruiterDashboard = () => {
     const [branches, setBranches] = useState([]);
     const [units, setUnits] = useState([]);
 
-    useEffect(() => {
-        // Check if user has recruiter permissions
-        const hasAdminAccess = currentUser && (
+    // Permission check
+    const hasRecruiterPermissions = useCallback(() => {
+        if (!currentUser) return false;
+
+        // Check various permission flags
+        return (
             currentUser.is_admin ||
             currentUser.is_staff ||
-            currentUser.current_rank?.is_officer ||
-            currentUser.rank?.is_officer
+            currentUser.is_recruiter ||
+            currentUser.roles?.includes('recruiter') ||
+            currentUser.permissions?.includes('recruitment.view')
         );
-        if (!hasAdminAccess) {
+    }, [currentUser]);
+
+    // Check permissions on mount and when user changes
+    useEffect(() => {
+        // Skip if still loading
+        if (authLoading) {
+            console.log('RecruiterDashboard: Auth still loading...');
+            return;
+        }
+
+        // Check if user is logged in
+        if (!currentUser) {
+            console.log('RecruiterDashboard: No user found, redirecting to home');
             navigate('/');
             return;
         }
 
-        fetchDashboardData();
-        fetchFilterOptions();
-    }, [filterStatus, filterBranch, sortBy]);
+        // Check permissions
+        if (!hasRecruiterPermissions()) {
+            console.log('RecruiterDashboard: User lacks permissions', {
+                user: currentUser.username,
+                is_admin: currentUser.is_admin,
+                is_staff: currentUser.is_staff,
+                is_recruiter: currentUser.is_recruiter,
+                roles: currentUser.roles,
+                permissions: currentUser.permissions
+            });
+            navigate('/');
+            return;
+        }
 
-    const fetchDashboardData = async () => {
+        console.log('RecruiterDashboard: User has permissions, loading data');
+    }, [currentUser, authLoading, navigate, hasRecruiterPermissions]);
+
+    // Fetch dashboard data
+    const fetchDashboardData = useCallback(async () => {
+        if (!hasRecruiterPermissions()) {
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
 
         try {
-            // Fetch applications with filters
+            // Build query parameters
             const params = {
                 ordering: `-${sortBy}`,
             };
@@ -89,64 +123,120 @@ const RecruiterDashboard = () => {
                 params.preferred_branch = filterBranch;
             }
 
+            // Fetch applications
             const response = await api.get('/onboarding/applications/', { params });
-            setApplications(response.data.results || response.data);
+            const fetchedApplications = response.data.results || response.data;
+            setApplications(fetchedApplications);
 
-            // Fetch statistics
-            const statsResponse = await api.get('/onboarding/applications/statistics/');
-            setStatistics(statsResponse.data);
+            // Try to fetch statistics, fallback to calculating from applications
+            try {
+                const statsResponse = await api.get('/onboarding/applications/statistics/');
+                setStatistics(statsResponse.data);
+            } catch (statsError) {
+                console.log('Statistics endpoint not available, calculating manually');
+                calculateStatistics(fetchedApplications);
+            }
 
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
-            setError('Failed to load dashboard data');
+            setError('Failed to load applications. Please try again.');
         } finally {
             setIsLoading(false);
         }
+    }, [filterStatus, filterBranch, sortBy, hasRecruiterPermissions]);
+
+    // Calculate statistics from applications
+    const calculateStatistics = (apps) => {
+        const stats = {
+            pending: apps.filter(app => app.status === 'Pending').length,
+            interviewing: apps.filter(app => app.status === 'Interviewing').length,
+            approved: apps.filter(app => app.status === 'Approved').length,
+            rejected: apps.filter(app => app.status === 'Rejected').length,
+            activeRecruits: apps.filter(app => app.status === 'Approved' && !app.onboarding_complete).length,
+            completionRate: 0
+        };
+
+        // Calculate completion rate
+        const totalProcessed = stats.approved + stats.rejected;
+        if (totalProcessed > 0) {
+            stats.completionRate = Math.round((stats.approved / totalProcessed) * 100);
+        }
+
+        setStatistics(stats);
     };
 
-    const fetchFilterOptions = async () => {
+    // Fetch filter options
+    const fetchFilterOptions = useCallback(async () => {
+        if (!hasRecruiterPermissions()) {
+            return;
+        }
+
         try {
-            // Fetch branches for filter
+            // Fetch branches
             const branchesResponse = await api.get('/units/branches/');
             setBranches(branchesResponse.data.results || branchesResponse.data);
 
-            // Fetch units for assignment
+            // Fetch units
             const unitsResponse = await api.get('/units/');
             setUnits(unitsResponse.data.results || unitsResponse.data);
         } catch (err) {
             console.error('Error fetching filter options:', err);
         }
-    };
+    }, [hasRecruiterPermissions]);
 
+    // Load data when component mounts or filters change
+    useEffect(() => {
+        if (hasRecruiterPermissions()) {
+            fetchDashboardData();
+        }
+    }, [fetchDashboardData, hasRecruiterPermissions]);
+
+    // Load filter options once on mount
+    useEffect(() => {
+        if (hasRecruiterPermissions()) {
+            fetchFilterOptions();
+        }
+    }, [fetchFilterOptions, hasRecruiterPermissions]);
+
+    // Handle application actions
     const handleApplicationAction = async (applicationId, action, data = {}) => {
         try {
+            const endpoint = `/onboarding/applications/${applicationId}/`;
+            let payload = {};
+
             switch (action) {
                 case 'approve':
-                    await api.patch(`/onboarding/applications/${applicationId}/`, {
+                    payload = {
                         status: 'Approved',
                         reviewer_notes: data.notes,
-                        review_date: new Date().toISOString()
-                    });
+                        review_date: new Date().toISOString(),
+                        reviewer: currentUser.id
+                    };
                     break;
 
                 case 'reject':
-                    await api.patch(`/onboarding/applications/${applicationId}/`, {
+                    payload = {
                         status: 'Rejected',
                         reviewer_notes: data.notes,
-                        review_date: new Date().toISOString()
-                    });
+                        review_date: new Date().toISOString(),
+                        reviewer: currentUser.id
+                    };
                     break;
 
                 case 'schedule_interview':
-                    await api.patch(`/onboarding/applications/${applicationId}/`, {
+                    payload = {
                         status: 'Interviewing',
-                        interview_date: data.interviewDate
-                    });
+                        interview_date: data.interviewDate,
+                        reviewer_notes: data.notes
+                    };
                     break;
 
                 default:
-                    break;
+                    console.error('Unknown action:', action);
+                    return;
             }
+
+            await api.patch(endpoint, payload);
 
             // Refresh data
             await fetchDashboardData();
@@ -155,15 +245,18 @@ const RecruiterDashboard = () => {
             setShowReviewModal(false);
             setShowInterviewModal(false);
 
+            // Show success message (you could add a toast notification here)
+            console.log(`Successfully ${action} application`);
+
         } catch (err) {
             console.error(`Error performing ${action}:`, err);
-            alert(`Failed to ${action} application`);
+            alert(`Failed to ${action} application. Please try again.`);
         }
     };
 
+    // Handle bulk actions
     const handleBulkAction = async (action, data) => {
         try {
-            // Process bulk actions
             const promises = selectedApplications.map(appId =>
                 handleApplicationAction(appId, action, data)
             );
@@ -174,12 +267,16 @@ const RecruiterDashboard = () => {
             setSelectedApplications([]);
             setShowBulkModal(false);
 
+            // Show success message
+            console.log(`Successfully performed bulk ${action}`);
+
         } catch (err) {
             console.error('Error performing bulk action:', err);
-            alert('Some bulk actions failed');
+            alert('Some bulk actions failed. Please check the applications.');
         }
     };
 
+    // Modal handlers
     const openApplicationReview = (application) => {
         setSelectedApplication(application);
         setShowReviewModal(true);
@@ -200,6 +297,7 @@ const RecruiterDashboard = () => {
         setShowGuideModal(true);
     };
 
+    // Selection handlers
     const toggleApplicationSelection = (applicationId) => {
         setSelectedApplications(prev =>
             prev.includes(applicationId)
@@ -218,14 +316,17 @@ const RecruiterDashboard = () => {
 
     // Filter applications based on search term
     const filteredApplications = applications.filter(app => {
-        const matchesSearch = !searchTerm ||
-            app.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            app.discord_id.includes(searchTerm) ||
-            app.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!searchTerm) return true;
 
-        return matchesSearch;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            app.username?.toLowerCase().includes(searchLower) ||
+            app.discord_id?.includes(searchTerm) ||
+            app.email?.toLowerCase().includes(searchLower)
+        );
     });
 
+    // Utility functions
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -233,16 +334,6 @@ const RecruiterDashboard = () => {
             month: 'short',
             day: 'numeric'
         });
-    };
-
-    const getStatusColor = (status) => {
-        const colors = {
-            'Pending': 'status-pending',
-            'Interviewing': 'status-interviewing',
-            'Approved': 'status-approved',
-            'Rejected': 'status-rejected'
-        };
-        return colors[status] || 'status-default';
     };
 
     const getTimeAgo = (dateString) => {
@@ -257,7 +348,18 @@ const RecruiterDashboard = () => {
         return formatDate(dateString);
     };
 
-    if (isLoading) {
+    const getStatusColor = (status) => {
+        const colors = {
+            'Pending': 'status-pending',
+            'Interviewing': 'status-interviewing',
+            'Approved': 'status-approved',
+            'Rejected': 'status-rejected'
+        };
+        return colors[status] || 'status-default';
+    };
+
+    // Render loading state
+    if (authLoading || (isLoading && applications.length === 0)) {
         return (
             <div className="dashboard-loading">
                 <div className="loading-spinner"></div>
@@ -266,17 +368,26 @@ const RecruiterDashboard = () => {
         );
     }
 
+    // Render error state
     if (error) {
         return (
             <div className="dashboard-error">
                 <AlertCircle size={48} />
                 <h2>ERROR LOADING DASHBOARD</h2>
                 <p>{error}</p>
-                <button onClick={fetchDashboardData}>RETRY</button>
+                <button onClick={fetchDashboardData} className="action-button">
+                    RETRY
+                </button>
             </div>
         );
     }
 
+    // Don't render if no permissions (will redirect)
+    if (!hasRecruiterPermissions()) {
+        return null;
+    }
+
+    // Main render
     return (
         <div className="recruiter-dashboard">
             {/* Header */}
@@ -287,12 +398,18 @@ const RecruiterDashboard = () => {
                         <h1>RECRUITMENT COMMAND CENTER</h1>
                     </div>
                     <div className="header-actions">
-                        <button className="action-button primary" onClick={() => setShowGuideModal(true)}>
+                        <button
+                            className="action-button primary"
+                            onClick={() => setShowGuideModal(true)}
+                        >
                             <Navigation size={18} />
                             ONBOARDING GUIDE
                         </button>
                         {selectedApplications.length > 0 && (
-                            <button className="action-button bulk" onClick={() => setShowBulkModal(true)}>
+                            <button
+                                className="action-button bulk"
+                                onClick={() => setShowBulkModal(true)}
+                            >
                                 <Users size={18} />
                                 BULK ACTIONS ({selectedApplications.length})
                             </button>
@@ -310,10 +427,6 @@ const RecruiterDashboard = () => {
                     <div className="stat-content">
                         <div className="stat-value">{statistics.pending}</div>
                         <div className="stat-label">Pending Review</div>
-                    </div>
-                    <div className="stat-trend">
-                        <TrendingUp size={16} />
-                        <span>+12% this week</span>
                     </div>
                 </div>
 
@@ -353,7 +466,7 @@ const RecruiterDashboard = () => {
                     </div>
                     <div className="stat-content">
                         <div className="stat-value">{statistics.completionRate}%</div>
-                        <div className="stat-label">Completion Rate</div>
+                        <div className="stat-label">Approval Rate</div>
                     </div>
                 </div>
             </div>
@@ -423,140 +536,144 @@ const RecruiterDashboard = () => {
             <div className="applications-section">
                 <div className="section-header">
                     <h2>RECRUITMENT APPLICATIONS</h2>
-                    <div className="section-actions">
-                        <input
-                            type="checkbox"
-                            checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
-                            onChange={selectAllApplications}
-                            className="select-all-checkbox"
-                        />
-                        <span className="select-all-label">Select All</span>
-                    </div>
+                    {filteredApplications.length > 0 && (
+                        <div className="section-actions">
+                            <input
+                                type="checkbox"
+                                checked={selectedApplications.length === filteredApplications.length}
+                                onChange={selectAllApplications}
+                                className="select-all-checkbox"
+                            />
+                            <span className="select-all-label">Select All</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="applications-table">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th className="checkbox-column"></th>
-                            <th>PILOT</th>
-                            <th>STATUS</th>
-                            <th>PREFERRED BRANCH</th>
-                            <th>MOS CHOICES</th>
-                            <th>SUBMITTED</th>
-                            <th>REFERRER</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {filteredApplications.map(app => (
-                            <tr key={app.id} className={selectedApplications.includes(app.id) ? 'selected' : ''}>
-                                <td className="checkbox-column">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedApplications.includes(app.id)}
-                                        onChange={() => toggleApplicationSelection(app.id)}
-                                    />
-                                </td>
-                                <td className="pilot-cell">
-                                    <div className="pilot-info">
-                                        <div className="pilot-details">
-                                            <div className="pilot-name">{app.username}</div>
-                                            <div className="pilot-discord">{app.discord_id}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                        <span className={`status-badge ${getStatusColor(app.status)}`}>
-                                            {app.status}
-                                        </span>
-                                </td>
-                                <td>{app.preferred_branch_name || 'None'}</td>
-                                <td className="mos-cell">
-                                    {app.mos_priority_1_details && (
-                                        <div className="mos-choice primary">
-                                            <span className="mos-priority">1st:</span>
-                                            <span className="mos-code">{app.mos_priority_1_details.code}</span>
-                                        </div>
-                                    )}
-                                    {app.mos_priority_2_details && (
-                                        <div className="mos-choice">
-                                            <span className="mos-priority">2nd:</span>
-                                            <span className="mos-code">{app.mos_priority_2_details.code}</span>
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="date-cell">
-                                    <div className="date-info">
-                                        <div>{formatDate(app.submission_date)}</div>
-                                        <div className="time-ago">{getTimeAgo(app.submission_date)}</div>
-                                    </div>
-                                </td>
-                                <td>{app.referrer_username || 'None'}</td>
-                                <td className="actions-cell">
-                                    <div className="action-buttons">
-                                        <button
-                                            className="action-btn review"
-                                            onClick={() => openApplicationReview(app)}
-                                            title="Review Application"
-                                        >
-                                            <FileText size={16} />
-                                        </button>
-                                        {app.status === 'Pending' && (
-                                            <>
-                                                <button
-                                                    className="action-btn interview"
-                                                    onClick={() => openInterviewScheduler(app)}
-                                                    title="Schedule Interview"
-                                                >
-                                                    <MessageSquare size={16} />
-                                                </button>
-                                                <button
-                                                    className="action-btn approve"
-                                                    onClick={() => handleApplicationAction(app.id, 'approve', { notes: 'Quick approval' })}
-                                                    title="Quick Approve"
-                                                >
-                                                    <CheckCircle size={16} />
-                                                </button>
-                                                <button
-                                                    className="action-btn reject"
-                                                    onClick={() => handleApplicationAction(app.id, 'reject', { notes: 'Quick rejection' })}
-                                                    title="Quick Reject"
-                                                >
-                                                    <XCircle size={16} />
-                                                </button>
-                                            </>
-                                        )}
-                                        {app.status === 'Approved' && (
-                                            <>
-                                                <button
-                                                    className="action-btn mentor"
-                                                    onClick={() => openMentorAssignment(app)}
-                                                    title="Assign Mentor"
-                                                >
-                                                    <UserPlus size={16} />
-                                                </button>
-                                                <button
-                                                    className="action-btn guide"
-                                                    onClick={() => openOnboardingGuide(app)}
-                                                    title="Onboarding Guide"
-                                                >
-                                                    <Navigation size={16} />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </td>
+                    {filteredApplications.length > 0 ? (
+                        <table>
+                            <thead>
+                            <tr>
+                                <th className="checkbox-column"></th>
+                                <th>PILOT</th>
+                                <th>STATUS</th>
+                                <th>PREFERRED BRANCH</th>
+                                <th>MOS CHOICES</th>
+                                <th>SUBMITTED</th>
+                                <th>REFERRER</th>
+                                <th>ACTIONS</th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
-
-                    {filteredApplications.length === 0 && (
+                            </thead>
+                            <tbody>
+                            {filteredApplications.map(app => (
+                                <tr key={app.id} className={selectedApplications.includes(app.id) ? 'selected' : ''}>
+                                    <td className="checkbox-column">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedApplications.includes(app.id)}
+                                            onChange={() => toggleApplicationSelection(app.id)}
+                                        />
+                                    </td>
+                                    <td className="pilot-cell">
+                                        <div className="pilot-info">
+                                            <div className="pilot-details">
+                                                <div className="pilot-name">{app.username}</div>
+                                                <div className="pilot-discord">{app.discord_id}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                            <span className={`status-badge ${getStatusColor(app.status)}`}>
+                                                {app.status}
+                                            </span>
+                                    </td>
+                                    <td>{app.preferred_branch_name || 'None'}</td>
+                                    <td className="mos-cell">
+                                        {app.mos_priority_1_details && (
+                                            <div className="mos-choice primary">
+                                                <span className="mos-priority">1st:</span>
+                                                <span className="mos-code">{app.mos_priority_1_details.code}</span>
+                                            </div>
+                                        )}
+                                        {app.mos_priority_2_details && (
+                                            <div className="mos-choice">
+                                                <span className="mos-priority">2nd:</span>
+                                                <span className="mos-code">{app.mos_priority_2_details.code}</span>
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="date-cell">
+                                        <div className="date-info">
+                                            <div>{formatDate(app.submission_date)}</div>
+                                            <div className="time-ago">{getTimeAgo(app.submission_date)}</div>
+                                        </div>
+                                    </td>
+                                    <td>{app.referrer_username || 'None'}</td>
+                                    <td className="actions-cell">
+                                        <div className="action-buttons">
+                                            <button
+                                                className="action-btn review"
+                                                onClick={() => openApplicationReview(app)}
+                                                title="Review Application"
+                                            >
+                                                <FileText size={16} />
+                                            </button>
+                                            {app.status === 'Pending' && (
+                                                <>
+                                                    <button
+                                                        className="action-btn interview"
+                                                        onClick={() => openInterviewScheduler(app)}
+                                                        title="Schedule Interview"
+                                                    >
+                                                        <MessageSquare size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="action-btn approve"
+                                                        onClick={() => handleApplicationAction(app.id, 'approve', { notes: 'Quick approval' })}
+                                                        title="Quick Approve"
+                                                    >
+                                                        <CheckCircle size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="action-btn reject"
+                                                        onClick={() => handleApplicationAction(app.id, 'reject', { notes: 'Quick rejection' })}
+                                                        title="Quick Reject"
+                                                    >
+                                                        <XCircle size={16} />
+                                                    </button>
+                                                </>
+                                            )}
+                                            {app.status === 'Approved' && (
+                                                <>
+                                                    <button
+                                                        className="action-btn mentor"
+                                                        onClick={() => openMentorAssignment(app)}
+                                                        title="Assign Mentor"
+                                                    >
+                                                        <UserPlus size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="action-btn guide"
+                                                        onClick={() => openOnboardingGuide(app)}
+                                                        title="Onboarding Guide"
+                                                    >
+                                                        <Navigation size={16} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    ) : (
                         <div className="no-applications">
                             <Users size={48} />
                             <h3>No Applications Found</h3>
-                            <p>Try adjusting your filters or search criteria</p>
+                            <p>{searchTerm || filterStatus !== 'all' || filterBranch !== 'all'
+                                ? 'Try adjusting your filters or search criteria'
+                                : 'No applications have been submitted yet'}</p>
                         </div>
                     )}
                 </div>
@@ -566,7 +683,10 @@ const RecruiterDashboard = () => {
             {showReviewModal && selectedApplication && (
                 <ApplicationReviewModal
                     application={selectedApplication}
-                    onClose={() => setShowReviewModal(false)}
+                    onClose={() => {
+                        setShowReviewModal(false);
+                        setSelectedApplication(null);
+                    }}
                     onAction={handleApplicationAction}
                 />
             )}
@@ -574,15 +694,26 @@ const RecruiterDashboard = () => {
             {showInterviewModal && selectedApplication && (
                 <InterviewScheduleModal
                     application={selectedApplication}
-                    onClose={() => setShowInterviewModal(false)}
-                    onSchedule={(date) => handleApplicationAction(selectedApplication.id, 'schedule_interview', { interviewDate: date })}
+                    onClose={() => {
+                        setShowInterviewModal(false);
+                        setSelectedApplication(null);
+                    }}
+                    onSchedule={(date, data) =>
+                        handleApplicationAction(selectedApplication.id, 'schedule_interview', {
+                            interviewDate: date,
+                            ...data
+                        })
+                    }
                 />
             )}
 
             {showMentorModal && selectedApplication && (
                 <MentorAssignmentModal
                     recruit={selectedApplication}
-                    onClose={() => setShowMentorModal(false)}
+                    onClose={() => {
+                        setShowMentorModal(false);
+                        setSelectedApplication(null);
+                    }}
                     onAssign={fetchDashboardData}
                 />
             )}
@@ -590,14 +721,19 @@ const RecruiterDashboard = () => {
             {showGuideModal && (
                 <OnboardingGuideModal
                     application={selectedApplication}
-                    onClose={() => setShowGuideModal(false)}
+                    onClose={() => {
+                        setShowGuideModal(false);
+                        setSelectedApplication(null);
+                    }}
                 />
             )}
 
             {showBulkModal && (
                 <BulkActionsModal
                     selectedCount={selectedApplications.length}
-                    onClose={() => setShowBulkModal(false)}
+                    onClose={() => {
+                        setShowBulkModal(false);
+                    }}
                     onAction={handleBulkAction}
                 />
             )}
