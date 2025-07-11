@@ -245,20 +245,29 @@ const UnitModal = ({ unit, isOpen, onClose, positions }) => {
 };
 
 // Position Panel Component
-const PositionPanel = ({ unit, positions }) => {
+const PositionPanel = ({ unit, positions, isExpanded, onToggleExpand }) => {
     if (!unit) return null;
 
     const vacantPositions = positions.filter(p => p.is_vacant);
     const filledPositions = positions.filter(p => !p.is_vacant);
 
     return (
-        <div className="position-panel">
+        <div className={`position-panel ${isExpanded ? 'expanded' : ''}`}>
             <div className="panel-header">
                 <h3>{unit.name} - Positions</h3>
-                <div className="position-stats">
-                    <span className="filled">Filled: {filledPositions.length}</span>
-                    <span className="vacant">Vacant: {vacantPositions.length}</span>
-                    <span className="total">Total: {positions.length}</span>
+                <div className="panel-controls">
+                    <div className="position-stats">
+                        <span className="filled">Filled: {filledPositions.length}</span>
+                        <span className="vacant">Vacant: {vacantPositions.length}</span>
+                        <span className="total">Total: {positions.length}</span>
+                    </div>
+                    <button
+                        className="expand-button"
+                        onClick={onToggleExpand}
+                        title={isExpanded ? 'Collapse panel' : 'Expand panel'}
+                    >
+                        {isExpanded ? '▼' : '▲'}
+                    </button>
                 </div>
             </div>
             <div className="positions-container">
@@ -313,6 +322,7 @@ const UnitOrganizationChart = () => {
     const [loading, setLoading] = useState(true);
     const [unitData, setUnitData] = useState({});
     const [error, setError] = useState(null);
+    const [isPanelExpanded, setIsPanelExpanded] = useState(false);
 
     // Node types configuration
     const nodeTypes = useMemo(() => ({ unitNode: UnitNode }), []);
@@ -613,7 +623,7 @@ const UnitOrganizationChart = () => {
                 </div>
             </div>
 
-            <div className="chart-main">
+            <div className={`chart-main ${selectedUnit && !isPanelExpanded ? 'with-panel' : ''} ${selectedUnit && isPanelExpanded ? 'with-expanded-panel' : ''}`}>
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
@@ -681,7 +691,12 @@ const UnitOrganizationChart = () => {
             </div>
 
             {selectedUnit && (
-                <PositionPanel unit={selectedUnit} positions={positions} />
+                <PositionPanel
+                    unit={selectedUnit}
+                    positions={positions}
+                    isExpanded={isPanelExpanded}
+                    onToggleExpand={() => setIsPanelExpanded(!isPanelExpanded)}
+                />
             )}
 
             <UnitModal
@@ -855,6 +870,15 @@ const UnitOrganizationChart = () => {
                 .chart-main {
                     flex: 1;
                     position: relative;
+                    transition: all 0.3s ease;
+                }
+
+                .chart-main.with-panel {
+                    height: calc(100vh - 400px);
+                }
+
+                .chart-main.with-expanded-panel {
+                    height: calc(100vh - 600px);
                 }
 
                 /* React Flow container */
@@ -1066,12 +1090,17 @@ const UnitOrganizationChart = () => {
 
                 /* Position Panel */
                 .position-panel {
-                    height: 250px;
+                    height: 350px;
                     background: rgba(17, 17, 17, 0.95);
                     border-top: 1px solid rgba(66, 200, 244, 0.2);
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
+                    transition: height 0.3s ease;
+                }
+
+                .position-panel.expanded {
+                    height: 550px;
                 }
 
                 .panel-header {
@@ -1080,12 +1109,19 @@ const UnitOrganizationChart = () => {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    flex-shrink: 0;
                 }
 
                 .panel-header h3 {
                     margin: 0;
                     font-size: 1.125rem;
                     color: #42c8f4;
+                }
+
+                .panel-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 2rem;
                 }
 
                 .position-stats {
@@ -1102,16 +1138,38 @@ const UnitOrganizationChart = () => {
                     color: #ffaa00;
                 }
 
+                .expand-button {
+                    background: rgba(66, 200, 244, 0.1);
+                    border: 1px solid rgba(66, 200, 244, 0.3);
+                    color: #42c8f4;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1rem;
+                }
+
+                .expand-button:hover {
+                    background: rgba(66, 200, 244, 0.2);
+                    border-color: #42c8f4;
+                }
+
                 .positions-container {
                     flex: 1;
                     display: flex;
                     gap: 2rem;
                     padding: 1rem;
                     overflow-y: auto;
+                    overflow-x: hidden;
                 }
 
                 .position-group {
                     flex: 1;
+                    min-width: 0;
                 }
 
                 .position-group h4 {
@@ -1119,6 +1177,11 @@ const UnitOrganizationChart = () => {
                     font-size: 0.875rem;
                     text-transform: uppercase;
                     color: #a8b2bd;
+                    position: sticky;
+                    top: 0;
+                    background: rgba(17, 17, 17, 0.95);
+                    padding: 0.5rem 0;
+                    z-index: 1;
                 }
 
                 .position-card {
@@ -1140,6 +1203,7 @@ const UnitOrganizationChart = () => {
 
                 .position-card:hover {
                     background: rgba(66, 200, 244, 0.05);
+                    transform: translateX(4px);
                 }
 
                 .position-info h5 {
@@ -1483,6 +1547,14 @@ const UnitOrganizationChart = () => {
                     .legend h4 {
                         width: 100%;
                     }
+
+                    .position-panel {
+                        height: 300px;
+                    }
+
+                    .position-panel.expanded {
+                        height: 450px;
+                    }
                 }
 
                 @media (max-width: 768px) {
@@ -1515,6 +1587,20 @@ const UnitOrganizationChart = () => {
 
                     .stats-grid {
                         grid-template-columns: 1fr;
+                    }
+
+                    .panel-controls {
+                        flex-direction: column;
+                        gap: 1rem;
+                        align-items: flex-end;
+                    }
+
+                    .position-panel {
+                        height: 280px;
+                    }
+
+                    .position-panel.expanded {
+                        height: 400px;
                     }
                 }
 
