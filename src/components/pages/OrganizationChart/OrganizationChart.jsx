@@ -7,6 +7,7 @@
  * - Requires API endpoints: /units/orbat/units_list/ and /units/orbat/unit_orbat/
  * - Install required dependencies: npm install reactflow dagre axios
  */
+import { Handle, Position as HandlePosition } from 'reactflow';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactFlow, {
@@ -102,6 +103,11 @@ const UnitNode = ({ data }) => {
                 opacity: isInactive ? 0.6 : 1
             }}
         >
+            <Handle
+                type="target"
+                position={HandlePosition.Top}
+                style={{ background: branchColor, border: `2px solid ${branchColor}` }}
+            />
             <div className="unit-header" style={{ borderBottomColor: branchColor }}>
                 <h4>{unit.abbreviation}</h4>
                 {unit.emblem_url && (
@@ -124,10 +130,14 @@ const UnitNode = ({ data }) => {
                 </div>
             </div>
             {isInactive && <div className="inactive-badge">INACTIVE</div>}
+            <Handle
+                type="source"
+                position={HandlePosition.Bottom}
+                style={{ background: branchColor, border: `2px solid ${branchColor}` }}
+            />
         </div>
     );
 };
-
 // Modal Component
 const UnitModal = ({ unit, isOpen, onClose, positions }) => {
     if (!isOpen || !unit) return null;
