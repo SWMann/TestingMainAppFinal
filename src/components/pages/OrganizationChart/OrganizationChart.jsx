@@ -1,14 +1,11 @@
 /**
  * Unit Organization Chart Component
  *
+ * Displays a hierarchical organization chart of military units using ReactFlow
  * Prerequisites:
  * - User must be authenticated
  * - Requires API endpoints: /units/orbat/units_list/ and /units/orbat/unit_orbat/
  * - Install required dependencies: npm install reactflow dagre axios
- *
- * Usage:
- * import UnitOrganizationChart from './components/UnitOrganizationChart';
- * <UnitOrganizationChart />
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -30,37 +27,7 @@ import dagre from 'dagre';
 import axios from 'axios';
 import 'reactflow/dist/style.css';
 
-// Unit Type Utilities
-const formatUnitType = (unitType) => {
-    if (!unitType) return '';
-
-    // Handle legacy format (e.g., "Corps", "Division")
-    if (!unitType.includes('_')) return unitType;
-
-    // Handle new format (e.g., "navy_fleet", "ground_division")
-    const [category, ...typeParts] = unitType.split('_');
-    const type = typeParts.join(' ');
-
-    const categoryLabels = {
-        'navy': 'Navy',
-        'aviation': 'Naval Aviation',
-        'ground': 'Ground'
-    };
-
-    const formattedType = type.split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    const formattedCategory = categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1);
-
-    return `${formattedType}`;
-};
-
-const getUnitCategory = (unitType) => {
-    if (!unitType || !unitType.includes('_')) return 'default';
-    return unitType.split('_')[0];
-};
-
-// Create API instance - update the baseURL to match your backend
+// Create API instance
 const api = axios.create({
     baseURL: process.env.REACT_APP_API_URL || '/anotherbackendagain-backend2/api',
     headers: {
@@ -79,6 +46,29 @@ api.interceptors.request.use(
     },
     (error) => Promise.reject(error)
 );
+
+// Utility Functions
+const formatUnitType = (unitType) => {
+    if (!unitType) return '';
+
+    // Handle legacy format (e.g., "Corps", "Division")
+    if (!unitType.includes('_')) return unitType;
+
+    // Handle new format (e.g., "navy_fleet", "ground_division")
+    const [category, ...typeParts] = unitType.split('_');
+    const type = typeParts.join(' ');
+
+    const formattedType = type.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+    return formattedType;
+};
+
+const getUnitCategory = (unitType) => {
+    if (!unitType || !unitType.includes('_')) return 'default';
+    return unitType.split('_')[0];
+};
 
 // Custom Node Component
 const UnitNode = ({ data }) => {
@@ -115,8 +105,8 @@ const UnitNode = ({ data }) => {
                     <span>Personnel: {unit.personnel_count || 0}</span>
                     {unit.filled_count !== undefined && unit.position_count !== undefined && (
                         <span className="fill-rate">
-              {unit.filled_count}/{unit.position_count} positions
-            </span>
+                            {unit.filled_count}/{unit.position_count} positions
+                        </span>
                     )}
                 </div>
             </div>
@@ -144,17 +134,17 @@ const UnitModal = ({ unit, isOpen, onClose, positions }) => {
                         </div>
                         <div className="info-item">
                             <label>Type:</label>
-                            <span>{unit.unit_type}</span>
+                            <span>{formatUnitType(unit.unit_type)}</span>
                         </div>
                         <div className="info-item">
                             <label>Branch:</label>
-                            <span>{unit.branch_name}</span>
+                            <span>{unit.branch_name || 'N/A'}</span>
                         </div>
                         <div className="info-item">
                             <label>Status:</label>
                             <span className={unit.is_active ? 'active' : 'inactive'}>
-                {unit.is_active ? 'Active' : 'Inactive'}
-              </span>
+                                {unit.is_active ? 'Active' : 'Inactive'}
+                            </span>
                         </div>
                         {unit.motto && (
                             <div className="info-item full-width">
@@ -177,8 +167,8 @@ const UnitModal = ({ unit, isOpen, onClose, positions }) => {
                                 <div key={position.id} className="position-item">
                                     <span className="position-title">{position.display_title}</span>
                                     <span className={`position-status ${position.is_vacant ? 'vacant' : 'filled'}`}>
-                    {position.is_vacant ? 'Vacant' : 'Filled'}
-                  </span>
+                                        {position.is_vacant ? 'Vacant' : 'Filled'}
+                                    </span>
                                 </div>
                             ))}
                         </div>
@@ -249,7 +239,6 @@ const PositionPanel = ({ unit, positions }) => {
 };
 
 // Main Component
-// Note: This component requires authentication. Ensure the user is logged in before rendering.
 const UnitOrganizationChart = () => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -259,6 +248,9 @@ const UnitOrganizationChart = () => {
     const [loading, setLoading] = useState(true);
     const [unitData, setUnitData] = useState({});
     const [error, setError] = useState(null);
+
+    // Node types configuration
+    const nodeTypes = useMemo(() => ({ unitNode: UnitNode }), []);
 
     // Auto-layout function using dagre
     const getLayoutedElements = useCallback((nodes, edges, direction = 'TB') => {
@@ -297,38 +289,32 @@ const UnitOrganizationChart = () => {
         const sourceActive = sourceUnit.is_active;
         const targetActive = targetUnit.is_active;
 
-        // Determine edge style based on relationship
-        let edgeColor = '#42c8f4'; // Default blue
-        let strokeDasharray = '0'; // Solid by default
+        let edgeColor = '#42c8f4';
+        let strokeDasharray = '0';
         let animated = false;
         let label = 'Reports to';
 
-        // If either unit is inactive
         if (!sourceActive || !targetActive) {
             edgeColor = '#666666';
-            strokeDasharray = '5 5'; // Dashed
+            strokeDasharray = '5 5';
             label = 'Inactive Link';
-        }
-        // Cross-branch relationships
-        else if (sourceCategory !== targetCategory && sourceCategory !== 'default' && targetCategory !== 'default') {
-            edgeColor = '#ff7b00'; // Orange for cross-branch
-            strokeDasharray = '10 5'; // Long dash
+        } else if (sourceCategory !== targetCategory && sourceCategory !== 'default' && targetCategory !== 'default') {
+            edgeColor = '#ff7b00';
+            strokeDasharray = '10 5';
             label = 'Cross-Branch';
             animated = true;
-        }
-        // Same category relationships
-        else if (sourceCategory === targetCategory) {
+        } else if (sourceCategory === targetCategory) {
             switch (sourceCategory) {
                 case 'navy':
-                    edgeColor = '#0066CC'; // Navy blue
+                    edgeColor = '#0066CC';
                     label = 'Naval Command';
                     break;
                 case 'aviation':
-                    edgeColor = '#00ff88'; // Green
+                    edgeColor = '#00ff88';
                     label = 'Aviation Command';
                     break;
                 case 'ground':
-                    edgeColor = '#ff3333'; // Red
+                    edgeColor = '#ff3333';
                     label = 'Ground Command';
                     break;
                 default:
@@ -364,45 +350,73 @@ const UnitOrganizationChart = () => {
         };
     }, []);
 
-    // Fetch ORBAT data
-    const fetchORBATData = useCallback(async () => {
+    // Fetch positions for a unit
+    const fetchUnitPositions = useCallback(async (unitId) => {
+        try {
+            const response = await api.get(`/units/orbat/unit_orbat/?unit_id=${unitId}&include_subunits=false`);
+            const positions = response.data.nodes
+                .filter(node => node.position_type)
+                .map(node => ({
+                    id: node.id,
+                    display_title: node.display_title,
+                    role_category: node.role_info?.category || 'unknown',
+                    is_vacant: node.is_vacant,
+                    current_holder: node.current_holder
+                }));
+            setPositions(positions);
+        } catch (error) {
+            console.error('Failed to fetch positions:', error);
+            setPositions([]);
+        }
+    }, []);
+
+    // Handle node click
+    const handleNodeClick = useCallback((unit) => {
+        setSelectedUnit(unit);
+        fetchUnitPositions(unit.id);
+    }, [fetchUnitPositions]);
+
+    // Handle node double click for modal
+    const onNodeDoubleClick = useCallback((event, node) => {
+        const unit = node.data.unit;
+        setSelectedUnit(unit);
+        fetchUnitPositions(unit.id);
+        setModalOpen(true);
+    }, [fetchUnitPositions]);
+
+    // Load ORBAT data
+    const loadORBATData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
-            // Fetch actual units list from API
             const response = await api.get('/units/orbat/units_list/');
             const units = response.data;
 
-            // Check if we have data
             if (!units || units.length === 0) {
                 setError('No units found in the organization.');
                 return;
             }
 
-            // Store unit data for quick access
             const unitMap = {};
             units.forEach(unit => {
                 unitMap[unit.id] = unit;
             });
             setUnitData(unitMap);
 
-            // Create nodes
             const flowNodes = units.map(unit => ({
                 id: unit.id,
                 type: 'unitNode',
                 data: {
                     unit: {
                         ...unit,
-                        // Ensure branch_color exists, default to blue if not
                         branch_color: unit.branch_color || '#42c8f4'
                     },
-                    onNodeClick: handleNodeClick
+                    handleClick: handleNodeClick
                 },
                 position: { x: 0, y: 0 }
             }));
 
-            // Create edges with styled relationships
             const flowEdges = units
                 .filter(unit => unit.parent_unit_id && unitMap[unit.parent_unit_id])
                 .map(unit => {
@@ -418,7 +432,6 @@ const UnitOrganizationChart = () => {
                     };
                 });
 
-            // Apply auto-layout
             const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
                 flowNodes,
                 flowEdges
@@ -434,52 +447,12 @@ const UnitOrganizationChart = () => {
         }
     }, [getLayoutedElements, setNodes, setEdges, getEdgeStyle, handleNodeClick]);
 
-    // Handle node click
-    const handleNodeClick = useCallback((unit) => {
-        setSelectedUnit(unit);
-        fetchUnitPositions(unit.id);
-    }, []);
-
-    // Fetch positions for a unit
-    const fetchUnitPositions = useCallback(async (unitId) => {
-        try {
-            // Fetch actual unit ORBAT data from API
-            const response = await api.get(`/units/orbat/unit_orbat/?unit_id=${unitId}&include_subunits=false`);
-
-            // Extract positions from the nodes data
-            const positions = response.data.nodes
-                .filter(node => node.position_type) // Filter to get position nodes
-                .map(node => ({
-                    id: node.id,
-                    display_title: node.display_title,
-                    role_category: node.role_info?.category || 'unknown',
-                    is_vacant: node.is_vacant,
-                    current_holder: node.current_holder
-                }));
-
-            setPositions(positions);
-        } catch (error) {
-            console.error('Failed to fetch positions:', error);
-            setPositions([]);
-        }
-    }, []);
-
-    // Handle node double click for modal
-    const onNodeDoubleClick = useCallback((event, node) => {
-        const unit = node.data.unit;
-        setSelectedUnit(unit);
-        fetchUnitPositions(unit.id);
-        setModalOpen(true);
-    }, [fetchUnitPositions]);
-
-    // Node types
-    const nodeTypes = useMemo(() => ({ unitNode: UnitNode }), []);
-
-    // Initialize data
+    // Initialize on mount
     useEffect(() => {
-        fetchORBATData();
-    }, [fetchORBATData]);
+        loadORBATData();
+    }, [loadORBATData]);
 
+    // Loading state
     if (loading) {
         return (
             <div className="loading-container">
@@ -488,13 +461,14 @@ const UnitOrganizationChart = () => {
         );
     }
 
+    // Error state
     if (error) {
         return (
             <div className="error-container">
                 <div className="error-content">
                     <h2>Error Loading Organization Chart</h2>
                     <p>{error}</p>
-                    <button className="retry-button" onClick={fetchORBATData}>
+                    <button className="retry-button" onClick={loadORBATData}>
                         Retry
                     </button>
                 </div>
@@ -502,6 +476,7 @@ const UnitOrganizationChart = () => {
         );
     }
 
+    // Main render
     return (
         <div className="org-chart-container">
             <div className="chart-header">
@@ -589,7 +564,7 @@ const UnitOrganizationChart = () => {
                         <Panel position="top-right">
                             <button
                                 className="reset-button"
-                                onClick={() => fetchORBATData()}
+                                onClick={loadORBATData}
                             >
                                 Reset View
                             </button>
@@ -772,7 +747,6 @@ const UnitOrganizationChart = () => {
                     filter: grayscale(80%);
                 }
 
-                /* Category-specific styling */
                 .unit-node.category-navy::before {
                     content: '⚓';
                     position: absolute;
@@ -1271,6 +1245,42 @@ const UnitOrganizationChart = () => {
                         flex-direction: column;
                         gap: 0.5rem;
                     }
+
+                    .positions-container {
+                        flex-direction: column;
+                    }
+
+                    .modal-content {
+                        width: 95%;
+                        max-height: 90vh;
+                    }
+
+                    .info-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                /* Scrollbar styling for position panels */
+                .positions-container::-webkit-scrollbar,
+                .modal-body::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .positions-container::-webkit-scrollbar-track,
+                .modal-body::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 4px;
+                }
+
+                .positions-container::-webkit-scrollbar-thumb,
+                .modal-body::-webkit-scrollbar-thumb {
+                    background: rgba(66, 200, 244, 0.5);
+                    border-radius: 4px;
+                }
+
+                .positions-container::-webkit-scrollbar-thumb:hover,
+                .modal-body::-webkit-scrollbar-thumb:hover {
+                    background: rgba(66, 200, 244, 0.7);
                 }
             `}</style>
         </div>
