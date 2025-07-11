@@ -299,111 +299,6 @@ const UnitOrganizationChart = () => {
     // Node types configuration
     const nodeTypes = useMemo(() => ({ unitNode: UnitNode }), []);
 
-    // Auto-layout function using dagre
-    const getLayoutedElements = useCallback((nodes, edges, direction = 'TB') => {
-        const dagreGraph = new dagre.graphlib.Graph();
-        dagreGraph.setDefaultEdgeLabel(() => ({}));
-        dagreGraph.setGraph({ rankdir: direction, nodesep: 120, ranksep: 180 });
-
-        nodes.forEach((node) => {
-            dagreGraph.setNode(node.id, { width: 220, height: 160 });
-        });
-
-        edges.forEach((edge) => {
-            dagreGraph.setEdge(edge.source, edge.target);
-        });
-
-        dagre.layout(dagreGraph);
-
-        const layoutedNodes = nodes.map((node) => {
-            const nodeWithPosition = dagreGraph.node(node.id);
-            return {
-                ...node,
-                position: {
-                    x: nodeWithPosition.x - 110,
-                    y: nodeWithPosition.y - 80,
-                },
-            };
-        });
-
-        return { nodes: layoutedNodes, edges };
-    }, []);
-
-    // Get edge style based on relationship type
-    const getEdgeStyle = useCallback((sourceUnit, targetUnit) => {
-        const sourceCategory = getUnitCategory(sourceUnit.unit_type);
-        const targetCategory = getUnitCategory(targetUnit.unit_type);
-        const sourceActive = sourceUnit.is_active;
-        const targetActive = targetUnit.is_active;
-
-        let edgeColor = '#42c8f4';
-        let strokeDasharray = '0';
-        let animated = false;
-        let label = 'Reports to';
-
-        // Check if units are from different branches
-        const differentBranches = sourceUnit.branch?.id !== targetUnit.branch?.id;
-
-        if (!sourceActive || !targetActive) {
-            edgeColor = '#666666';
-            strokeDasharray = '5 5';
-            label = 'Inactive Link';
-        } else if (differentBranches) {
-            edgeColor = '#ff7b00';
-            strokeDasharray = '10 5';
-            label = 'Cross-Branch';
-            animated = true;
-        } else if (sourceCategory !== targetCategory && sourceCategory !== 'default' && targetCategory !== 'default') {
-            edgeColor = '#ffaa00';
-            strokeDasharray = '8 4';
-            label = 'Cross-Type';
-        } else if (sourceCategory === targetCategory) {
-            switch (sourceCategory) {
-                case 'navy':
-                    edgeColor = getBranchColor(sourceUnit.branch);
-                    label = 'Naval Command';
-                    break;
-                case 'aviation':
-                    edgeColor = '#00ff88';
-                    label = 'Aviation Command';
-                    break;
-                case 'ground':
-                    edgeColor = '#ff3333';
-                    label = 'Ground Command';
-                    break;
-                default:
-                    edgeColor = getBranchColor(sourceUnit.branch);
-            }
-        }
-
-        return {
-            style: {
-                stroke: edgeColor,
-                strokeWidth: 2,
-                strokeDasharray: strokeDasharray
-            },
-            animated: animated,
-            label: label,
-            labelShowBg: true,
-            labelStyle: {
-                fill: edgeColor,
-                fontSize: 9,
-                fontWeight: 500,
-                opacity: 0.8
-            },
-            labelBgStyle: {
-                fill: '#0a0a0a',
-                fillOpacity: 0.9,
-                borderRadius: 2,
-                padding: 2
-            },
-            markerEnd: {
-                type: MarkerType.ArrowClosed,
-                color: edgeColor
-            }
-        };
-    }, []);
-
     // Fetch positions for a unit
     const fetchUnitPositions = useCallback(async (unitId) => {
         try {
@@ -430,12 +325,6 @@ const UnitOrganizationChart = () => {
         }
     }, [unitData]);
 
-    // Handle node click
-    const handleNodeClick = useCallback((unit) => {
-        setSelectedUnit(unit);
-        fetchUnitPositions(unit.id);
-    }, [fetchUnitPositions]);
-
     // Handle node double click for modal
     const onNodeDoubleClick = useCallback((event, node) => {
         const unit = node.data.unit;
@@ -444,73 +333,183 @@ const UnitOrganizationChart = () => {
         setModalOpen(true);
     }, [fetchUnitPositions]);
 
-    // Load ORBAT data
-    const loadORBATData = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
+    // Load ORBAT data on mount
+    useEffect(() => {
+        let mounted = true;
 
-            const response = await api.get('/units');
-            const data = response.data;
+        const loadData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
 
-            // Extract units from results array
-            const units = data.results || [];
+                const response = await api.get('/units/');
+                const data = response.data;
 
-            if (!units || units.length === 0) {
-                setError('No units found in the organization.');
-                return;
-            }
+                // Check if component is still mounted
+                if (!mounted) return;
 
-            const unitMap = {};
-            units.forEach(unit => {
-                unitMap[unit.id] = unit;
-            });
-            setUnitData(unitMap);
+                // Extract units from results array
+                const units = data.results || data || [];
 
-            const flowNodes = units.map(unit => ({
-                id: unit.id,
-                type: 'unitNode',
-                data: {
-                    unit: unit,
-                    handleClick: handleNodeClick
-                },
-                position: { x: 0, y: 0 }
-            }));
+                if (!units || units.length === 0) {
+                    setError('No units found in the organization.');
+                    setLoading(false);
+                    return;
+                }
 
-            const flowEdges = units
-                .filter(unit => unit.parent_unit && unitMap[unit.parent_unit])
-                .map(unit => {
-                    const parentUnit = unitMap[unit.parent_unit];
-                    const edgeStyle = getEdgeStyle(parentUnit, unit);
+                // Store unit data
+                const unitMap = {};
+                units.forEach(unit => {
+                    unitMap[unit.id] = unit;
+                });
+                setUnitData(unitMap);
 
+                // Create nodes with inline click handlers
+                const flowNodes = units.map(unit => ({
+                    id: unit.id,
+                    type: 'unitNode',
+                    data: {
+                        unit: unit,
+                        handleClick: (clickedUnit) => {
+                            setSelectedUnit(clickedUnit);
+                        }
+                    },
+                    position: { x: 0, y: 0 }
+                }));
+
+                // Create edges
+                const flowEdges = [];
+                units.forEach(unit => {
+                    if (unit.parent_unit && unitMap[unit.parent_unit]) {
+                        const parentUnit = unitMap[unit.parent_unit];
+
+                        // Inline edge style calculation
+                        const sourceCategory = getUnitCategory(parentUnit.unit_type);
+                        const targetCategory = getUnitCategory(unit.unit_type);
+                        const differentBranches = parentUnit.branch?.id !== unit.branch?.id;
+
+                        let edgeColor = '#42c8f4';
+                        let strokeDasharray = '0';
+                        let animated = false;
+                        let label = 'Reports to';
+
+                        if (!parentUnit.is_active || !unit.is_active) {
+                            edgeColor = '#666666';
+                            strokeDasharray = '5 5';
+                            label = 'Inactive Link';
+                        } else if (differentBranches) {
+                            edgeColor = '#ff7b00';
+                            strokeDasharray = '10 5';
+                            label = 'Cross-Branch';
+                            animated = true;
+                        } else if (sourceCategory !== targetCategory && sourceCategory !== 'default' && targetCategory !== 'default') {
+                            edgeColor = '#ffaa00';
+                            strokeDasharray = '8 4';
+                            label = 'Cross-Type';
+                        } else {
+                            edgeColor = getBranchColor(parentUnit.branch);
+                            switch (sourceCategory) {
+                                case 'navy':
+                                    label = 'Naval Command';
+                                    break;
+                                case 'aviation':
+                                    edgeColor = '#00ff88';
+                                    label = 'Aviation Command';
+                                    break;
+                                case 'ground':
+                                    edgeColor = '#ff3333';
+                                    label = 'Ground Command';
+                                    break;
+                            }
+                        }
+
+                        flowEdges.push({
+                            id: `e${unit.parent_unit}-${unit.id}`,
+                            source: unit.parent_unit,
+                            target: unit.id,
+                            type: 'smoothstep',
+                            style: {
+                                stroke: edgeColor,
+                                strokeWidth: 2,
+                                strokeDasharray: strokeDasharray
+                            },
+                            animated: animated,
+                            label: label,
+                            labelShowBg: true,
+                            labelStyle: {
+                                fill: edgeColor,
+                                fontSize: 9,
+                                fontWeight: 500,
+                                opacity: 0.8
+                            },
+                            labelBgStyle: {
+                                fill: '#0a0a0a',
+                                fillOpacity: 0.9,
+                                borderRadius: 2,
+                                padding: 2
+                            },
+                            markerEnd: {
+                                type: MarkerType.ArrowClosed,
+                                color: edgeColor
+                            }
+                        });
+                    }
+                });
+
+                // Apply dagre layout
+                const dagreGraph = new dagre.graphlib.Graph();
+                dagreGraph.setDefaultEdgeLabel(() => ({}));
+                dagreGraph.setGraph({ rankdir: 'TB', nodesep: 120, ranksep: 180 });
+
+                flowNodes.forEach((node) => {
+                    dagreGraph.setNode(node.id, { width: 220, height: 160 });
+                });
+
+                flowEdges.forEach((edge) => {
+                    dagreGraph.setEdge(edge.source, edge.target);
+                });
+
+                dagre.layout(dagreGraph);
+
+                const layoutedNodes = flowNodes.map((node) => {
+                    const nodeWithPosition = dagreGraph.node(node.id);
                     return {
-                        id: `e${unit.parent_unit}-${unit.id}`,
-                        source: unit.parent_unit,
-                        target: unit.id,
-                        type: 'smoothstep',
-                        ...edgeStyle
+                        ...node,
+                        position: {
+                            x: nodeWithPosition.x - 110,
+                            y: nodeWithPosition.y - 80,
+                        },
                     };
                 });
 
-            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-                flowNodes,
-                flowEdges
-            );
+                if (mounted) {
+                    setNodes(layoutedNodes);
+                    setEdges(flowEdges);
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('Failed to fetch ORBAT data:', error);
+                if (mounted) {
+                    setError(`Failed to load organization chart: ${error.message || 'Unknown error'}`);
+                    setLoading(false);
+                }
+            }
+        };
 
-            setNodes(layoutedNodes);
-            setEdges(layoutedEdges);
-        } catch (error) {
-            console.error('Failed to fetch ORBAT data:', error);
-            setError(`Failed to load organization chart: ${error.message || 'Unknown error'}`);
-        } finally {
-            setLoading(false);
-        }
-    }, [getLayoutedElements, setNodes, setEdges, getEdgeStyle, handleNodeClick]);
+        loadData();
 
-    // Initialize on mount
+        // Cleanup function
+        return () => {
+            mounted = false;
+        };
+    }, []); // Empty dependency array - only run once on mount
+
+    // Separate effect to fetch positions when selected unit changes
     useEffect(() => {
-        loadORBATData();
-    }, [loadORBATData]);
+        if (selectedUnit && selectedUnit.id) {
+            fetchUnitPositions(selectedUnit.id);
+        }
+    }, [selectedUnit, fetchUnitPositions]);
 
     // Loading state
     if (loading) {
@@ -528,7 +527,7 @@ const UnitOrganizationChart = () => {
                 <div className="error-content">
                     <h2>Error Loading Organization Chart</h2>
                     <p>{error}</p>
-                    <button className="retry-button" onClick={loadORBATData}>
+                    <button className="retry-button" onClick={() => window.location.reload()}>
                         Retry
                     </button>
                 </div>
@@ -629,7 +628,7 @@ const UnitOrganizationChart = () => {
                         <Panel position="top-right">
                             <button
                                 className="reset-button"
-                                onClick={loadORBATData}
+                                onClick={() => window.location.reload()}
                             >
                                 Reset View
                             </button>
@@ -762,11 +761,11 @@ const UnitOrganizationChart = () => {
 
                 .legend-line.cross-branch {
                     background: repeating-linear-gradient(
-                        90deg,
-                        #ff7b00 0px,
-                        #ff7b00 10px,
-                        transparent 10px,
-                        transparent 15px
+                            90deg,
+                            #ff7b00 0px,
+                            #ff7b00 10px,
+                            transparent 10px,
+                            transparent 15px
                     );
                 }
 
@@ -776,11 +775,11 @@ const UnitOrganizationChart = () => {
 
                 .legend-line.cross-type {
                     background: repeating-linear-gradient(
-                        90deg,
-                        #ffaa00 0px,
-                        #ffaa00 8px,
-                        transparent 8px,
-                        transparent 12px
+                            90deg,
+                            #ffaa00 0px,
+                            #ffaa00 8px,
+                            transparent 8px,
+                            transparent 12px
                     );
                 }
 
@@ -790,11 +789,11 @@ const UnitOrganizationChart = () => {
 
                 .legend-line.inactive-link {
                     background: repeating-linear-gradient(
-                        90deg,
-                        #666666 0px,
-                        #666666 5px,
-                        transparent 5px,
-                        transparent 10px
+                            90deg,
+                            #666666 0px,
+                            #666666 5px,
+                            transparent 5px,
+                            transparent 10px
                     );
                 }
 
