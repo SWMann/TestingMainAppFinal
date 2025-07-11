@@ -3,6 +3,29 @@ import { X, Building, ChevronRight } from 'lucide-react';
 import './AdminModals.css';
 import api from "../../services/api";
 
+// Helper function to format unit type for display
+const formatUnitType = (unitType) => {
+    if (!unitType) return '';
+
+    // Handle legacy format (e.g., "Corps", "Division")
+    if (!unitType.includes('_')) return unitType;
+
+    // Handle new format (e.g., "navy_fleet", "ground_division")
+    const [category, ...typeParts] = unitType.split('_');
+    const type = typeParts.join(' ');
+
+    const categoryLabels = {
+        'navy': 'Navy',
+        'aviation': 'Naval Aviation',
+        'ground': 'Ground'
+    };
+
+    const formattedType = type.charAt(0).toUpperCase() + type.slice(1);
+    const formattedCategory = categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1);
+
+    return `${formattedCategory}: ${formattedType}`;
+};
+
 const UnitAssignmentModal = ({ user, onClose, onAssign }) => {
     const [units, setUnits] = useState([]);
     const [selectedUnit, setSelectedUnit] = useState(user.primary_unit?.id || null);
@@ -84,7 +107,7 @@ const UnitAssignmentModal = ({ user, onClose, onAssign }) => {
                             <div className="unit-tree-name">{unit.name}</div>
                             <div className="unit-tree-details">
                                 <span>{unit.abbreviation}</span>
-                                {unit.unit_type && <span>• {unit.unit_type}</span>}
+                                {unit.unit_type && <span>• {formatUnitType(unit.unit_type)}</span>}
                             </div>
                         </div>
                         {unit.id === user.primary_unit?.id && (
@@ -144,7 +167,7 @@ const UnitAssignmentModal = ({ user, onClose, onAssign }) => {
                                 )}
                                 <div>
                                     <div className="unit-name">{user.primary_unit.name}</div>
-                                    <div className="unit-type">{user.primary_unit.unit_type}</div>
+                                    <div className="unit-type">{formatUnitType(user.primary_unit.unit_type)}</div>
                                 </div>
                             </div>
                         ) : (
@@ -187,7 +210,7 @@ const UnitAssignmentModal = ({ user, onClose, onAssign }) => {
                                 )}
                                 <div className="unit-preview-info">
                                     <div className="unit-preview-name">{selectedUnitInfo.name}</div>
-                                    <div className="unit-preview-type">{selectedUnitInfo.unit_type}</div>
+                                    <div className="unit-preview-type">{formatUnitType(selectedUnitInfo.unit_type)}</div>
                                     {selectedUnitInfo.motto && (
                                         <div className="unit-preview-motto">"{selectedUnitInfo.motto}"</div>
                                     )}

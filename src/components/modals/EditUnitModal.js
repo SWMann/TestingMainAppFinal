@@ -160,15 +160,35 @@ export const EditUnitModal = ({ unit, branches, units, onClose, onUpdate }) => {
                                 onChange={handleChange}
                             >
                                 <option value="">Select Type</option>
-                                <option value="Corps">Corps</option>
-                                <option value="Division">Division</option>
-                                <option value="Brigade">Brigade</option>
-                                <option value="Regiment">Regiment</option>
-                                <option value="Battalion">Battalion</option>
-                                <option value="Company">Company</option>
-                                <option value="Platoon">Platoon</option>
-                                <option value="Squad">Squad</option>
-                                <option value="Other">Other</option>
+                                <optgroup label="Navy Units">
+                                    <option value="navy_expeditionary_force">Expeditionary Force</option>
+                                    <option value="navy_fleet">Fleet</option>
+                                    <option value="navy_battle_group">Battle Group</option>
+                                    <option value="navy_task_force">Task Force</option>
+                                    <option value="navy_squadron">Squadron</option>
+                                    <option value="navy_division">Division</option>
+                                    <option value="navy_flight">Flight</option>
+                                    <option value="navy_vessel">Individual Vessel</option>
+                                </optgroup>
+                                <optgroup label="Naval Aviation">
+                                    <option value="aviation_air_wing">Air Wing</option>
+                                    <option value="aviation_air_group">Air Group</option>
+                                    <option value="aviation_squadron">Squadron</option>
+                                    <option value="aviation_division">Division</option>
+                                    <option value="aviation_flight">Flight</option>
+                                    <option value="aviation_element">Element/Section</option>
+                                </optgroup>
+                                <optgroup label="Ground Forces">
+                                    <option value="ground_corps">Corps</option>
+                                    <option value="ground_division">Division</option>
+                                    <option value="ground_brigade">Brigade/Regiment</option>
+                                    <option value="ground_battalion">Battalion</option>
+                                    <option value="ground_company">Company</option>
+                                    <option value="ground_platoon">Platoon</option>
+                                    <option value="ground_squad">Squad</option>
+                                    <option value="ground_fire_team">Fire Team</option>
+                                </optgroup>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                     </div>
