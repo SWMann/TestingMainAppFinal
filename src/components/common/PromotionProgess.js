@@ -167,9 +167,9 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
                     <div className="rank-progression">
                         <div className="current-rank">
                             <span className="label">Current</span>
-                            {progress.current_rank.insignia_image && (
+                            {progress.current_rank.insignia_image.url && (
                                 <img
-                                    src={progress.current_rank.insignia_image}
+                                    src={progress.current_rank.insignia_image.url}
                                     alt="Current rank"
                                 />
                             )}
