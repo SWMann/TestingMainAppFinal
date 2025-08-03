@@ -101,7 +101,7 @@ const Header = () => {
         { path: '/roster', label: 'Crew', icon: Users },
         { path: '/operations', label: 'Missions', icon: Rocket },
         { path: '/training', label: 'Academy', icon: School },
-        { path: '/awards', label: 'Commendations', icon: Award },
+        { path: '/Commendations', label: 'Commendations', icon: Award },
         { path: '/documents', label: 'Intel', icon: FileText },
         { path: '/ships', label: 'Ships', icon: Ship },
         { path: '/ranks', label: 'Ranks', icon: Star},
