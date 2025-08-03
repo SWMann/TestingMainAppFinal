@@ -14,8 +14,8 @@ import api from "../../../services/api";
 import PromotionModal from "../../modals/PromotionModal";
 import UnitAssignmentModal from "../../modals/UnitAssignmentModal";
 import PositionAssignmentModal from "../../modals/PositionAssignmentModal";
-import PromotionProgress from "../../components/PromotionProgress/PromotionProgress";
 import { ForcePromotionModal, WaiverCreationModal, PromotionHistoryModal } from "../../modals/PromotionAdminModals";
+import PromotionProgress from "../../common/PromotionProgess";
 
 const UserProfile = () => {
     const { serviceNumber } = useParams(); // This can be a UUID, service number, or undefined
