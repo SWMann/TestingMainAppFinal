@@ -22,9 +22,9 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
 
     useEffect(() => {
         fetchPromotionProgress();
+        fetchProfileData();
     }, [userId]);
 
-    useEffect((fetchProfileData()))
     const fetchPromotionProgress = async () => {
         try {
             setLoading(true);
