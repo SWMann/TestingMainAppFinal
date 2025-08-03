@@ -6,7 +6,7 @@ import {
     ChevronRight, Mail, Hash, Briefcase, Ship, Trophy,
     Edit, UserPlus, ChevronUp, ChevronDown, AlertCircle,
     Building, Users, FileText, Activity, Target, School,
-    Rocket, Globe, Zap, Navigation
+    Rocket, Globe, Zap, Navigation, TrendingUp, History
 } from 'lucide-react';
 import './ProfilePage.css';
 
@@ -14,6 +14,8 @@ import api from "../../../services/api";
 import PromotionModal from "../../modals/PromotionModal";
 import UnitAssignmentModal from "../../modals/UnitAssignmentModal";
 import PositionAssignmentModal from "../../modals/PositionAssignmentModal";
+import PromotionProgress from "../../components/PromotionProgress/PromotionProgress";
+import { ForcePromotionModal, WaiverCreationModal, PromotionHistoryModal } from "../../modals/PromotionAdminModals";
 
 const UserProfile = () => {
     const { serviceNumber } = useParams(); // This can be a UUID, service number, or undefined
@@ -24,11 +26,16 @@ const UserProfile = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [ranks, setRanks] = useState([]);
 
     // Admin modals
     const [showPromotionModal, setShowPromotionModal] = useState(false);
     const [showUnitModal, setShowUnitModal] = useState(false);
     const [showPositionModal, setShowPositionModal] = useState(false);
+    const [showForcePromotionModal, setShowForcePromotionModal] = useState(false);
+    const [showPromotionHistoryModal, setShowPromotionHistoryModal] = useState(false);
+    const [promotionProgress, setPromotionProgress] = useState(null);
+    const [nextRankForPromotion, setNextRankForPromotion] = useState(null);
 
     // Helper function to check if a string is a UUID
     const isUUID = (str) => {
@@ -52,7 +59,33 @@ const UserProfile = () => {
 
     useEffect(() => {
         fetchProfileData();
+        fetchRanks();
     }, [serviceNumber]);
+
+    useEffect(() => {
+        // Fetch promotion progress if viewing another user and is admin
+        if (profileData && !isOwnProfile && isOfficer) {
+            fetchPromotionProgress();
+        }
+    }, [profileData, isOwnProfile, isOfficer]);
+
+    const fetchRanks = async () => {
+        try {
+            const response = await api.get('/ranks/');
+            setRanks(response.data.results || response.data);
+        } catch (err) {
+            console.error('Error fetching ranks:', err);
+        }
+    };
+
+    const fetchPromotionProgress = async () => {
+        try {
+            const response = await api.get(`/promotions/progress/${profileData.user.id}/`);
+            setPromotionProgress(response.data);
+        } catch (err) {
+            console.error('Error fetching promotion progress:', err);
+        }
+    };
 
     const fetchProfileData = async () => {
         setIsLoading(true);
@@ -133,16 +166,25 @@ const UserProfile = () => {
         return days;
     };
 
-    const handlePromotion = async (newRankId) => {
-        try {
-            await api.put(`/users/${profileData.user.id}/sensitive-fields/`, {
-                current_rank: newRankId
-            });
-            await fetchProfileData(); // Refresh data
-            setShowPromotionModal(false);
-        } catch (err) {
-            console.error('Error promoting user:', err);
-            alert('Failed to update rank');
+    const handlePromotion = async (promotionData) => {
+        // If promotionData is just a rank ID (from old modal), convert it
+        if (typeof promotionData === 'string') {
+            try {
+                await api.put(`/users/${profileData.user.id}/sensitive-fields/`, {
+                    current_rank: promotionData
+                });
+                await fetchProfileData();
+                setShowPromotionModal(false);
+            } catch (err) {
+                console.error('Error promoting user:', err);
+                alert('Failed to update rank');
+            }
+        } else {
+            // New promotion system - refresh data after successful promotion
+            await fetchProfileData();
+            await fetchPromotionProgress();
+            setShowForcePromotionModal(false);
+            // Show success message or notification
         }
     };
 
@@ -274,7 +316,21 @@ const UserProfile = () => {
                                     onClick={() => setShowPromotionModal(true)}
                                 >
                                     <ChevronUp size={16} />
-                                    PROMOTE/DEMOTE
+                                    QUICK RANK CHANGE
+                                </button>
+                                <button
+                                    className="admin-button"
+                                    onClick={() => setShowForcePromotionModal(true)}
+                                >
+                                    <TrendingUp size={16} />
+                                    PROMOTE
+                                </button>
+                                <button
+                                    className="admin-button"
+                                    onClick={() => setShowPromotionHistoryModal(true)}
+                                >
+                                    <History size={16} />
+                                    HISTORY
                                 </button>
                                 <button
                                     className="admin-button"
@@ -337,6 +393,13 @@ const UserProfile = () => {
                 >
                     <Award size={18} />
                     CERTIFICATIONS
+                </button>
+                <button
+                    className={activeTab === 'promotion' ? 'tab active' : 'tab'}
+                    onClick={() => setActiveTab('promotion')}
+                >
+                    <TrendingUp size={18} />
+                    PROMOTION
                 </button>
                 <button
                     className={activeTab === 'operations' ? 'tab active' : 'tab'}
@@ -646,6 +709,23 @@ const UserProfile = () => {
                     </div>
                 )}
 
+                {activeTab === 'promotion' && (
+                    <div className="tab-content">
+                        <PromotionProgress
+                            userId={isOwnProfile ? null : user.id}
+                            isAdmin={isOfficer && !isOwnProfile}
+                            onPromote={(rankId) => {
+                                // Set the next rank for the force promotion modal
+                                const nextRank = ranks?.find(r => r.id === rankId);
+                                if (nextRank) {
+                                    setNextRankForPromotion(nextRank);
+                                    setShowForcePromotionModal(true);
+                                }
+                            }}
+                        />
+                    </div>
+                )}
+
                 {activeTab === 'operations' && (
                     <div className="tab-content">
                         <div className="operations-section">
@@ -768,6 +848,24 @@ const UserProfile = () => {
                     user={user}
                     onClose={() => setShowPositionModal(false)}
                     onAssign={handlePositionAssignment}
+                />
+            )}
+
+            {showForcePromotionModal && (
+                <ForcePromotionModal
+                    user={user}
+                    currentRank={user.current_rank}
+                    nextRank={nextRankForPromotion || promotionProgress?.next_rank_details}
+                    promotionProgress={promotionProgress}
+                    onClose={() => setShowForcePromotionModal(false)}
+                    onPromote={handlePromotion}
+                />
+            )}
+
+            {showPromotionHistoryModal && (
+                <PromotionHistoryModal
+                    user={user}
+                    onClose={() => setShowPromotionHistoryModal(false)}
                 />
             )}
         </div>

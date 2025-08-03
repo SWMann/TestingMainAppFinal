@@ -251,8 +251,51 @@ const RankCard = ({ rank, onClick }) => {
 };
 
 const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
+    const [promotionRequirements, setPromotionRequirements] = useState([]);
+    const [loadingRequirements, setLoadingRequirements] = useState(false);
+
+    useEffect(() => {
+        fetchPromotionRequirements();
+    }, [rank.id]);
+
+    const fetchPromotionRequirements = async () => {
+        try {
+            setLoadingRequirements(true);
+            const response = await api.get('/promotions/rank-requirements/', {
+                params: { rank_id: rank.id }
+            });
+            setPromotionRequirements(response.data.results || response.data);
+        } catch (error) {
+            console.error('Error fetching promotion requirements:', error);
+        } finally {
+            setLoadingRequirements(false);
+        }
+    };
+
     // Get the best available image URL
     const insigniaUrl = rank.insignia_display_url || rank.insignia_image_url || rank.insignia_image || '/api/placeholder/150/150';
+
+    // Group requirements by category
+    const requirementsByCategory = {};
+    promotionRequirements.forEach(req => {
+        const category = req.requirement_type_details?.category || 'other';
+        if (!requirementsByCategory[category]) {
+            requirementsByCategory[category] = [];
+        }
+        requirementsByCategory[category].push(req);
+    });
+
+    const getCategoryName = (category) => {
+        const names = {
+            'time_based': 'Time Requirements',
+            'position_based': 'Position Requirements',
+            'qualification_based': 'Qualification Requirements',
+            'deployment_based': 'Combat Requirements',
+            'performance_based': 'Performance Requirements',
+            'administrative': 'Administrative Requirements'
+        };
+        return names[category] || category.replace(/_/g, ' ').toUpperCase();
+    };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -326,6 +369,38 @@ const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
                             )}
                         </div>
                     </div>
+
+                    {/* Promotion Requirements Section */}
+                    {promotionRequirements.length > 0 && (
+                        <div className="detail-section">
+                            <h3><Target size={18} /> PROMOTION REQUIREMENTS</h3>
+                            {loadingRequirements ? (
+                                <p className="loading-text">Loading requirements...</p>
+                            ) : (
+                                <div className="requirements-list">
+                                    {Object.entries(requirementsByCategory).map(([category, reqs]) => (
+                                        <div key={category} className="requirement-category-group">
+                                            <h4>{getCategoryName(category)}</h4>
+                                            <ul className="requirement-items">
+                                                {reqs.map(req => (
+                                                    <li key={req.id} className={req.is_mandatory ? 'mandatory' : 'optional'}>
+                                                        <span className="requirement-text">{req.display_text}</span>
+                                                        {req.value_required > 0 && (
+                                                            <span className="requirement-value">
+                                                                ({req.value_required} {req.requirement_type_details?.evaluation_type?.includes('time') ? 'days' : 'required'})
+                                                            </span>
+                                                        )}
+                                                        {!req.is_mandatory && <span className="optional-tag">OPTIONAL</span>}
+                                                        {req.waiverable && <span className="waiverable-tag">WAIVERABLE</span>}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
