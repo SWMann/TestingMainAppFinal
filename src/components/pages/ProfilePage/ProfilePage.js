@@ -80,11 +80,11 @@ const UserProfile = () => {
     }, [serviceNumber]);
 
     useEffect(() => {
-        // Fetch promotion progress if viewing another user and is admin
-        if (profileData && !isOwnProfile && isOfficer) {
+        // Fetch promotion progress for any user (own profile or others if admin)
+        if (profileData && profileData.user?.id) {
             fetchPromotionProgress();
         }
-    }, [profileData, isOwnProfile, isOfficer]);
+    }, [profileData]);
 
     const fetchRanks = async () => {
         try {
@@ -96,6 +96,8 @@ const UserProfile = () => {
     };
 
     const fetchPromotionProgress = async () => {
+        if (!profileData?.user?.id) return;
+
         try {
             const response = await api.get(`/promotions/progress/${profileData.user.id}/`);
             setPromotionProgress(response.data);
@@ -741,18 +743,22 @@ const UserProfile = () => {
 
                 {activeTab === 'promotion' && (
                     <div className="tab-content">
-                        <PromotionProgress
-                            userId={isOwnProfile ? null : user.id}
-                            isAdmin={isOfficer && !isOwnProfile}
-                            onPromote={(rankId) => {
-                                // Set the next rank for the force promotion modal
-                                const nextRank = ranks?.find(r => r.id === rankId);
-                                if (nextRank) {
-                                    setNextRankForPromotion(nextRank);
-                                    setShowForcePromotionModal(true);
-                                }
-                            }}
-                        />
+                        {user?.id ? (
+                            <PromotionProgress
+                                userId={user.id}
+                                isAdmin={isOfficer && !isOwnProfile}
+                                onPromote={(rankId) => {
+                                    // Set the next rank for the force promotion modal
+                                    const nextRank = ranks?.find(r => r.id === rankId);
+                                    if (nextRank) {
+                                        setNextRankForPromotion(nextRank);
+                                        setShowForcePromotionModal(true);
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <p className="no-data">Unable to load promotion progress</p>
+                        )}
                     </div>
                 )}
 
