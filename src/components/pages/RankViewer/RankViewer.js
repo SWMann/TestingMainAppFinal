@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ChevronRight, Star, Anchor, Award, Crown, Users, Hash, Calendar, Info } from 'lucide-react';
+import { Shield, ChevronRight, Star, Anchor, Award, Crown, Users, Hash, Calendar, Info, Target} from 'lucide-react';
 import api from '../../../services/api';
 import './RankViewer.css';
 
