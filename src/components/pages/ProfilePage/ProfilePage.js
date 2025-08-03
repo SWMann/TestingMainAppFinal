@@ -45,7 +45,7 @@ const UserProfile = () => {
     };
 
     // Check if current user is an officer
-    const isOfficer = currentUser?.current_rank?.is_officer || currentUser?.is_admin;
+    const isOfficer = getUserRank(currentUser)?.is_officer || currentUser?.is_admin;
 
     // Determine if viewing own profile (will be updated after data loads)
     const [isOwnProfile, setIsOwnProfile] = useState(true);
@@ -125,6 +125,14 @@ const UserProfile = () => {
 
             console.log('Profile data received:', response.data);
             setProfileData(response.data);
+
+            // Debug: Check rank data structure
+            console.log('[Profile Debug] User rank data:', {
+                current_rank: response.data.user?.current_rank,
+                rank: response.data.user?.rank,
+                user_fields: Object.keys(response.data.user || {}),
+                timestamp: new Date().toISOString()
+            });
         } catch (err) {
             console.error('Error fetching profile:', err);
 
@@ -164,6 +172,23 @@ const UserProfile = () => {
         if (!joinDate) return 0;
         const days = Math.floor((new Date() - new Date(joinDate)) / (1000 * 60 * 60 * 24));
         return days;
+    };
+
+    // Helper to get rank data from either field name
+    const getUserRank = (userData) => {
+        return userData?.current_rank || userData?.rank || null;
+    };
+
+    // Helper to get rank insignia URL
+    const getRankInsigniaUrl = (userData) => {
+        const rank = getUserRank(userData);
+        if (!rank) return null;
+
+        return rank.insignia_display_url ||
+            rank.insignia_image ||
+            rank.insignia_image_url ||
+            rank.insignia_url ||
+            null;
     };
 
     const handlePromotion = async (promotionData) => {
@@ -259,11 +284,14 @@ const UserProfile = () => {
                             alt={user.username}
                             className="profile-avatar"
                         />
-                        {user.current_rank && (
+                        {getUserRank(user) && (
                             <img
-                                src={user.current_rank.insignia_display_url || user.current_rank.insignia_image || user.current_rank.insignia_image_url}
-                                alt={`${user.current_rank.name} insignia`}
+                                src={getRankInsigniaUrl(user) || '/api/placeholder/56/56'}
+                                alt={`${getUserRank(user)?.name || 'Rank'} insignia`}
                                 className="rank-insignia"
+                                onError={(e) => {
+                                    e.target.src = '/api/placeholder/56/56';
+                                }}
                             />
                         )}
                     </div>
@@ -271,7 +299,7 @@ const UserProfile = () => {
                     <div className="profile-info">
                         <div className="profile-name-section">
                             <h1>
-                                {user.current_rank?.abbreviation} {user.username}
+                                {getUserRank(user)?.abbreviation ? `${getUserRank(user).abbreviation} ` : ''}{user.username}
                             </h1>
                             <div className="profile-badges">
                                 {user.recruit_status && (
@@ -292,11 +320,13 @@ const UserProfile = () => {
                         <div className="profile-details">
                             <div className="detail-item">
                                 <Hash size={16} />
-                                <span>{user.service_number || 'No Service Number'}</span>
+                                <span>{user.service_number || 'SN-PENDING'}</span>
                             </div>
                             <div className="detail-item">
                                 <Shield size={16} />
-                                <span>{user.current_rank?.name || 'No Rank'}</span>
+                                <span className={getUserRank(user) ? '' : 'no-data-text'}>
+                                    {getUserRank(user)?.name || 'Unranked'}
+                                </span>
                             </div>
                             <div className="detail-item">
                                 <Globe size={16} />
@@ -583,7 +613,7 @@ const UserProfile = () => {
                                                     className="mentor-avatar"
                                                 />
                                                 <span>
-                                                    {user.mentor.rank?.abbreviation} {user.mentor.username}
+                                                    {getUserRank(user.mentor)?.abbreviation ? `${getUserRank(user.mentor).abbreviation} ` : ''}{user.mentor.username}
                                                 </span>
                                             </div>
                                         </div>
@@ -854,7 +884,7 @@ const UserProfile = () => {
             {showForcePromotionModal && (
                 <ForcePromotionModal
                     user={user}
-                    currentRank={user.current_rank}
+                    currentRank={getUserRank(user)}
                     nextRank={nextRankForPromotion || promotionProgress?.next_rank_details}
                     promotionProgress={promotionProgress}
                     onClose={() => setShowForcePromotionModal(false)}
