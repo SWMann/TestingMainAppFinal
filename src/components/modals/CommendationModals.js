@@ -16,7 +16,7 @@ export const CreateCommendationModal = ({ branches = [], onClose, onSuccess }) =
         category: 'valor',
         precedence: 100,
         eligibility_criteria: '',
-        min_rank_requirement: '',
+        min_rank_requirement: null,
         requires_nomination: true,
         auto_award_criteria: {},
         is_active: true,
@@ -63,7 +63,8 @@ export const CreateCommendationModal = ({ branches = [], onClose, onSuccess }) =
             const submitData = {
                 ...formData,
                 precedence: parseInt(formData.precedence),
-                max_awards_per_user: parseInt(formData.max_awards_per_user) || 0
+                max_awards_per_user: parseInt(formData.max_awards_per_user) || 0,
+                min_rank_requirement: formData.min_rank_requirement || null
             };
 
             await api.post('/commendations/types/', submitData);
@@ -87,6 +88,11 @@ export const CreateCommendationModal = ({ branches = [], onClose, onSuccess }) =
                 allowed_branches: checked
                     ? [...prev.allowed_branches, branchId]
                     : prev.allowed_branches.filter(id => id !== branchId)
+            }));
+        } else if (name === 'min_rank_requirement' && value === '') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: null
             }));
         } else {
             setFormData(prev => ({
@@ -268,7 +274,7 @@ export const CreateCommendationModal = ({ branches = [], onClose, onSuccess }) =
                             <label>Minimum Rank Requirement</label>
                             <select
                                 name="min_rank_requirement"
-                                value={formData.min_rank_requirement}
+                                value={formData.min_rank_requirement || ''}
                                 onChange={handleChange}
                             >
                                 <option value="">No minimum rank</option>
@@ -375,8 +381,8 @@ export const AwardCommendationModal = ({ commendationType, onClose, onSuccess })
         citation: '',
         short_citation: '',
         awarded_date: new Date().toISOString().slice(0, 16),
-        related_event_id: '',
-        related_unit_id: '',
+        related_event_id: null,
+        related_unit_id: null,
         order_number: '',
         is_public: true,
         supporting_documents: [],
@@ -449,7 +455,15 @@ export const AwardCommendationModal = ({ commendationType, onClose, onSuccess })
 
         setLoading(true);
         try {
-            await api.post('/commendations/awards/award/', formData);
+            // Clean up the data before sending - convert empty strings to null
+            const submitData = {
+                ...formData,
+                related_event_id: formData.related_event_id || null,
+                related_unit_id: formData.related_unit_id || null,
+                order_number: formData.order_number || null
+            };
+
+            await api.post('/commendations/awards/award/', submitData);
             onSuccess();
         } catch (error) {
             console.error('Error awarding commendation:', error);
@@ -463,10 +477,19 @@ export const AwardCommendationModal = ({ commendationType, onClose, onSuccess })
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+
+        // Handle select fields that should be null when empty
+        if ((name === 'related_event_id' || name === 'related_unit_id') && value === '') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: null
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            }));
+        }
 
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
@@ -639,7 +662,7 @@ export const AwardCommendationModal = ({ commendationType, onClose, onSuccess })
                                 <label>Related Event</label>
                                 <select
                                     name="related_event_id"
-                                    value={formData.related_event_id}
+                                    value={formData.related_event_id || ''}
                                     onChange={handleChange}
                                 >
                                     <option value="">None</option>
@@ -655,7 +678,7 @@ export const AwardCommendationModal = ({ commendationType, onClose, onSuccess })
                                 <label>Related Unit</label>
                                 <select
                                     name="related_unit_id"
-                                    value={formData.related_unit_id}
+                                    value={formData.related_unit_id || ''}
                                     onChange={handleChange}
                                 >
                                     <option value="">None</option>
