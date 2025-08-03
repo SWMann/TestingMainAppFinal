@@ -14,8 +14,8 @@ import api from "../../../services/api";
 import PromotionModal from "../../modals/PromotionModal";
 import UnitAssignmentModal from "../../modals/UnitAssignmentModal";
 import PositionAssignmentModal from "../../modals/PositionAssignmentModal";
+import PromotionProgress from "../../components/PromotionProgress/PromotionProgress";
 import { ForcePromotionModal, WaiverCreationModal, PromotionHistoryModal } from "../../modals/PromotionAdminModals";
-import PromotionProgress from "../../common/PromotionProgess";
 
 const UserProfile = () => {
     const { serviceNumber } = useParams(); // This can be a UUID, service number, or undefined
@@ -42,6 +42,23 @@ const UserProfile = () => {
         if (!str) return false;
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         return uuidRegex.test(str);
+    };
+
+    // Helper to get rank data from either field name
+    const getUserRank = (userData) => {
+        return userData?.current_rank || userData?.rank || null;
+    };
+
+    // Helper to get rank insignia URL
+    const getRankInsigniaUrl = (userData) => {
+        const rank = getUserRank(userData);
+        if (!rank) return null;
+
+        return rank.insignia_display_url ||
+            rank.insignia_image ||
+            rank.insignia_image_url ||
+            rank.insignia_url ||
+            null;
     };
 
     // Check if current user is an officer
@@ -172,23 +189,6 @@ const UserProfile = () => {
         if (!joinDate) return 0;
         const days = Math.floor((new Date() - new Date(joinDate)) / (1000 * 60 * 60 * 24));
         return days;
-    };
-
-    // Helper to get rank data from either field name
-    const getUserRank = (userData) => {
-        return userData?.current_rank || userData?.rank || null;
-    };
-
-    // Helper to get rank insignia URL
-    const getRankInsigniaUrl = (userData) => {
-        const rank = getUserRank(userData);
-        if (!rank) return null;
-
-        return rank.insignia_display_url ||
-            rank.insignia_image ||
-            rank.insignia_image_url ||
-            rank.insignia_url ||
-            null;
     };
 
     const handlePromotion = async (promotionData) => {
