@@ -6,9 +6,7 @@ import {
 } from 'lucide-react';
 import './PromotionProgress.css';
 import api from "../../services/api";
-import {WaiverCreationModal} from "../modals/PromotionAdminModals";
-
-
+import { WaiverCreationModal } from "../modals/PromotionAdminModals";
 
 const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     const [progress, setProgress] = useState(null);
@@ -19,16 +17,25 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     const [selectedRequirement, setSelectedRequirement] = useState(null);
     const [profileData, setProfileData] = useState(null);
 
-
     useEffect(() => {
-        fetchPromotionProgress();
-        fetchProfileData();
+        if (userId) {
+            fetchPromotionProgress();
+            fetchProfileData();
+        } else {
+            setLoading(false);
+            setError('No user ID provided');
+        }
     }, [userId]);
 
     const fetchPromotionProgress = async () => {
+        if (!userId) {
+            console.warn('No userId provided to fetchPromotionProgress');
+            return;
+        }
+
         try {
             setLoading(true);
-            const endpoint = userId ? `/promotions/progress/${userId}/` : '/promotions/progress/';
+            const endpoint = `/promotions/progress/${userId}/`;
             const response = await api.get(endpoint);
             setProgress(response.data);
             setError(null);
@@ -40,30 +47,29 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         }
     };
 
-
     const fetchProfileData = async () => {
+        if (!userId) {
+            console.warn('No userId provided to fetchProfileData');
+            return;
+        }
 
+        try {
+            const response = await api.get(`/users/${userId}/`);
+            console.log('Profile data received:', response.data);
+            setProfileData(response.data);
 
-
-            const response = await api.get(`/users/${userId}/`, {});
-
-
-
-
-
-
-        console.log('Profile data received:', response.data);
-        setProfileData(response.data);
-
-        // Debug: Check rank data structure
-        console.log('[Profile Debug] User rank data:', {
-            current_rank: response.data.user?.current_rank,
-            rank: response.data.user?.rank,
-            user_fields: Object.keys(response.data.user || {}),
-            timestamp: new Date().toISOString()
-        });
-
-};
+            // Debug: Check rank data structure
+            console.log('[Profile Debug] User rank data:', {
+                current_rank: response.data.user?.current_rank,
+                rank: response.data.user?.rank,
+                user_fields: Object.keys(response.data.user || {}),
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error('Error fetching profile data:', error);
+            setError('Failed to load profile data');
+        }
+    };
 
     const toggleRequirement = (reqId) => {
         setExpandedRequirements(prev => ({
@@ -109,6 +115,16 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         return '#ff3333';
     };
 
+    // Handle various error and loading states
+    if (!userId) {
+        return (
+            <div className="promotion-error">
+                <AlertCircle size={24} />
+                <p>No user ID provided</p>
+            </div>
+        );
+    }
+
     if (loading) {
         return (
             <div className="promotion-loading">
@@ -137,6 +153,7 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         );
     }
 
+    // Destructure progress data
     const {
         next_rank_details,
         overall_eligible,
@@ -145,7 +162,8 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         detailed_requirements,
         time_estimates,
         board_eligible,
-        board_scheduled_date
+        board_scheduled_date,
+        current_rank
     } = progress;
 
     // Group requirements by category
@@ -157,8 +175,14 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         }
         requirementsByCategory[category].push(req);
     });
-    const { user, positions, certificates, events, ships, statistics } = profileData;
 
+    // Get user data from profile
+    const user = profileData?.user || {};
+    const positions = profileData?.positions || [];
+    const certificates = profileData?.certificates || [];
+    const events = profileData?.events || [];
+    const ships = profileData?.ships || [];
+    const statistics = profileData?.statistics || {};
 
     return (
         <div className="promotion-progress-container">
@@ -168,29 +192,29 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
                     <div className="rank-progression">
                         <div className="current-rank">
                             <span className="label">Current</span>
-                            {progress.current_rank.insignia_image_url && (
+                            {(current_rank?.insignia_image_url || current_rank?.insignia_display_url) && (
                                 <img
-                                    src={progress.current_rank.insignia_image_url}
+                                    src={current_rank.insignia_display_url || current_rank.insignia_image_url}
                                     alt="Current rank"
                                 />
                             )}
                             <div className="rank-details">
-                                <h3>{user.current_rank.abbreviation}</h3>
-                                <p>{next_rank_details.name}</p>
+                                <h3>{user?.current_rank?.abbreviation || current_rank?.abbreviation || 'N/A'}</h3>
+                                <p>{user?.current_rank?.name || current_rank?.name || 'No Rank'}</p>
                             </div>
                         </div>
                         <ChevronRight size={24} className="progression-arrow" />
                         <div className="next-rank">
                             <span className="label">Next</span>
-                            {next_rank_details.insignia_display_url && (
+                            {next_rank_details?.insignia_display_url && (
                                 <img
                                     src={next_rank_details.insignia_display_url}
                                     alt={next_rank_details.name}
                                 />
                             )}
                             <div className="rank-details">
-                                <h3>{next_rank_details.abbreviation}</h3>
-                                <p>{next_rank_details.name}</p>
+                                <h3>{next_rank_details?.abbreviation || 'N/A'}</h3>
+                                <p>{next_rank_details?.name || 'Unknown'}</p>
                             </div>
                         </div>
                     </div>
@@ -218,12 +242,12 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
                             <div
                                 className="progress-fill"
                                 style={{
-                                    width: `${eligibility_percentage}%`,
-                                    backgroundColor: getProgressBarColor(eligibility_percentage)
+                                    width: `${eligibility_percentage || 0}%`,
+                                    backgroundColor: getProgressBarColor(eligibility_percentage || 0)
                                 }}
                             />
                         </div>
-                        <span className="progress-percentage">{Math.round(eligibility_percentage)}%</span>
+                        <span className="progress-percentage">{Math.round(eligibility_percentage || 0)}%</span>
                     </div>
 
                     {overall_eligible && (
@@ -347,6 +371,7 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
                                                         )}
                                                     </div>
                                                 )}
+
                                                 {req.waiverable && isAdmin && !req.is_met && !req.is_waived && (
                                                     <button
                                                         className="waiver-button"
@@ -374,14 +399,15 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
             </div>
 
             {/* Admin Actions */}
-            {isAdmin && overall_eligible && onPromote && (
+            {isAdmin && overall_eligible && onPromote && next_rank_details?.id && (
                 <div className="admin-promotion-actions">
                     <button
                         className="promote-button"
                         onClick={() => onPromote(next_rank_details.id)}
+                        disabled={!next_rank_details.id}
                     >
                         <TrendingUp size={18} />
-                        PROMOTE TO {next_rank_details.abbreviation}
+                        PROMOTE TO {next_rank_details.abbreviation || 'NEXT RANK'}
                     </button>
                 </div>
             )}
