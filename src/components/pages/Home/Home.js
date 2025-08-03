@@ -277,7 +277,7 @@ const HomePage = () => {
                 <div className="hero-image-container">
                     <div className="hero-overlay"></div>
                     <img
-                        src="https://media.robertsspaceindustries.com/8bx5n9lza409r/source.jpg"
+                        src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpaperset.com%2Fw%2Ffull%2F6%2F3%2Fc%2F8438.jpg&f=1&nofb=1&ipt=6e1b4e09dd02183f944ac7f9a98aef33cc8475d0f96407f070b325451cf6d59c"
                         alt="5th Expeditionary Group Operations"
                         className="hero-image"
                     />
