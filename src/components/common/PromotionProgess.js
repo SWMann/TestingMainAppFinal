@@ -4,9 +4,9 @@ import {
     AlertCircle, Target, Calendar, Shield, FileText,
     Users, Briefcase, Star, ChevronRight, Crown
 } from 'lucide-react';
-import api from '../../../services/api';
-import { WaiverCreationModal } from '../../modals/PromotionAdminModals';
 import './PromotionProgress.css';
+import api from "../../services/api";
+import {WaiverCreationModal} from "../modals/PromotionAdminModals";
 
 const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     const [progress, setProgress] = useState(null);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, TrendingUp, AlertTriangle, FileCheck, Clock } from 'lucide-react';
-import api from '../../../services/api';
 import './PromotionAdminModals.css';
+import api from "../../services/api";
 
 // Force Promotion Modal
 export const ForcePromotionModal = ({ user, currentRank, nextRank, onClose, onPromote, promotionProgress }) => {
