@@ -8,6 +8,8 @@ import './PromotionProgress.css';
 import api from "../../services/api";
 import {WaiverCreationModal} from "../modals/PromotionAdminModals";
 
+
+
 const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     const [progress, setProgress] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -15,6 +17,8 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     const [expandedRequirements, setExpandedRequirements] = useState({});
     const [showWaiverModal, setShowWaiverModal] = useState(false);
     const [selectedRequirement, setSelectedRequirement] = useState(null);
+    const [profileData, setProfileData] = useState(null);
+
 
     useEffect(() => {
         fetchPromotionProgress();
@@ -34,6 +38,31 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
             setLoading(false);
         }
     };
+
+
+    const fetchProfileData = async () => {
+
+
+
+            const response = await api.get(`/users/${userId}/`, {});
+
+
+
+
+
+
+        console.log('Profile data received:', response.data);
+        setProfileData(response.data);
+
+        // Debug: Check rank data structure
+        console.log('[Profile Debug] User rank data:', {
+            current_rank: response.data.user?.current_rank,
+            rank: response.data.user?.rank,
+            user_fields: Object.keys(response.data.user || {}),
+            timestamp: new Date().toISOString()
+        });
+
+};
 
     const toggleRequirement = (reqId) => {
         setExpandedRequirements(prev => ({
@@ -127,6 +156,8 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         }
         requirementsByCategory[category].push(req);
     });
+    const { user, positions, certificates, events, ships, statistics } = profileData;
+
 
     return (
         <div className="promotion-progress-container">
@@ -136,12 +167,16 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
                     <div className="rank-progression">
                         <div className="current-rank">
                             <span className="label">Current</span>
-                            {progress.next_rank_details.insignia_display_url && (
+                            {progress.current_rank.insignia_image && (
                                 <img
-                                    src={progress.next_rank_details.insignia_display_url}
+                                    src={progress.current_rank.insignia_image}
                                     alt="Current rank"
                                 />
                             )}
+                            <div className="rank-details">
+                                <h3>{user.current_rank.abbreviation}</h3>
+                                <p>{next_rank_details.name}</p>
+                            </div>
                         </div>
                         <ChevronRight size={24} className="progression-arrow" />
                         <div className="next-rank">
