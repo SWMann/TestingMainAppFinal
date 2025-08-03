@@ -24,6 +24,7 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         fetchPromotionProgress();
     }, [userId]);
 
+    useEffect((fetchProfileData()))
     const fetchPromotionProgress = async () => {
         try {
             setLoading(true);
