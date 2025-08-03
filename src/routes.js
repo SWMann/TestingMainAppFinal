@@ -23,6 +23,7 @@ import TrainingPage from "./components/pages/TrainingPage/TrainingPage";
 import RankViewer from "./components/pages/RankViewer/RankViewer";
 import UnitOrganizationChart from "./components/pages/OrganizationChart/OrganizationChart";
 import RecruiterDashboard from "./components/pages/Recruiter/RecruiterDashboard";
+import CommendationsPage from "./components/pages/CommendationsPage/CommendationsPage";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -93,6 +94,10 @@ const routes = (isAuthenticated) => [
     {
         path: '/MOSList',
         element: <MOSListings/>
+    },
+    {
+        path: '/Commendations',
+        element: <CommendationsPage/>
     },
     {
         path: '/training',
