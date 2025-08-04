@@ -17,6 +17,89 @@ import PositionAssignmentModal from "../../modals/PositionAssignmentModal";
 import { ForcePromotionModal, WaiverCreationModal, PromotionHistoryModal } from "../../modals/PromotionAdminModals";
 import PromotionProgress from "../../common/PromotionProgess";
 
+// Rank History Component
+const RankHistorySection = ({ userId }) => {
+    const [rankHistory, setRankHistory] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (userId) {
+            fetchRankHistory();
+        }
+    }, [userId]);
+
+    const fetchRankHistory = async () => {
+        try {
+            const response = await api.get(`/users/${userId}/rank-progression/`);
+            setRankHistory(response.data);
+        } catch (error) {
+            console.error('Error fetching rank history:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+
+    if (loading) return <div className="loading-spinner"></div>;
+    if (!rankHistory || !rankHistory.progression || rankHistory.progression.length === 0) {
+        return <p className="no-data">No rank history available</p>;
+    }
+
+    return (
+        <div className="rank-history-timeline">
+            {rankHistory.progression.map((entry, index) => (
+                <div key={index} className={`timeline-item ${entry.is_current ? 'current' : ''}`}>
+                    <div className="timeline-marker">
+                        <div className="marker-dot"></div>
+                        {index < rankHistory.progression.length - 1 && <div className="marker-line"></div>}
+                    </div>
+                    <div className="timeline-content">
+                        <div className="rank-header">
+                            {entry.rank.insignia_image_url && (
+                                <img
+                                    src={entry.rank.insignia_image_url}
+                                    alt={entry.rank.name}
+                                    className="rank-insignia-small"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                    }}
+                                />
+                            )}
+                            <h4>{entry.rank.abbreviation} - {entry.rank.name}</h4>
+                            {entry.is_current && <span className="current-badge">CURRENT</span>}
+                        </div>
+                        <div className="rank-details">
+                            <span><Calendar size={14} /> Promoted: {formatDate(entry.date_achieved)}</span>
+                            {entry.promoted_by && (
+                                <span><User size={14} /> By: {entry.promoted_by.username}</span>
+                            )}
+                            <span><Clock size={14} /> Duration: {entry.duration_days} days</span>
+                        </div>
+                        {entry.promotion_order && (
+                            <div className="promotion-order">
+                                Order #: {entry.promotion_order}
+                            </div>
+                        )}
+                        {entry.notes && (
+                            <div className="promotion-notes">
+                                {entry.notes}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const UserProfile = () => {
     const { serviceNumber } = useParams(); // This can be a UUID, service number, or undefined
     const navigate = useNavigate();
@@ -637,6 +720,10 @@ const UserProfile = () => {
                 {activeTab === 'service' && (
                     <div className="tab-content">
                         <div className="service-record">
+                            {/* Rank History Section */}
+                            <h3>RANK PROGRESSION</h3>
+                            <RankHistorySection userId={user.id} />
+
                             <h3>POSITION HISTORY</h3>
                             {positions.length > 0 ? (
                                 <div className="positions-timeline">
@@ -747,6 +834,7 @@ const UserProfile = () => {
                             <PromotionProgress
                                 userId={user.id}
                                 isAdmin={isOfficer && !isOwnProfile}
+                                currentUser={user}
                                 onPromote={(rankId) => {
                                     // Set the next rank for the force promotion modal
                                     const nextRank = ranks?.find(r => r.id === rankId);

@@ -8,7 +8,7 @@ import './PromotionProgress.css';
 import api from "../../services/api";
 import { WaiverCreationModal } from "../modals/PromotionAdminModals";
 
-const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
+const PromotionProgress = ({ userId, isAdmin, onPromote, currentUser }) => {
     const [progress, setProgress] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -16,11 +16,13 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     const [showWaiverModal, setShowWaiverModal] = useState(false);
     const [selectedRequirement, setSelectedRequirement] = useState(null);
     const [profileData, setProfileData] = useState(null);
+    const [userRankHistory, setUserRankHistory] = useState(null);
 
     useEffect(() => {
         if (userId) {
             fetchPromotionProgress();
             fetchProfileData();
+            fetchRankHistory();
         } else {
             setLoading(false);
             setError('No user ID provided');
@@ -44,6 +46,18 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
             setError('Failed to load promotion progress');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchRankHistory = async () => {
+        if (!userId) return;
+
+        try {
+            const response = await api.get(`/users/${userId}/rank-progression/`);
+            console.log('Rank history received:', response.data);
+            setUserRankHistory(response.data);
+        } catch (error) {
+            console.error('Error fetching rank history:', error);
         }
     };
 
@@ -162,9 +176,11 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
         detailed_requirements,
         time_estimates,
         board_eligible,
-        board_scheduled_date,
-        current_rank
+        board_scheduled_date
     } = progress;
+
+    // Get current rank from user data or profile data
+    const current_rank = currentUser?.current_rank || profileData?.current_rank || userRankHistory?.current_rank || progress.current_rank;
 
     // Group requirements by category
     const requirementsByCategory = {};
@@ -177,7 +193,7 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
     });
 
     // Get user data from profile
-    const user = profileData?.user || {};
+    const user = profileData?.user || profileData || {};
     const positions = profileData?.positions || [];
     const certificates = profileData?.certificates || [];
     const events = profileData?.events || [];
@@ -192,15 +208,18 @@ const PromotionProgress = ({ userId, isAdmin, onPromote }) => {
                     <div className="rank-progression">
                         <div className="current-rank">
                             <span className="label">Current</span>
-                            {(current_rank?.insignia_image_url || current_rank?.insignia_display_url) && (
+                            {current_rank && (
                                 <img
-                                    src={current_rank.insignia_display_url || current_rank.insignia_image_url}
+                                    src={current_rank.insignia_display_url || current_rank.insignia_image_url || current_rank.insignia_image}
                                     alt="Current rank"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                    }}
                                 />
                             )}
                             <div className="rank-details">
-                                <h3>{user?.current_rank?.abbreviation || current_rank?.abbreviation || 'N/A'}</h3>
-                                <p>{user?.current_rank?.name || current_rank?.name || 'No Rank'}</p>
+                                <h3>{current_rank?.abbreviation || 'N/A'}</h3>
+                                <p>{current_rank?.name || 'No Rank'}</p>
                             </div>
                         </div>
                         <ChevronRight size={24} className="progression-arrow" />
