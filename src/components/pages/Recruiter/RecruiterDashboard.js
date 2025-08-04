@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import './RecruiterDashboard.css';
 import api from '../../../services/api';
-import { fetchUser } from '../../../store/slices/authSlice'; // Import if you have this action
 import ApplicationReviewModal from '../../modals/ApplicationReviewModal';
 import InterviewScheduleModal from '../../modals/InterviewScheduleModal';
 import MentorAssignmentModal from '../../modals/MentorAssignmentModal';
