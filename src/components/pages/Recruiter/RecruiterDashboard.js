@@ -1,12 +1,13 @@
 // src/components/pages/RecruiterDashboard/RecruiterDashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
-    Users, UserCheck, UserX, Clock, Calendar, ChevronRight,
+    Users, UserCheck, UserX, Clock, Calendar, MessageCircle,
     Search, Filter, FileText, Star, Shield, CheckCircle,
     XCircle, AlertCircle, Activity, TrendingUp, Award,
-    MessageSquare, UserPlus, Navigation, Globe, Briefcase
+    MessageSquare, UserPlus, Navigation, Globe, Send,
+    Mail, BellRing, ClipboardCheck, Bot, Heart
 } from 'lucide-react';
 import './RecruiterDashboard.css';
 import api from '../../../services/api';
@@ -16,10 +17,42 @@ import MentorAssignmentModal from '../../modals/MentorAssignmentModal';
 import OnboardingGuideModal from '../../modals/OnboardingGuideModal';
 import BulkActionsModal from '../../modals/BulkActionsModal';
 
+// Discord DM template messages
+const DISCORD_TEMPLATES = {
+    applicationReceived: (username) =>
+        `Hey ${username}! 👋 We've received your application to join our organization. A recruiter will review it shortly. If you have any questions, feel free to ask!`,
+
+    interviewScheduled: (username, date) =>
+        `Hi ${username}! Your interview has been scheduled for ${date}. Please make sure you're available on Discord at that time. Looking forward to speaking with you! 🎮`,
+
+    applicationApproved: (username) =>
+        `🎉 Congratulations ${username}! Your application has been APPROVED! Welcome to the team! Next steps:\n1. Attend Basic Introduction Training (BIT)\n2. Choose your branch\n3. Get your unit assignment\n\nI'll be here to guide you through the process!`,
+
+    applicationRejected: (username) =>
+        `Hi ${username}, thank you for your interest in joining us. Unfortunately, we're unable to approve your application at this time. You're welcome to reapply in 30 days. Best of luck in the verse! o7`,
+
+    mentorAssigned: (recruitName, mentorName) =>
+        `Hey ${recruitName}! You've been assigned ${mentorName} as your mentor. They'll help you get settled in and answer any questions. They should be reaching out soon!`,
+
+    trainingReminder: (username, eventName, date) =>
+        `Reminder ${username}: ${eventName} is scheduled for ${date}. Don't miss it! This is required for your progression. 📅`,
+
+    checkIn: (username) =>
+        `Hey ${username}! Just checking in on your onboarding progress. How's everything going? Need any help or have questions? 🤔`,
+
+    documentRequest: (username, docType) =>
+        `Hi ${username}! We need you to submit your ${docType}. Please upload it to the portal or send it here when you get a chance. Thanks!`,
+
+    welcomeToBranch: (username, branch) =>
+        `Welcome to ${branch}, ${username}! 🚀 You're now officially part of our ${branch} division. Your commanding officer will reach out with your first assignment soon.`,
+
+    bitCompletion: (username) =>
+        `Great job completing Basic Introduction Training, ${username}! ✅ You can now apply to your preferred branch. Check the portal for available positions!`
+};
+
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { user: currentUser, loading: authLoading } = useSelector(state => state.auth);
+    const { user: currentUser } = useSelector(state => state.auth);
 
     // State management
     const [applications, setApplications] = useState([]);
@@ -29,17 +62,19 @@ const RecruiterDashboard = () => {
         approved: 0,
         rejected: 0,
         activeRecruits: 0,
-        completionRate: 0
+        completionRate: 0,
+        awaitingBIT: 0,
+        awaitingBranch: 0,
+        needsMentor: 0
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [permissionChecked, setPermissionChecked] = useState(false);
-    const [userDataLoaded, setUserDataLoaded] = useState(false);
 
     // Filters and search
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterBranch, setFilterBranch] = useState('all');
+    const [filterOnboardingStage, setFilterOnboardingStage] = useState('all');
     const [sortBy, setSortBy] = useState('submission_date');
 
     // Selected items for bulk actions
@@ -57,103 +92,12 @@ const RecruiterDashboard = () => {
     const [branches, setBranches] = useState([]);
     const [units, setUnits] = useState([]);
 
-    // Permission check
-    const hasRecruiterPermissions = useCallback(() => {
-        if (!currentUser) return false;
-
-        console.log('Checking permissions for user:', {
-            username: currentUser.username,
-            is_admin: currentUser.is_admin,
-            is_staff: currentUser.is_staff,
-            is_recruiter: currentUser.is_recruiter,
-            roles: currentUser.roles,
-            permissions: currentUser.permissions
-        });
-
-        // Check various permission flags
-        return (
-            currentUser.is_admin ||
-            currentUser.is_staff ||
-            currentUser.is_recruiter ||
-            currentUser.roles?.includes('recruiter') ||
-            currentUser.permissions?.includes('recruitment.view')
-        );
-    }, [currentUser]);
-
-    // Load user data if needed
-    useEffect(() => {
-        const loadUserData = async () => {
-            // If we have a token but no user data, try to fetch it
-            const token = localStorage.getItem('token');
-            if (token && !currentUser && !authLoading) {
-                console.log('RecruiterDashboard: Token exists but no user data, fetching user...');
-                try {
-                    const response = await api.get('/users/me/');
-                    // You would dispatch this to your Redux store
-                    // dispatch(setUser(response.data));
-                    console.log('Fetched user data:', response.data);
-                    setUserDataLoaded(true);
-                } catch (error) {
-                    console.error('Failed to fetch user data:', error);
-                    setUserDataLoaded(true); // Set as loaded even on error
-                }
-            } else if (currentUser) {
-                setUserDataLoaded(true);
-            } else if (!token) {
-                setUserDataLoaded(true); // No token, so we're done loading
-            }
-        };
-
-        loadUserData();
-    }, [currentUser, authLoading]);
-
-    // Check permissions after user data is loaded
-    useEffect(() => {
-        // Only check permissions after we've attempted to load user data
-        if (!userDataLoaded) {
-            console.log('RecruiterDashboard: Waiting for user data to load...');
-            return;
-        }
-
-        // If still loading auth, wait
-        if (authLoading) {
-            console.log('RecruiterDashboard: Auth still loading...');
-            return;
-        }
-
-        // Now we can safely check permissions
-        setPermissionChecked(true);
-
-        // Check if user is logged in
-        if (!currentUser) {
-            console.log('RecruiterDashboard: No user found after loading, redirecting to home');
-            navigate('/');
-            return;
-        }
-
-        // Check permissions
-        if (!hasRecruiterPermissions()) {
-            console.log('RecruiterDashboard: User lacks permissions', {
-                user: currentUser.username,
-                is_admin: currentUser.is_admin,
-                is_staff: currentUser.is_staff,
-                is_recruiter: currentUser.is_recruiter,
-                roles: currentUser.roles,
-                permissions: currentUser.permissions
-            });
-            navigate('/');
-            return;
-        }
-
-        console.log('RecruiterDashboard: User has permissions, proceeding');
-    }, [currentUser, authLoading, userDataLoaded, navigate, hasRecruiterPermissions]);
+    // Discord message preview
+    const [showDiscordPreview, setShowDiscordPreview] = useState(false);
+    const [discordMessage, setDiscordMessage] = useState('');
 
     // Fetch dashboard data
     const fetchDashboardData = useCallback(async () => {
-        if (!hasRecruiterPermissions() || !permissionChecked) {
-            return;
-        }
-
         setIsLoading(true);
         setError(null);
 
@@ -171,19 +115,17 @@ const RecruiterDashboard = () => {
                 params.preferred_branch = filterBranch;
             }
 
+            if (filterOnboardingStage !== 'all') {
+                params.onboarding_status = filterOnboardingStage;
+            }
+
             // Fetch applications
             const response = await api.get('/onboarding/applications/', { params });
             const fetchedApplications = response.data.results || response.data;
             setApplications(fetchedApplications);
 
-            // Try to fetch statistics, fallback to calculating from applications
-            try {
-                const statsResponse = await api.get('/onboarding/applications/statistics/');
-                setStatistics(statsResponse.data);
-            } catch (statsError) {
-                console.log('Statistics endpoint not available, calculating manually');
-                calculateStatistics(fetchedApplications);
-            }
+            // Calculate enhanced statistics
+            calculateStatistics(fetchedApplications);
 
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
@@ -191,7 +133,7 @@ const RecruiterDashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [filterStatus, filterBranch, sortBy, hasRecruiterPermissions, permissionChecked]);
+    }, [filterStatus, filterBranch, filterOnboardingStage, sortBy]);
 
     // Calculate statistics from applications
     const calculateStatistics = (apps) => {
@@ -200,7 +142,24 @@ const RecruiterDashboard = () => {
             interviewing: apps.filter(app => app.status === 'Interviewing').length,
             approved: apps.filter(app => app.status === 'Approved').length,
             rejected: apps.filter(app => app.status === 'Rejected').length,
-            activeRecruits: apps.filter(app => app.status === 'Approved' && !app.onboarding_complete).length,
+            activeRecruits: apps.filter(app =>
+                app.status === 'Approved' && !app.onboarding_complete
+            ).length,
+            awaitingBIT: apps.filter(app =>
+                app.status === 'Approved' &&
+                app.onboarding_status === 'Approved' &&
+                !app.bit_completion_date
+            ).length,
+            awaitingBranch: apps.filter(app =>
+                app.status === 'Approved' &&
+                app.bit_completion_date &&
+                !app.branch_id
+            ).length,
+            needsMentor: apps.filter(app =>
+                app.status === 'Approved' &&
+                !app.mentor_id &&
+                app.onboarding_status !== 'Active'
+            ).length,
             completionRate: 0
         };
 
@@ -215,10 +174,6 @@ const RecruiterDashboard = () => {
 
     // Fetch filter options
     const fetchFilterOptions = useCallback(async () => {
-        if (!hasRecruiterPermissions() || !permissionChecked) {
-            return;
-        }
-
         try {
             // Fetch branches
             const branchesResponse = await api.get('/units/branches/');
@@ -230,21 +185,70 @@ const RecruiterDashboard = () => {
         } catch (err) {
             console.error('Error fetching filter options:', err);
         }
-    }, [hasRecruiterPermissions, permissionChecked]);
+    }, []);
 
-    // Load data when permissions are confirmed
+    // Load data when component mounts or filters change
     useEffect(() => {
-        if (permissionChecked && hasRecruiterPermissions()) {
-            fetchDashboardData();
-            fetchFilterOptions();
+        fetchDashboardData();
+    }, [fetchDashboardData]);
+
+    // Load filter options once on mount
+    useEffect(() => {
+        fetchFilterOptions();
+    }, [fetchFilterOptions]);
+
+    // Discord DM handler
+    const sendDiscordDM = (discordId, message) => {
+        // Copy message to clipboard
+        navigator.clipboard.writeText(message);
+
+        // Open Discord in browser/app (you could also use Discord's URL scheme)
+        window.open(`https://discord.com/users/${discordId}`, '_blank');
+
+        // Show notification
+        alert('Message copied to clipboard! Discord opened in new tab.');
+    };
+
+    // Show Discord message preview
+    const previewDiscordMessage = (template, app) => {
+        let message = '';
+
+        switch(template) {
+            case 'applicationReceived':
+                message = DISCORD_TEMPLATES.applicationReceived(app.username);
+                break;
+            case 'interviewScheduled':
+                message = DISCORD_TEMPLATES.interviewScheduled(
+                    app.username,
+                    app.interview_date ? new Date(app.interview_date).toLocaleString() : 'TBD'
+                );
+                break;
+            case 'applicationApproved':
+                message = DISCORD_TEMPLATES.applicationApproved(app.username);
+                break;
+            case 'applicationRejected':
+                message = DISCORD_TEMPLATES.applicationRejected(app.username);
+                break;
+            case 'checkIn':
+                message = DISCORD_TEMPLATES.checkIn(app.username);
+                break;
+            case 'bitReminder':
+                message = DISCORD_TEMPLATES.trainingReminder(app.username, 'Basic Introduction Training', 'this Saturday at 20:00 UTC');
+                break;
+            default:
+                message = `Hi ${app.username}!`;
         }
-    }, [permissionChecked, hasRecruiterPermissions, fetchDashboardData, fetchFilterOptions]);
+
+        setDiscordMessage(message);
+        setShowDiscordPreview(true);
+    };
 
     // Handle application actions
     const handleApplicationAction = async (applicationId, action, data = {}) => {
         try {
             const endpoint = `/onboarding/applications/${applicationId}/`;
             let payload = {};
+            let app = applications.find(a => a.id === applicationId);
 
             switch (action) {
                 case 'approve':
@@ -254,6 +258,10 @@ const RecruiterDashboard = () => {
                         review_date: new Date().toISOString(),
                         reviewer: currentUser.id
                     };
+                    // Queue Discord notification
+                    if (app) {
+                        previewDiscordMessage('applicationApproved', app);
+                    }
                     break;
 
                 case 'reject':
@@ -263,6 +271,10 @@ const RecruiterDashboard = () => {
                         review_date: new Date().toISOString(),
                         reviewer: currentUser.id
                     };
+                    // Queue Discord notification
+                    if (app) {
+                        previewDiscordMessage('applicationRejected', app);
+                    }
                     break;
 
                 case 'schedule_interview':
@@ -271,6 +283,11 @@ const RecruiterDashboard = () => {
                         interview_date: data.interviewDate,
                         reviewer_notes: data.notes
                     };
+                    // Queue Discord notification
+                    if (app) {
+                        app.interview_date = data.interviewDate;
+                        previewDiscordMessage('interviewScheduled', app);
+                    }
                     break;
 
                 default:
@@ -287,7 +304,6 @@ const RecruiterDashboard = () => {
             setShowReviewModal(false);
             setShowInterviewModal(false);
 
-            // Show success message (you could add a toast notification here)
             console.log(`Successfully ${action} application`);
 
         } catch (err) {
@@ -309,7 +325,6 @@ const RecruiterDashboard = () => {
             setSelectedApplications([]);
             setShowBulkModal(false);
 
-            // Show success message
             console.log(`Successfully performed bulk ${action}`);
 
         } catch (err) {
@@ -400,18 +415,20 @@ const RecruiterDashboard = () => {
         return colors[status] || 'status-default';
     };
 
-    // Render loading state
-    if (!userDataLoaded || authLoading || !permissionChecked) {
-        return (
-            <div className="dashboard-loading">
-                <div className="loading-spinner"></div>
-                <p>INITIALIZING RECRUITMENT INTERFACE...</p>
-            </div>
-        );
-    }
+    const getOnboardingStageLabel = (app) => {
+        if (app.status !== 'Approved') return null;
 
-    // Render loading state for data
-    if (isLoading && applications.length === 0 && permissionChecked) {
+        if (app.onboarding_status === 'Active') return 'Active Member';
+        if (!app.bit_completion_date) return 'Awaiting BIT';
+        if (!app.branch_id) return 'Needs Branch';
+        if (!app.unit_id) return 'Needs Unit';
+        if (!app.mentor_id) return 'Needs Mentor';
+
+        return 'In Progress';
+    };
+
+    // Render loading state
+    if (isLoading && applications.length === 0) {
         return (
             <div className="dashboard-loading">
                 <div className="loading-spinner"></div>
@@ -421,7 +438,7 @@ const RecruiterDashboard = () => {
     }
 
     // Render error state
-    if (error && permissionChecked) {
+    if (error) {
         return (
             <div className="dashboard-error">
                 <AlertCircle size={48} />
@@ -432,11 +449,6 @@ const RecruiterDashboard = () => {
                 </button>
             </div>
         );
-    }
-
-    // Don't render if no permissions (will redirect)
-    if (!hasRecruiterPermissions()) {
-        return null;
     }
 
     // Main render
@@ -512,13 +524,23 @@ const RecruiterDashboard = () => {
                     </div>
                 </div>
 
-                <div className="stat-card completion">
+                <div className="stat-card">
                     <div className="stat-icon">
-                        <Award size={24} />
+                        <BellRing size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{statistics.completionRate}%</div>
-                        <div className="stat-label">Approval Rate</div>
+                        <div className="stat-value">{statistics.awaitingBIT}</div>
+                        <div className="stat-label">Awaiting BIT</div>
+                    </div>
+                </div>
+
+                <div className="stat-card">
+                    <div className="stat-icon">
+                        <UserPlus size={24} />
+                    </div>
+                    <div className="stat-content">
+                        <div className="stat-value">{statistics.needsMentor}</div>
+                        <div className="stat-label">Need Mentor</div>
                     </div>
                 </div>
             </div>
@@ -570,6 +592,21 @@ const RecruiterDashboard = () => {
                     </div>
 
                     <div className="filter-group">
+                        <ClipboardCheck size={18} />
+                        <select
+                            value={filterOnboardingStage}
+                            onChange={(e) => setFilterOnboardingStage(e.target.value)}
+                            className="filter-select"
+                        >
+                            <option value="all">All Stages</option>
+                            <option value="Applied">Applied</option>
+                            <option value="BIT Completed">BIT Completed</option>
+                            <option value="Branch Applied">Branch Applied</option>
+                            <option value="Active">Active Member</option>
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
                         <Calendar size={18} />
                         <select
                             value={sortBy}
@@ -609,11 +646,11 @@ const RecruiterDashboard = () => {
                                 <th className="checkbox-column"></th>
                                 <th>PILOT</th>
                                 <th>STATUS</th>
-                                <th>PREFERRED BRANCH</th>
-                                <th>MOS CHOICES</th>
+                                <th>STAGE</th>
+                                <th>BRANCH</th>
                                 <th>SUBMITTED</th>
-                                <th>REFERRER</th>
-                                <th>ACTIONS</th>
+                                <th>DISCORD ACTIONS</th>
+                                <th>ADMIN ACTIONS</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -635,32 +672,60 @@ const RecruiterDashboard = () => {
                                         </div>
                                     </td>
                                     <td>
-                                            <span className={`status-badge ${getStatusColor(app.status)}`}>
-                                                {app.status}
+                                        <span className={`status-badge ${getStatusColor(app.status)}`}>
+                                            {app.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {getOnboardingStageLabel(app) && (
+                                            <span className="stage-label">
+                                                {getOnboardingStageLabel(app)}
                                             </span>
+                                        )}
                                     </td>
                                     <td>{app.preferred_branch_name || 'None'}</td>
-                                    <td className="mos-cell">
-                                        {app.mos_priority_1_details && (
-                                            <div className="mos-choice primary">
-                                                <span className="mos-priority">1st:</span>
-                                                <span className="mos-code">{app.mos_priority_1_details.code}</span>
-                                            </div>
-                                        )}
-                                        {app.mos_priority_2_details && (
-                                            <div className="mos-choice">
-                                                <span className="mos-priority">2nd:</span>
-                                                <span className="mos-code">{app.mos_priority_2_details.code}</span>
-                                            </div>
-                                        )}
-                                    </td>
                                     <td className="date-cell">
                                         <div className="date-info">
                                             <div>{formatDate(app.submission_date)}</div>
                                             <div className="time-ago">{getTimeAgo(app.submission_date)}</div>
                                         </div>
                                     </td>
-                                    <td>{app.referrer_username || 'None'}</td>
+                                    <td className="discord-actions-cell">
+                                        <div className="action-buttons">
+                                            {app.status === 'Pending' && (
+                                                <button
+                                                    className="action-btn discord"
+                                                    onClick={() => previewDiscordMessage('applicationReceived', app)}
+                                                    title="Send Welcome DM"
+                                                >
+                                                    <MessageCircle size={16} />
+                                                </button>
+                                            )}
+                                            {app.status === 'Approved' && !app.bit_completion_date && (
+                                                <button
+                                                    className="action-btn discord"
+                                                    onClick={() => previewDiscordMessage('bitReminder', app)}
+                                                    title="Send BIT Reminder"
+                                                >
+                                                    <BellRing size={16} />
+                                                </button>
+                                            )}
+                                            <button
+                                                className="action-btn discord"
+                                                onClick={() => previewDiscordMessage('checkIn', app)}
+                                                title="Send Check-in Message"
+                                            >
+                                                <Heart size={16} />
+                                            </button>
+                                            <button
+                                                className="action-btn discord"
+                                                onClick={() => sendDiscordDM(app.discord_id, '')}
+                                                title="Open Discord DM"
+                                            >
+                                                <Send size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
                                     <td className="actions-cell">
                                         <div className="action-buttons">
                                             <button
@@ -730,6 +795,41 @@ const RecruiterDashboard = () => {
                     )}
                 </div>
             </div>
+
+            {/* Discord Message Preview Modal */}
+            {showDiscordPreview && (
+                <div className="modal-overlay" onClick={() => setShowDiscordPreview(false)}>
+                    <div className="modal-content discord-preview" onClick={e => e.stopPropagation()}>
+                        <h3>Discord Message Preview</h3>
+                        <div className="discord-message-box">
+                            <pre>{discordMessage}</pre>
+                        </div>
+                        <div className="modal-actions">
+                            <button
+                                className="action-button primary"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(discordMessage);
+                                    setShowDiscordPreview(false);
+                                    alert('Message copied to clipboard!');
+                                }}
+                            >
+                                <Bot size={18} />
+                                Copy Message
+                            </button>
+                            <button
+                                className="action-button"
+                                onClick={() => {
+                                    sendDiscordDM(selectedApplication?.discord_id, discordMessage);
+                                    setShowDiscordPreview(false);
+                                }}
+                            >
+                                <Send size={18} />
+                                Open Discord & Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modals */}
             {showReviewModal && selectedApplication && (
