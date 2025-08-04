@@ -872,7 +872,7 @@ const RankHistoryTab = ({ users, loading, onViewHistory, onPromoteUser, onForceP
     );
 
     return (
-        <>
+        <div className="rank-history-content">
             <div className="section-filters">
                 <div className="search-box">
                     <Search size={18} />
@@ -967,7 +967,7 @@ const RankHistoryTab = ({ users, loading, onViewHistory, onPromoteUser, onForceP
                     </table>
                 )}
             </div>
-        </>
+        </div>
     );
 };
 
