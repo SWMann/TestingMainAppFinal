@@ -1,50 +1,28 @@
-{roleStatistics[role.id].rank_distribution && roleStatistics[role.id].rank_distribution.length > 0 && (
-    <div className="rank-distribution">
-        <h5>Rank Distribution</h5>
-        {roleStatistics[role.id].rank_distribution.map((rank, idx) => (
-            <div key={idx} className="distribution-item">
-                                                                                <span className="rank-name">
-                                                                                    {rank.user__current_rank__abbreviation || 'Unknown'} -
-                                                                                    {rank.user__current_rank__name || 'Unknown'}
-                                                                                </span>
-                <div className="distribution-bar">
-                    <div
-                        className="bar-fill"
-                        style={{
-                            width: `${roleStatistics[role.id].filled_positions > 0
-                                ? (rank.count / roleStatistics[role.id].filled_positions) * 100
-                                : 0}%`
-                        }}
-                    ></div>
-                </div>
-                <span className="count">{rank.count}</span>
-            </div>
-        ))}
-    </div>
-)}import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
-    Shield, Star, Users, Briefcase, Award, ChevronRight,
-    Search, Filter, Plus, Edit, BarChart, Clock, Hash,
-    AlertCircle, ChevronDown, ChevronUp, X, Info,
+    Shield, Star, Users, Briefcase, Award,
+    Search, Plus, Edit, BarChart,
+    AlertCircle, ChevronDown, ChevronUp, Info,
     Target, Zap, Globe, Building, UserCheck
 } from 'lucide-react';
 import api from "../../../services/api";
 import './RoleListPage.css';
 
-const RoleListPage = () => {
+function RoleListPage() {
+    // Navigation and auth
     const navigate = useNavigate();
-    const { user: currentUser } = useSelector(state => state.auth);
+    const currentUser = useSelector(state => state.auth?.user);
     const isAdmin = currentUser?.is_admin || false;
 
+    // State management
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedType, setSelectedType] = useState('all');
     const [expandedRole, setExpandedRole] = useState(null);
-
     const [roleStatistics, setRoleStatistics] = useState({});
     const [loadingStats, setLoadingStats] = useState({});
 
@@ -75,6 +53,7 @@ const RoleListPage = () => {
         { value: 'specialist', label: 'Specialist Roles' }
     ];
 
+    // Fetch roles on mount
     useEffect(() => {
         fetchRoles();
     }, []);
@@ -83,14 +62,11 @@ const RoleListPage = () => {
         try {
             setLoading(true);
             const response = await api.get('/units/roles/');
-            const rolesData = response.data.results || response.data;
+            const rolesData = response.data?.results || response.data || [];
             setRoles(rolesData);
         } catch (error) {
             console.error('Error fetching roles:', error);
-            // Handle permission errors or other issues
-            if (error.response?.status === 403) {
-                setRoles([]);
-            }
+            setRoles([]);
         } finally {
             setLoading(false);
         }
@@ -103,7 +79,6 @@ const RoleListPage = () => {
             setRoleStatistics(prev => ({ ...prev, [roleId]: response.data }));
         } catch (error) {
             console.error('Error fetching role statistics:', error);
-            // Set empty statistics on error
             setRoleStatistics(prev => ({
                 ...prev,
                 [roleId]: {
@@ -131,10 +106,11 @@ const RoleListPage = () => {
         }
     };
 
-    // Filter roles based on search and selections
+    // Filter roles
     const filteredRoles = roles.filter(role => {
-        const matchesSearch = role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            role.abbreviation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch =
+            role.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            role.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             role.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesCategory = selectedCategory === 'all' || role.category === selectedCategory;
@@ -150,10 +126,11 @@ const RoleListPage = () => {
 
     // Group roles by category
     const groupedRoles = filteredRoles.reduce((acc, role) => {
-        if (!acc[role.category]) {
-            acc[role.category] = [];
+        const category = role.category || 'other';
+        if (!acc[category]) {
+            acc[category] = [];
         }
-        acc[role.category].push(role);
+        acc[category].push(role);
         return acc;
     }, {});
 
@@ -162,13 +139,10 @@ const RoleListPage = () => {
         return cat ? cat.icon : Globe;
     };
 
-    const getRoleBadgeColor = (role) => {
-        if (role.is_command_role) return 'command';
-        if (role.is_staff_role) return 'staff';
-        if (role.is_nco_role) return 'nco';
-        if (role.is_specialist_role) return 'specialist';
-        return 'default';
-    };
+    // Calculate statistics
+    const totalPositions = roles.reduce((sum, role) => sum + (role.positions_count || 0), 0);
+    const filledPositions = roles.reduce((sum, role) => sum + (role.filled_positions_count || 0), 0);
+    const fillRate = totalPositions > 0 ? Math.round((filledPositions / totalPositions) * 100) : 0;
 
     return (
         <div className="role-list-container">
@@ -255,9 +229,7 @@ const RoleListPage = () => {
                         <Users size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">
-                            {roles.reduce((sum, role) => sum + (role.positions_count || 0), 0)}
-                        </div>
+                        <div className="stat-value">{totalPositions}</div>
                         <div className="stat-label">Total Positions</div>
                     </div>
                 </div>
@@ -266,9 +238,7 @@ const RoleListPage = () => {
                         <UserCheck size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">
-                            {roles.reduce((sum, role) => sum + (role.filled_positions_count || 0), 0)}
-                        </div>
+                        <div className="stat-value">{filledPositions}</div>
                         <div className="stat-label">Filled Positions</div>
                     </div>
                 </div>
@@ -277,13 +247,7 @@ const RoleListPage = () => {
                         <BarChart size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">
-                            {(() => {
-                                const totalPositions = roles.reduce((sum, role) => sum + (role.positions_count || 0), 0);
-                                const filledPositions = roles.reduce((sum, role) => sum + (role.filled_positions_count || 0), 0);
-                                return totalPositions > 0 ? Math.round((filledPositions / totalPositions) * 100) : 0;
-                            })()}%
-                        </div>
+                        <div className="stat-value">{fillRate}%</div>
                         <div className="stat-label">Fill Rate</div>
                     </div>
                 </div>
@@ -315,236 +279,16 @@ const RoleListPage = () => {
 
                                 <div className="roles-grid">
                                     {categoryRoles.map(role => (
-                                        <div key={role.id} className={`role-card ${expandedRole === role.id ? 'expanded' : ''}`}>
-                                            <div
-                                                className="role-header"
-                                                onClick={() => handleExpandRole(role.id)}
-                                            >
-                                                <div className="role-main-info">
-                                                    <div className="role-title-section">
-                                                        <h3>{role.name}</h3>
-                                                        {role.abbreviation && (
-                                                            <span className="role-code">{role.abbreviation}</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="role-badges">
-                                                        {role.is_command_role && (
-                                                            <span className="role-badge command">
-                                                                <Star size={14} />
-                                                                COMMAND
-                                                            </span>
-                                                        )}
-                                                        {role.is_staff_role && (
-                                                            <span className="role-badge staff">
-                                                                <Users size={14} />
-                                                                STAFF
-                                                            </span>
-                                                        )}
-                                                        {role.is_nco_role && (
-                                                            <span className="role-badge nco">
-                                                                <Shield size={14} />
-                                                                NCO
-                                                            </span>
-                                                        )}
-                                                        {role.is_specialist_role && (
-                                                            <span className="role-badge specialist">
-                                                                <Award size={14} />
-                                                                SPECIALIST
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="role-quick-stats">
-                                                    <div className="quick-stat">
-                                                        <span className="stat-label">Positions</span>
-                                                        <span className="stat-value">
-                                                            {role.filled_positions_count || 0}/{role.positions_count || 0}
-                                                        </span>
-                                                    </div>
-                                                    <div className="quick-stat">
-                                                        <span className="stat-label">Fill Rate</span>
-                                                        <span className="stat-value">
-                                                            {(role.positions_count || 0) > 0
-                                                                ? Math.round(((role.filled_positions_count || 0) / role.positions_count) * 100)
-                                                                : 0}%
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <button className="expand-button">
-                                                    {expandedRole === role.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                                </button>
-                                            </div>
-
-                                            {role.description && (
-                                                <p className="role-description">{role.description}</p>
-                                            )}
-
-                                            {/* Rank Requirements */}
-                                            <div className="role-requirements">
-                                                {(role.min_rank_details || role.min_rank) && (
-                                                    <div className="requirement-item">
-                                                        <span className="requirement-label">Min Rank:</span>
-                                                        <span className="requirement-value">
-                                                            {role.min_rank_details?.abbreviation || role.min_rank?.abbreviation} - {role.min_rank_details?.name || role.min_rank?.name}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {(role.typical_rank_details || role.typical_rank) && (
-                                                    <div className="requirement-item">
-                                                        <span className="requirement-label">Typical:</span>
-                                                        <span className="requirement-value">
-                                                            {role.typical_rank_details?.abbreviation || role.typical_rank?.abbreviation} - {role.typical_rank_details?.name || role.typical_rank?.name}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {(role.max_rank_details || role.max_rank) && (
-                                                    <div className="requirement-item">
-                                                        <span className="requirement-label">Max Rank:</span>
-                                                        <span className="requirement-value">
-                                                            {role.max_rank_details?.abbreviation || role.max_rank?.abbreviation} - {role.max_rank_details?.name || role.max_rank?.name}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {role.min_time_in_service > 0 && (
-                                                    <div className="requirement-item">
-                                                        <span className="requirement-label">TIS:</span>
-                                                        <span className="requirement-value">
-                                                            {role.min_time_in_service} days
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {role.min_time_in_grade > 0 && (
-                                                    <div className="requirement-item">
-                                                        <span className="requirement-label">TIG:</span>
-                                                        <span className="requirement-value">
-                                                            {role.min_time_in_grade} days
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {role.min_operations_count > 0 && (
-                                                    <div className="requirement-item">
-                                                        <span className="requirement-label">Ops Count:</span>
-                                                        <span className="requirement-value">
-                                                            {role.min_operations_count} minimum
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Expanded Content */}
-                                            {expandedRole === role.id && (
-                                                <div className="role-expanded-content">
-                                                    <div className="expanded-section">
-                                                        <h4>
-                                                            <BarChart size={16} />
-                                                            Statistics
-                                                        </h4>
-                                                        {loadingStats[role.id] ? (
-                                                            <div className="loading-stats">
-                                                                <div className="spinner small"></div>
-                                                                <p>Loading statistics...</p>
-                                                            </div>
-                                                        ) : roleStatistics[role.id] ? (
-                                                            <div className="statistics-content">
-                                                                <div className="stat-grid">
-                                                                    <div className="detailed-stat">
-                                                                        <span className="label">Total Positions</span>
-                                                                        <span className="value">{roleStatistics[role.id].total_positions}</span>
-                                                                    </div>
-                                                                    <div className="detailed-stat">
-                                                                        <span className="label">Filled</span>
-                                                                        <span className="value success">{roleStatistics[role.id].filled_positions}</span>
-                                                                    </div>
-                                                                    <div className="detailed-stat">
-                                                                        <span className="label">Vacant</span>
-                                                                        <span className="value warning">{roleStatistics[role.id].vacant_positions}</span>
-                                                                    </div>
-                                                                    <div className="detailed-stat">
-                                                                        <span className="label">Fill Rate</span>
-                                                                        <span className="value">{roleStatistics[role.id].fill_rate}%</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                {roleStatistics[role.id].unit_distribution && roleStatistics[role.id].unit_distribution.length > 0 && (
-                                                                    <div className="unit-distribution">
-                                                                        <h5>Unit Distribution</h5>
-                                                                        {roleStatistics[role.id].unit_distribution.map((unit, idx) => (
-                                                                            <div key={idx} className="distribution-item">
-                                                                                <span className="unit-type">{unit.unit__unit_type}</span>
-                                                                                <div className="distribution-bar">
-                                                                                    <div
-                                                                                        className="bar-fill"
-                                                                                        style={{
-                                                                                            width: `${roleStatistics[role.id].total_positions > 0
-                                                                                                ? (unit.count / roleStatistics[role.id].total_positions) * 100
-                                                                                                : 0}%`
-                                                                                        }}
-                                                                                    ></div>
-                                                                                </div>
-                                                                                <span className="count">{unit.count}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-
-                                                                {roleStatistics[role.id].rank_distribution && roleStatistics[role.id].rank_distribution.length > 0 && (
-                                                                    <div className="unit-distribution">
-                                                                        <h5>Rank Distribution</h5>
-                                                                        {roleStatistics[role.id].rank_distribution.map((rank, idx) => (
-                                                                            <div key={idx} className="distribution-item">
-                                                                                <span className="unit-type">
-                                                                                    {rank.user__current_rank__abbreviation || 'Unknown'} -
-                                                                                    {rank.user__current_rank__name || 'Unknown'}
-                                                                                </span>
-                                                                                <div className="distribution-bar">
-                                                                                    <div
-                                                                                        className="bar-fill"
-                                                                                        style={{
-                                                                                            width: `${(rank.count / roleStatistics[role.id].filled_positions) * 100}%`
-                                                                                        }}
-                                                                                    ></div>
-                                                                                </div>
-                                                                                <span className="count">{rank.count}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <p className="no-stats">No statistics available</p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="role-actions">
-                                                        <button
-                                                            className="btn secondary"
-                                                            onClick={() => navigate(`/roles/${role.id}/positions`)}
-                                                        >
-                                                            <Users size={16} />
-                                                            View Positions
-                                                        </button>
-                                                        <button
-                                                            className="btn secondary"
-                                                            onClick={() => navigate(`/roles/${role.id}/eligible-users`)}
-                                                        >
-                                                            <UserCheck size={16} />
-                                                            Eligible Users
-                                                        </button>
-                                                        {isAdmin && (
-                                                            <button
-                                                                className="btn secondary"
-                                                                onClick={() => navigate(`/admin/roles/${role.id}/edit`)}
-                                                            >
-                                                                <Edit size={16} />
-                                                                Edit Role
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                        <RoleCard
+                                            key={role.id}
+                                            role={role}
+                                            expanded={expandedRole === role.id}
+                                            onExpand={() => handleExpandRole(role.id)}
+                                            statistics={roleStatistics[role.id]}
+                                            loadingStats={loadingStats[role.id]}
+                                            isAdmin={isAdmin}
+                                            navigate={navigate}
+                                        />
                                     ))}
                                 </div>
                             </div>
@@ -554,21 +298,268 @@ const RoleListPage = () => {
             )}
         </div>
     );
-};
+}
+
+// Role Card Component
+function RoleCard({ role, expanded, onExpand, statistics, loadingStats, isAdmin, navigate }) {
+    const fillRate = (role.positions_count || 0) > 0
+        ? Math.round(((role.filled_positions_count || 0) / role.positions_count) * 100)
+        : 0;
+
+    return (
+        <div className={`role-card ${expanded ? 'expanded' : ''}`}>
+            <div className="role-header" onClick={onExpand}>
+                <div className="role-main-info">
+                    <div className="role-title-section">
+                        <h3>{role.name}</h3>
+                        {role.abbreviation && (
+                            <span className="role-code">{role.abbreviation}</span>
+                        )}
+                    </div>
+                    <div className="role-badges">
+                        {role.is_command_role && (
+                            <span className="role-badge command">
+                                <Star size={14} />
+                                COMMAND
+                            </span>
+                        )}
+                        {role.is_staff_role && (
+                            <span className="role-badge staff">
+                                <Users size={14} />
+                                STAFF
+                            </span>
+                        )}
+                        {role.is_nco_role && (
+                            <span className="role-badge nco">
+                                <Shield size={14} />
+                                NCO
+                            </span>
+                        )}
+                        {role.is_specialist_role && (
+                            <span className="role-badge specialist">
+                                <Award size={14} />
+                                SPECIALIST
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="role-quick-stats">
+                    <div className="quick-stat">
+                        <span className="stat-label">Positions</span>
+                        <span className="stat-value">
+                            {role.filled_positions_count || 0}/{role.positions_count || 0}
+                        </span>
+                    </div>
+                    <div className="quick-stat">
+                        <span className="stat-label">Fill Rate</span>
+                        <span className="stat-value">{fillRate}%</span>
+                    </div>
+                </div>
+
+                <button className="expand-button">
+                    {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+            </div>
+
+            {role.description && (
+                <p className="role-description">{role.description}</p>
+            )}
+
+            {/* Rank Requirements */}
+            <RoleRequirements role={role} />
+
+            {/* Expanded Content */}
+            {expanded && (
+                <RoleExpandedContent
+                    role={role}
+                    statistics={statistics}
+                    loadingStats={loadingStats}
+                    isAdmin={isAdmin}
+                    navigate={navigate}
+                />
+            )}
+        </div>
+    );
+}
+
+// Role Requirements Component
+function RoleRequirements({ role }) {
+    const requirements = [];
+
+    if (role.min_rank_details || role.min_rank) {
+        requirements.push({
+            label: 'Min Rank',
+            value: `${role.min_rank_details?.abbreviation || role.min_rank?.abbreviation || ''} - ${role.min_rank_details?.name || role.min_rank?.name || ''}`
+        });
+    }
+
+    if (role.typical_rank_details || role.typical_rank) {
+        requirements.push({
+            label: 'Typical',
+            value: `${role.typical_rank_details?.abbreviation || role.typical_rank?.abbreviation || ''} - ${role.typical_rank_details?.name || role.typical_rank?.name || ''}`
+        });
+    }
+
+    if (role.max_rank_details || role.max_rank) {
+        requirements.push({
+            label: 'Max Rank',
+            value: `${role.max_rank_details?.abbreviation || role.max_rank?.abbreviation || ''} - ${role.max_rank_details?.name || role.max_rank?.name || ''}`
+        });
+    }
+
+    if (role.min_time_in_service > 0) {
+        requirements.push({
+            label: 'TIS',
+            value: `${role.min_time_in_service} days`
+        });
+    }
+
+    if (role.min_time_in_grade > 0) {
+        requirements.push({
+            label: 'TIG',
+            value: `${role.min_time_in_grade} days`
+        });
+    }
+
+    if (role.min_operations_count > 0) {
+        requirements.push({
+            label: 'Ops Count',
+            value: `${role.min_operations_count} minimum`
+        });
+    }
+
+    if (requirements.length === 0) return null;
+
+    return (
+        <div className="role-requirements">
+            {requirements.map((req, idx) => (
+                <div key={idx} className="requirement-item">
+                    <span className="requirement-label">{req.label}:</span>
+                    <span className="requirement-value">{req.value}</span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// Role Expanded Content Component
+function RoleExpandedContent({ role, statistics, loadingStats, isAdmin, navigate }) {
+    return (
+        <div className="role-expanded-content">
+            <div className="expanded-section">
+                <h4>
+                    <BarChart size={16} />
+                    Statistics
+                </h4>
+                {loadingStats ? (
+                    <div className="loading-stats">
+                        <div className="spinner small"></div>
+                        <p>Loading statistics...</p>
+                    </div>
+                ) : statistics ? (
+                    <div className="statistics-content">
+                        <div className="stat-grid">
+                            <div className="detailed-stat">
+                                <span className="label">Total Positions</span>
+                                <span className="value">{statistics.total_positions || 0}</span>
+                            </div>
+                            <div className="detailed-stat">
+                                <span className="label">Filled</span>
+                                <span className="value success">{statistics.filled_positions || 0}</span>
+                            </div>
+                            <div className="detailed-stat">
+                                <span className="label">Vacant</span>
+                                <span className="value warning">{statistics.vacant_positions || 0}</span>
+                            </div>
+                            <div className="detailed-stat">
+                                <span className="label">Fill Rate</span>
+                                <span className="value">{statistics.fill_rate || 0}%</span>
+                            </div>
+                        </div>
+
+                        {statistics.unit_distribution && statistics.unit_distribution.length > 0 && (
+                            <DistributionChart
+                                title="Unit Distribution"
+                                data={statistics.unit_distribution}
+                                totalKey="total_positions"
+                                total={statistics.total_positions}
+                                labelKey="unit__unit_type"
+                            />
+                        )}
+
+                        {statistics.rank_distribution && statistics.rank_distribution.length > 0 && (
+                            <DistributionChart
+                                title="Rank Distribution"
+                                data={statistics.rank_distribution}
+                                totalKey="filled_positions"
+                                total={statistics.filled_positions}
+                                labelKey="user__current_rank__abbreviation"
+                                nameKey="user__current_rank__name"
+                            />
+                        )}
+                    </div>
+                ) : (
+                    <p className="no-stats">No statistics available</p>
+                )}
+            </div>
+
+            <div className="role-actions">
+                <button
+                    className="btn secondary"
+                    onClick={() => navigate(`/roles/${role.id}/positions`)}
+                >
+                    <Users size={16} />
+                    View Positions
+                </button>
+                <button
+                    className="btn secondary"
+                    onClick={() => navigate(`/roles/${role.id}/eligible-users`)}
+                >
+                    <UserCheck size={16} />
+                    Eligible Users
+                </button>
+                {isAdmin && (
+                    <button
+                        className="btn secondary"
+                        onClick={() => navigate(`/admin/roles/${role.id}/edit`)}
+                    >
+                        <Edit size={16} />
+                        Edit Role
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// Distribution Chart Component
+function DistributionChart({ title, data, totalKey, total, labelKey, nameKey }) {
+    return (
+        <div className="unit-distribution">
+            <h5>{title}</h5>
+            {data.map((item, idx) => {
+                const label = nameKey && item[nameKey]
+                    ? `${item[labelKey] || 'Unknown'} - ${item[nameKey]}`
+                    : item[labelKey] || 'Unknown';
+
+                const percentage = total > 0 ? (item.count / total) * 100 : 0;
+
+                return (
+                    <div key={idx} className="distribution-item">
+                        <span className="unit-type">{label}</span>
+                        <div className="distribution-bar">
+                            <div
+                                className="bar-fill"
+                                style={{ width: `${percentage}%` }}
+                            ></div>
+                        </div>
+                        <span className="count">{item.count}</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
 
 export default RoleListPage;
-
-/*
- * Route Configuration:
- * Add to your App.js or routing configuration:
- *
- * import RoleListPage from './components/pages/RoleListPage/RoleListPage';
- *
- * <Route path="/roles" element={<RoleListPage />} />
- *
- * Also add to your navigation menu:
- * <NavLink to="/roles">
- *   <Shield size={18} />
- *   Role Directory
- * </NavLink>
- */
