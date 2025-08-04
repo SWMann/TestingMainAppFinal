@@ -93,7 +93,7 @@ const RankManagement = () => {
 
                 case 'requirements':
                     const [reqsRes, rolesRes, certsRes] = await Promise.all([
-                        api.get('/promotions/requirements/'),
+                        api.get('/promotions/rank-requirements/'),
                         api.get('/roles/'),
                         api.get('/certificates/')
                     ]);
@@ -211,7 +211,7 @@ const RankManagement = () => {
     // Rank promotion requirement handlers
     const handleCreatePromoRequirement = async (data) => {
         try {
-            await api.post('/promotions/requirements/', data);
+            await api.post('/promotions/rank-requirements/', data);
             await fetchData();
             setShowCreatePromoRequirementModal(false);
             showNotification('Promotion requirement created successfully', 'success');
@@ -223,7 +223,7 @@ const RankManagement = () => {
 
     const handleUpdatePromoRequirement = async (id, data) => {
         try {
-            await api.put(`/promotions/requirements/${id}/`, data);
+            await api.put(`/promotions/rank-requirements/${id}/`, data);
             await fetchData();
             setShowEditPromoRequirementModal(false);
             setSelectedPromoRequirement(null);
@@ -237,7 +237,7 @@ const RankManagement = () => {
     const handleDeletePromoRequirement = async (id) => {
         if (window.confirm('Are you sure you want to delete this promotion requirement?')) {
             try {
-                await api.delete(`/promotions/requirements/${id}/`);
+                await api.delete(`/promotions/rank-requirements/${id}/`);
                 await fetchData();
                 showNotification('Promotion requirement deleted successfully', 'success');
             } catch (error) {
