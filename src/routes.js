@@ -25,6 +25,7 @@ import UnitOrganizationChart from "./components/pages/OrganizationChart/Organiza
 import RecruiterDashboard from "./components/pages/Recruiter/RecruiterDashboard";
 import CommendationsPage from "./components/pages/CommendationsPage/CommendationsPage";
 import AnnouncementsPage from "./components/pages/AnnouncementsPage/AnnouncementsPage";
+import RoleListPage from "./components/pages/RoleListPage/RoleListPage";
 // This will be expanded as you add more components
 // For example: profile page, dashboard, settings, etc.
 
@@ -50,6 +51,10 @@ const routes = (isAuthenticated) => [
     {
         path: '/Chart',
         element: <UnitHierarchyEditorWrapper />
+    },
+    {
+        path: '/roles',
+        element: <RoleListPage />
     },
     {
         path: '/profile',

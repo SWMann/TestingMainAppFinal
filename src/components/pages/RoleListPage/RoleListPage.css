@@ -1,0 +1,805 @@
+/* RoleListPage.css - Star Citizen/RSI themed role list page */
+
+/* Import futuristic fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+
+/* CSS Variables */
+:root {
+    --primary-bg: #000000;
+    --secondary-bg: #0a0a0a;
+    --accent-bg: #111111;
+    --panel-bg: rgba(10, 10, 10, 0.95);
+    --rsi-blue: #42c8f4;
+    --rsi-blue-dark: #1c8db0;
+    --rsi-blue-glow: rgba(66, 200, 244, 0.4);
+    --rsi-cyan: #00ffff;
+    --rsi-orange: #ff7b00;
+    --rsi-green: #00ff88;
+    --rsi-red: #ff3333;
+    --rsi-purple: #8b5cf6;
+    --rsi-yellow: #ffaa00;
+    --text-primary: #ffffff;
+    --text-secondary: #a8b2bd;
+    --text-muted: #6c757d;
+    --border-color: rgba(66, 200, 244, 0.2);
+    --success-color: #00ff88;
+    --warning-color: #ffaa00;
+    --error-color: #ff3333;
+    --info-color: #42c8f4;
+}
+
+/* Container */
+.role-list-container {
+    min-height: 100vh;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    background-image:
+            radial-gradient(ellipse at top right, rgba(66, 200, 244, 0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at bottom left, rgba(255, 123, 0, 0.03) 0%, transparent 50%);
+    padding-bottom: 3rem;
+}
+
+/* Header */
+.role-list-header {
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
+    border-bottom: 1px solid var(--border-color);
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.role-list-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--rsi-blue) 50%, transparent 100%);
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-content > div:first-child {
+    flex: 1;
+}
+
+.header-content h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 20px var(--rsi-blue-glow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Buttons */
+.btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.btn.primary {
+    background: linear-gradient(135deg, var(--rsi-blue) 0%, var(--rsi-blue-dark) 100%);
+    color: black;
+}
+
+.btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px var(--rsi-blue-glow);
+}
+
+.btn.secondary {
+    background: linear-gradient(135deg, rgba(66, 200, 244, 0.1) 0%, rgba(66, 200, 244, 0.05) 100%);
+    color: var(--rsi-blue);
+    border: 1px solid var(--rsi-blue);
+}
+
+.btn.secondary:hover {
+    background: linear-gradient(135deg, rgba(66, 200, 244, 0.2) 0%, rgba(66, 200, 244, 0.1) 100%);
+    box-shadow: 0 0 20px var(--rsi-blue-glow);
+}
+
+/* Filters Section */
+.filters-section {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.search-bar {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+}
+
+.search-bar svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    background: linear-gradient(135deg, rgba(66, 200, 244, 0.05) 0%, rgba(66, 200, 244, 0.02) 100%);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--rsi-blue);
+    box-shadow: 0 0 20px var(--rsi-blue-glow);
+}
+
+.search-bar input::placeholder {
+    color: var(--text-muted);
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'Exo 2', sans-serif;
+}
+
+.filter-group select {
+    padding: 0.625rem 2.5rem 0.625rem 1rem;
+    background: linear-gradient(135deg, rgba(66, 200, 244, 0.05) 0%, rgba(66, 200, 244, 0.02) 100%);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2342c8f4' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--rsi-blue);
+    box-shadow: 0 0 10px var(--rsi-blue-glow);
+}
+
+/* Statistics Overview */
+.statistics-overview {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, rgba(66, 200, 244, 0.05) 0%, rgba(66, 200, 244, 0.02) 100%);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+    transition: all 0.3s ease;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--rsi-blue) 50%, transparent 100%);
+}
+
+.stat-card:hover {
+    border-color: var(--rsi-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px var(--rsi-blue-glow);
+}
+
+.stat-icon {
+    color: var(--rsi-blue);
+    filter: drop-shadow(0 0 10px var(--rsi-blue-glow));
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--rsi-blue-glow);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'Exo 2', sans-serif;
+}
+
+/* Loading & Empty States */
+.loading-state,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 1.5rem;
+    color: var(--text-secondary);
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--rsi-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.spinner.small {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Roles Content */
+.roles-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.category-section {
+    margin-bottom: 3rem;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+
+.category-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 150px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--rsi-blue) 0%, transparent 100%);
+}
+
+.category-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+    flex: 1;
+}
+
+.category-header svg {
+    color: var(--rsi-blue);
+    filter: drop-shadow(0 0 5px var(--rsi-blue-glow));
+}
+
+.category-count {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-family: 'Exo 2', sans-serif;
+}
+
+/* Roles Grid */
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 1.5rem;
+}
+
+.role-card {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.95) 0%, rgba(17, 17, 17, 0.95) 100%);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+}
+
+.role-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--rsi-blue) 50%, transparent 100%);
+}
+
+.role-card:hover {
+    border-color: var(--rsi-blue);
+    box-shadow: 0 5px 20px rgba(66, 200, 244, 0.2);
+}
+
+.role-card.expanded {
+    border-color: var(--rsi-blue);
+    box-shadow: 0 10px 30px rgba(66, 200, 244, 0.3);
+}
+
+.role-header {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: background-color 0.3s ease;
+}
+
+.role-header:hover {
+    background: rgba(66, 200, 244, 0.05);
+}
+
+.role-main-info {
+    flex: 1;
+}
+
+.role-title-section {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.role-title-section h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+}
+
+.role-code {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.875rem;
+    color: var(--rsi-blue);
+    text-shadow: 0 0 5px var(--rsi-blue-glow);
+}
+
+.role-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'Orbitron', sans-serif;
+    clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+}
+
+.role-badge.command {
+    background: linear-gradient(135deg, var(--rsi-orange) 0%, #cc5500 100%);
+    color: white;
+}
+
+.role-badge.staff {
+    background: linear-gradient(135deg, var(--rsi-purple) 0%, #6d28d9 100%);
+    color: white;
+}
+
+.role-badge.nco {
+    background: linear-gradient(135deg, var(--rsi-green) 0%, #00cc66 100%);
+    color: black;
+}
+
+.role-badge.specialist {
+    background: linear-gradient(135deg, var(--rsi-blue) 0%, var(--rsi-blue-dark) 100%);
+    color: black;
+}
+
+.role-quick-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 120px;
+}
+
+.quick-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.quick-stat .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.quick-stat .stat-value {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    color: var(--rsi-blue);
+}
+
+.expand-button {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--rsi-blue);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.expand-button:hover {
+    background: rgba(66, 200, 244, 0.1);
+    border-color: var(--rsi-blue);
+}
+
+.role-description {
+    padding: 0 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.role-requirements {
+    padding: 0 1.5rem 1rem;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.requirement-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.requirement-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.requirement-value {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Expanded Content */
+.role-expanded-content {
+    border-top: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.expanded-section {
+    padding: 1.5rem;
+}
+
+.expanded-section h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--rsi-blue);
+}
+
+.loading-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.no-stats {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem;
+    font-style: italic;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.detailed-stat {
+    text-align: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(66, 200, 244, 0.05) 0%, rgba(66, 200, 244, 0.02) 100%);
+    border: 1px solid var(--border-color);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.detailed-stat .label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.detailed-stat .value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.detailed-stat .value.success {
+    color: var(--success-color);
+}
+
+.detailed-stat .value.warning {
+    color: var(--warning-color);
+}
+
+/* Unit Distribution */
+.unit-distribution {
+    margin-top: 1.5rem;
+}
+
+.unit-distribution h5 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.distribution-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.unit-type {
+    min-width: 100px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rank-name {
+    min-width: 150px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.distribution-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(66, 200, 244, 0.1);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--rsi-blue) 0%, var(--rsi-cyan) 100%);
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px var(--rsi-blue-glow);
+}
+
+.distribution-item .count {
+    min-width: 30px;
+    text-align: right;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    color: var(--rsi-blue);
+}
+
+/* Role Actions */
+.role-actions {
+    padding: 1.5rem;
+    background: rgba(66, 200, 244, 0.02);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .header-content > div:first-child {
+        width: 100%;
+    }
+
+    .header-content h1 {
+        font-size: 2rem;
+    }
+
+    .filters-section {
+        flex-direction: column;
+    }
+
+    .search-bar {
+        min-width: 100%;
+    }
+
+    .filter-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .statistics-overview {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .roles-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .role-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .role-quick-stats {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .role-requirements {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .requirement-value {
+        white-space: normal;
+    }
+
+    .role-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .btn {
+        flex: 1;
+        min-width: 140px;
+        justify-content: center;
+    }
+}
