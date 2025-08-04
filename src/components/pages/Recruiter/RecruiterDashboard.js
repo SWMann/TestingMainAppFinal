@@ -1,7 +1,7 @@
 // src/components/pages/RecruiterDashboard/RecruiterDashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import {
     Users, UserCheck, UserX, Clock, Calendar, ChevronRight,
     Search, Filter, FileText, Star, Shield, CheckCircle,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import './RecruiterDashboard.css';
 import api from '../../../services/api';
+import { fetchUser } from '../../../store/slices/authSlice'; // Import if you have this action
 import ApplicationReviewModal from '../../modals/ApplicationReviewModal';
 import InterviewScheduleModal from '../../modals/InterviewScheduleModal';
 import MentorAssignmentModal from '../../modals/MentorAssignmentModal';
@@ -18,6 +19,7 @@ import BulkActionsModal from '../../modals/BulkActionsModal';
 
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { user: currentUser, loading: authLoading } = useSelector(state => state.auth);
 
     // State management
@@ -32,6 +34,8 @@ const RecruiterDashboard = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [permissionChecked, setPermissionChecked] = useState(false);
+    const [userDataLoaded, setUserDataLoaded] = useState(false);
 
     // Filters and search
     const [searchTerm, setSearchTerm] = useState('');
@@ -58,6 +62,15 @@ const RecruiterDashboard = () => {
     const hasRecruiterPermissions = useCallback(() => {
         if (!currentUser) return false;
 
+        console.log('Checking permissions for user:', {
+            username: currentUser.username,
+            is_admin: currentUser.is_admin,
+            is_staff: currentUser.is_staff,
+            is_recruiter: currentUser.is_recruiter,
+            roles: currentUser.roles,
+            permissions: currentUser.permissions
+        });
+
         // Check various permission flags
         return (
             currentUser.is_admin ||
@@ -68,17 +81,53 @@ const RecruiterDashboard = () => {
         );
     }, [currentUser]);
 
-    // Check permissions on mount and when user changes
+    // Load user data if needed
     useEffect(() => {
-        // Skip if still loading
+        const loadUserData = async () => {
+            // If we have a token but no user data, try to fetch it
+            const token = localStorage.getItem('token');
+            if (token && !currentUser && !authLoading) {
+                console.log('RecruiterDashboard: Token exists but no user data, fetching user...');
+                try {
+                    const response = await api.get('/users/me/');
+                    // You would dispatch this to your Redux store
+                    // dispatch(setUser(response.data));
+                    console.log('Fetched user data:', response.data);
+                    setUserDataLoaded(true);
+                } catch (error) {
+                    console.error('Failed to fetch user data:', error);
+                    setUserDataLoaded(true); // Set as loaded even on error
+                }
+            } else if (currentUser) {
+                setUserDataLoaded(true);
+            } else if (!token) {
+                setUserDataLoaded(true); // No token, so we're done loading
+            }
+        };
+
+        loadUserData();
+    }, [currentUser, authLoading]);
+
+    // Check permissions after user data is loaded
+    useEffect(() => {
+        // Only check permissions after we've attempted to load user data
+        if (!userDataLoaded) {
+            console.log('RecruiterDashboard: Waiting for user data to load...');
+            return;
+        }
+
+        // If still loading auth, wait
         if (authLoading) {
             console.log('RecruiterDashboard: Auth still loading...');
             return;
         }
 
+        // Now we can safely check permissions
+        setPermissionChecked(true);
+
         // Check if user is logged in
         if (!currentUser) {
-            console.log('RecruiterDashboard: No user found, redirecting to home');
+            console.log('RecruiterDashboard: No user found after loading, redirecting to home');
             navigate('/');
             return;
         }
@@ -97,12 +146,12 @@ const RecruiterDashboard = () => {
             return;
         }
 
-        console.log('RecruiterDashboard: User has permissions, loading data');
-    }, [currentUser, authLoading, navigate, hasRecruiterPermissions]);
+        console.log('RecruiterDashboard: User has permissions, proceeding');
+    }, [currentUser, authLoading, userDataLoaded, navigate, hasRecruiterPermissions]);
 
     // Fetch dashboard data
     const fetchDashboardData = useCallback(async () => {
-        if (!hasRecruiterPermissions()) {
+        if (!hasRecruiterPermissions() || !permissionChecked) {
             return;
         }
 
@@ -143,7 +192,7 @@ const RecruiterDashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [filterStatus, filterBranch, sortBy, hasRecruiterPermissions]);
+    }, [filterStatus, filterBranch, sortBy, hasRecruiterPermissions, permissionChecked]);
 
     // Calculate statistics from applications
     const calculateStatistics = (apps) => {
@@ -167,7 +216,7 @@ const RecruiterDashboard = () => {
 
     // Fetch filter options
     const fetchFilterOptions = useCallback(async () => {
-        if (!hasRecruiterPermissions()) {
+        if (!hasRecruiterPermissions() || !permissionChecked) {
             return;
         }
 
@@ -182,21 +231,15 @@ const RecruiterDashboard = () => {
         } catch (err) {
             console.error('Error fetching filter options:', err);
         }
-    }, [hasRecruiterPermissions]);
+    }, [hasRecruiterPermissions, permissionChecked]);
 
-    // Load data when component mounts or filters change
+    // Load data when permissions are confirmed
     useEffect(() => {
-        if (hasRecruiterPermissions()) {
+        if (permissionChecked && hasRecruiterPermissions()) {
             fetchDashboardData();
-        }
-    }, [fetchDashboardData, hasRecruiterPermissions]);
-
-    // Load filter options once on mount
-    useEffect(() => {
-        if (hasRecruiterPermissions()) {
             fetchFilterOptions();
         }
-    }, [fetchFilterOptions, hasRecruiterPermissions]);
+    }, [permissionChecked, hasRecruiterPermissions, fetchDashboardData, fetchFilterOptions]);
 
     // Handle application actions
     const handleApplicationAction = async (applicationId, action, data = {}) => {
@@ -359,7 +402,17 @@ const RecruiterDashboard = () => {
     };
 
     // Render loading state
-    if (authLoading || (isLoading && applications.length === 0)) {
+    if (!userDataLoaded || authLoading || !permissionChecked) {
+        return (
+            <div className="dashboard-loading">
+                <div className="loading-spinner"></div>
+                <p>INITIALIZING RECRUITMENT INTERFACE...</p>
+            </div>
+        );
+    }
+
+    // Render loading state for data
+    if (isLoading && applications.length === 0 && permissionChecked) {
         return (
             <div className="dashboard-loading">
                 <div className="loading-spinner"></div>
@@ -369,7 +422,7 @@ const RecruiterDashboard = () => {
     }
 
     // Render error state
-    if (error) {
+    if (error && permissionChecked) {
         return (
             <div className="dashboard-error">
                 <AlertCircle size={48} />
