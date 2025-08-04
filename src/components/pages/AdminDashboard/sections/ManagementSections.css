@@ -11,6 +11,17 @@
     overflow-x: auto;
 }
 
+/* Tabs */
+.pending-tabs,
+.management-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background-color: #0d0d0d;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    overflow-x: auto;
+}
+
 /* Management Tabs */
 .management-tabs {
     display: flex;
