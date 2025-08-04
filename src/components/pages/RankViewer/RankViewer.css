@@ -463,9 +463,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%;
+}
+
+.rank-insignia::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: radial-gradient(circle, var(--rank-color, var(--rsi-blue)) 0%, transparent 70%);
     opacity: 0.1;
     border-radius: 50%;
+    z-index: 0;
 }
 
 .rank-insignia img {

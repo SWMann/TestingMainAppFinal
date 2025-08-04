@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, ChevronRight, Star, Anchor, Award, Crown, Users, Hash, Calendar, Info, Target} from 'lucide-react';
+// src/components/pages/RankViewer/RankViewer.js
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Shield, ChevronRight, Star, Anchor, Award, Crown, Users, Hash, Calendar, Info, Target, AlertCircle } from 'lucide-react';
 import api from '../../../services/api';
 import './RankViewer.css';
 
@@ -204,9 +205,10 @@ const RankViewer = () => {
                 )}
             </div>
 
-            {/* Rank Detail Modal */}
+            {/* Rank Detail Modal - Key prop forces remount on rank change */}
             {selectedRank && (
                 <RankDetailModal
+                    key={selectedRank.id}
                     rank={selectedRank}
                     onClose={() => setSelectedRank(null)}
                     formatTimeInService={formatTimeInService}
@@ -216,6 +218,7 @@ const RankViewer = () => {
     );
 };
 
+// Rank Card Component
 const RankCard = ({ rank, onClick }) => {
     // Get the best available image URL
     const insigniaUrl = rank.insignia_display_url || rank.insignia_image_url || rank.insignia_image || '/api/placeholder/100/100';
@@ -250,40 +253,159 @@ const RankCard = ({ rank, onClick }) => {
     );
 };
 
+// Rank Detail Modal Component
 const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
     const [promotionRequirements, setPromotionRequirements] = useState([]);
     const [loadingRequirements, setLoadingRequirements] = useState(false);
+    const [requirementsError, setRequirementsError] = useState(null);
+    const modalRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     useEffect(() => {
+        // Clear previous requirements immediately when component mounts
+        setPromotionRequirements([]);
+        setRequirementsError(null);
+
+        // Reset scroll position to top
+        if (modalRef.current) {
+            modalRef.current.scrollTop = 0;
+        }
+
+        // Create new abort controller for this request
+        abortControllerRef.current = new AbortController();
+
+        // Fetch new requirements
         fetchPromotionRequirements();
-    }, [rank.id]);
+
+        // Cleanup function
+        return () => {
+            // Cancel any pending requests when component unmounts
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [rank.id]); // Dependency on rank.id ensures re-fetch when rank changes
 
     const fetchPromotionRequirements = async () => {
         try {
             setLoadingRequirements(true);
-            const response = await api.get('/promotions/rank-requirements/', {
-                params: { rank_id: rank.id }
+            setRequirementsError(null);
+
+            console.log(`Fetching promotion requirements for rank ${rank.id}: ${rank.name}`);
+
+            let response;
+            try {
+                // Try with rank_id parameter first
+                response = await api.get('/promotions/rank-requirements/', {
+                    params: { rank_id: rank.id },
+                    signal: abortControllerRef.current?.signal
+                });
+            } catch (firstError) {
+                // Check if request was aborted
+                if (firstError.name === 'AbortError' || firstError.message?.includes('aborted')) {
+                    console.log('Request was cancelled');
+                    return;
+                }
+
+                // If first attempt fails, try with rank parameter
+                console.log('Trying alternative parameter name...');
+                try {
+                    response = await api.get('/promotions/rank-requirements/', {
+                        params: { rank: rank.id },
+                        signal: abortControllerRef.current?.signal
+                    });
+                } catch (secondError) {
+                    throw secondError; // Re-throw to be caught by outer catch
+                }
+            }
+
+            // Process the response
+            const requirements = response.data.results || response.data || [];
+            console.log(`Found ${requirements.length} requirements for ${rank.name}:`, requirements);
+
+            // Filter requirements to ensure they're for the correct rank
+            const filteredRequirements = requirements.filter(req => {
+                // Check multiple possible field names for rank ID
+                return req.rank === rank.id ||
+                    req.rank_id === rank.id ||
+                    req.rank?.id === rank.id ||
+                    !req.rank; // Include requirements without specific rank
             });
-            setPromotionRequirements(response.data.results || response.data);
+
+            console.log(`Filtered to ${filteredRequirements.length} requirements for ${rank.name}`);
+            setPromotionRequirements(filteredRequirements);
+
         } catch (error) {
+            // Handle aborted requests
+            if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+                console.log('Request was cancelled');
+                return;
+            }
+
             console.error('Error fetching promotion requirements:', error);
+            console.error('Error response:', error.response);
+
+            // Set user-friendly error message
+            if (error.response?.status === 404) {
+                setRequirementsError('Promotion requirements endpoint not found');
+            } else if (error.response?.status === 403) {
+                setRequirementsError('Permission denied to view promotion requirements');
+            } else {
+                setRequirementsError('Failed to load promotion requirements');
+            }
+
+            setPromotionRequirements([]);
         } finally {
-            setLoadingRequirements(false);
+            // Only set loading to false if the request wasn't aborted
+            if (!abortControllerRef.current?.signal?.aborted) {
+                setLoadingRequirements(false);
+            }
         }
     };
 
     // Get the best available image URL
     const insigniaUrl = rank.insignia_display_url || rank.insignia_image_url || rank.insignia_image || '/api/placeholder/150/150';
 
-    // Group requirements by category
-    const requirementsByCategory = {};
-    promotionRequirements.forEach(req => {
-        const category = req.requirement_type_details?.category || 'other';
-        if (!requirementsByCategory[category]) {
-            requirementsByCategory[category] = [];
-        }
-        requirementsByCategory[category].push(req);
-    });
+    // Group requirements by category with memoization
+    const requirementsByCategory = useMemo(() => {
+        const grouped = {};
+
+        promotionRequirements.forEach(req => {
+            const category = req.requirement_type_details?.category || 'other';
+            if (!grouped[category]) {
+                grouped[category] = [];
+            }
+            grouped[category].push(req);
+        });
+
+        // Define category order for consistent display
+        const categoryOrder = [
+            'time_based',
+            'position_based',
+            'qualification_based',
+            'deployment_based',
+            'performance_based',
+            'administrative',
+            'other'
+        ];
+
+        // Sort categories according to defined order
+        const sorted = {};
+        categoryOrder.forEach(cat => {
+            if (grouped[cat]) {
+                sorted[cat] = grouped[cat];
+            }
+        });
+
+        // Add any categories not in the predefined order
+        Object.keys(grouped).forEach(cat => {
+            if (!sorted[cat]) {
+                sorted[cat] = grouped[cat];
+            }
+        });
+
+        return sorted;
+    }, [promotionRequirements]);
 
     const getCategoryName = (category) => {
         const names = {
@@ -292,14 +414,25 @@ const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
             'qualification_based': 'Qualification Requirements',
             'deployment_based': 'Combat Requirements',
             'performance_based': 'Performance Requirements',
-            'administrative': 'Administrative Requirements'
+            'administrative': 'Administrative Requirements',
+            'other': 'Other Requirements'
         };
-        return names[category] || category.replace(/_/g, ' ').toUpperCase();
+        return names[category] || category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const getRankCategory = (rank) => {
+        if (rank.is_enlisted && rank.tier <= 5) return 'Enlisted';
+        if (rank.is_enlisted && rank.tier >= 6 && rank.tier <= 9) return 'NCO';
+        if (rank.is_warrant) return 'Warrant Officer';
+        if (rank.is_officer && rank.tier >= 14 && rank.tier <= 17) return 'Company Officer';
+        if (rank.is_officer && rank.tier >= 18 && rank.tier <= 20) return 'Field Officer';
+        if (rank.is_officer && rank.tier >= 21) return 'High Command';
+        return 'Unknown';
     };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="rank-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="rank-detail-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
                 <button className="modal-close" onClick={onClose}>×</button>
 
                 <div className="modal-header" style={{ '--rank-color': rank.color_code }}>
@@ -322,11 +455,13 @@ const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
                 </div>
 
                 <div className="modal-content">
+                    {/* Rank Information Section */}
                     <div className="detail-section">
                         <h3><Info size={18} /> RANK INFORMATION</h3>
                         <p className="rank-description">{rank.description || 'No description available'}</p>
                     </div>
 
+                    {/* Rank Details Grid */}
                     <div className="detail-grid">
                         <div className="detail-item">
                             <Hash size={16} />
@@ -336,14 +471,7 @@ const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
                         <div className="detail-item">
                             <Shield size={16} />
                             <span className="detail-label">CATEGORY</span>
-                            <span className="detail-value">
-                {rank.is_enlisted && rank.tier <= 5 && 'Enlisted'}
-                                {rank.is_enlisted && rank.tier >= 6 && 'NCO'}
-                                {rank.is_warrant && 'Warrant Officer'}
-                                {rank.is_officer && rank.tier <= 17 && 'Company Officer'}
-                                {rank.is_officer && rank.tier >= 18 && rank.tier <= 20 && 'Field Officer'}
-                                {rank.is_officer && rank.tier >= 21 && 'High Command'}
-              </span>
+                            <span className="detail-value">{getRankCategory(rank)}</span>
                         </div>
                         <div className="detail-item">
                             <Calendar size={16} />
@@ -357,6 +485,7 @@ const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
                         </div>
                     </div>
 
+                    {/* Career Progression Section */}
                     <div className="detail-section progression">
                         <h3><ChevronRight size={18} /> CAREER PROGRESSION</h3>
                         <div className="progression-info">
@@ -371,36 +500,62 @@ const RankDetailModal = ({ rank, onClose, formatTimeInService }) => {
                     </div>
 
                     {/* Promotion Requirements Section */}
-                    {promotionRequirements.length > 0 && (
-                        <div className="detail-section">
-                            <h3><Target size={18} /> PROMOTION REQUIREMENTS</h3>
-                            {loadingRequirements ? (
-                                <p className="loading-text">Loading requirements...</p>
-                            ) : (
-                                <div className="requirements-list">
-                                    {Object.entries(requirementsByCategory).map(([category, reqs]) => (
-                                        <div key={category} className="requirement-category-group">
-                                            <h4>{getCategoryName(category)}</h4>
-                                            <ul className="requirement-items">
-                                                {reqs.map(req => (
-                                                    <li key={req.id} className={req.is_mandatory ? 'mandatory' : 'optional'}>
-                                                        <span className="requirement-text">{req.display_text}</span>
-                                                        {req.value_required > 0 && (
-                                                            <span className="requirement-value">
-                                                                ({req.value_required} {req.requirement_type_details?.evaluation_type?.includes('time') ? 'days' : 'required'})
-                                                            </span>
-                                                        )}
-                                                        {!req.is_mandatory && <span className="optional-tag">OPTIONAL</span>}
-                                                        {req.waiverable && <span className="waiverable-tag">WAIVERABLE</span>}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <div className="detail-section" style={{ position: 'relative', minHeight: '100px' }}>
+                        <h3><Target size={18} /> PROMOTION REQUIREMENTS</h3>
+
+                        {loadingRequirements ? (
+                            <div style={{ padding: '2rem', textAlign: 'center' }}>
+                                <div className="loading-spinner" style={{ width: '30px', height: '30px', margin: '0 auto 1rem' }}></div>
+                                <p className="loading-text">Loading requirements for {rank.name}...</p>
+                            </div>
+                        ) : requirementsError ? (
+                            <div style={{ padding: '1rem', textAlign: 'center' }}>
+                                <AlertCircle size={24} style={{ color: '#ff3333', marginBottom: '0.5rem' }} />
+                                <p className="error-text" style={{ color: '#ff3333' }}>{requirementsError}</p>
+                            </div>
+                        ) : promotionRequirements.length > 0 ? (
+                            <div className="requirements-list">
+                                {Object.entries(requirementsByCategory).map(([category, reqs]) => (
+                                    <div key={category} className="requirement-category-group">
+                                        <h4>{getCategoryName(category)}</h4>
+                                        <ul className="requirement-items">
+                                            {reqs.map(req => (
+                                                <li key={req.id} className={req.is_mandatory ? 'mandatory' : 'optional'}>
+                                                    <span className="requirement-text">
+                                                        {req.display_text || req.description || 'Requirement'}
+                                                    </span>
+                                                    {req.value_required > 0 && (
+                                                        <span className="requirement-value">
+                                                            ({req.value_required} {
+                                                            req.requirement_type_details?.evaluation_type?.includes('time')
+                                                                ? 'days'
+                                                                : req.requirement_type_details?.unit || 'required'
+                                                        })
+                                                        </span>
+                                                    )}
+                                                    {!req.is_mandatory && (
+                                                        <span className="optional-tag">OPTIONAL</span>
+                                                    )}
+                                                    {req.waiverable && (
+                                                        <span className="waiverable-tag">WAIVERABLE</span>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="no-requirements-text" style={{
+                                color: '#a8b2bd',
+                                fontStyle: 'italic',
+                                textAlign: 'center',
+                                padding: '2rem 1rem'
+                            }}>
+                                No specific promotion requirements defined for this rank.
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
