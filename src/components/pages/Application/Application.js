@@ -5,7 +5,7 @@ import {
     Calendar, MapPin, Clock, Users, Award, Briefcase,
     AlertCircle, Target, Plane, Crosshair, Truck,
     Loader, Wrench, GraduationCap, Star, Rocket,
-    Ship, Zap, Globe, Activity
+    Ship, Zap, Globe, Activity, Anchor
 } from 'lucide-react';
 import api from "../../../services/api";
 import './Application.css'
@@ -19,17 +19,17 @@ const ApplicationForm = () => {
     const [error, setError] = useState(null);
 
     // API data state
-    const [brigades, setBrigades] = useState([]);
-    const [platoons, setPlatoons] = useState([]);
+    const [fleetUnits, setFleetUnits] = useState([]);
+    const [subUnits, setSubUnits] = useState([]);
     const [mosList, setMosList] = useState([]);
-    const [isLoadingBrigades, setIsLoadingBrigades] = useState(false);
-    const [isLoadingPlatoons, setIsLoadingPlatoons] = useState(false);
+    const [isLoadingFleet, setIsLoadingFleet] = useState(false);
+    const [isLoadingSubUnits, setIsLoadingSubUnits] = useState(false);
     const [isLoadingMOS, setIsLoadingMOS] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState({
-        selectedBrigade: null,
-        selectedPlatoon: null,
+        selectedFleetUnit: null, // Squadron (Navy) or Company (Army/Marines)
+        selectedSubUnit: null, // Division (Navy) or Platoon (Army/Marines)
         selectedPath: null,
         selectedMOS: [], // Array of up to 3 MOS choices
         discordId: '',
@@ -50,44 +50,44 @@ const ApplicationForm = () => {
 
     const totalSteps = 8;
 
-    // Fetch brigades on component mount
+    // Fetch fleet units on component mount
     useEffect(() => {
-        fetchBrigades();
+        fetchFleetUnits();
     }, []);
 
     // Fetch MOS list when career path is selected
     useEffect(() => {
-        if (formData.selectedPath && formData.selectedBrigade) {
+        if (formData.selectedPath && formData.selectedFleetUnit) {
             fetchMOSList();
         }
-    }, [formData.selectedPath, formData.selectedBrigade]);
+    }, [formData.selectedPath, formData.selectedFleetUnit]);
 
-    // Fetch brigades from API
-    const fetchBrigades = async () => {
-        setIsLoadingBrigades(true);
+    // Fetch fleet units (Squadrons/Companies) from API
+    const fetchFleetUnits = async () => {
+        setIsLoadingFleet(true);
         try {
             const response = await api.get('/onboarding/recruitment/brigades/');
-            setBrigades(response.data);
+            setFleetUnits(response.data);
         } catch (err) {
-            console.error('Error fetching brigades:', err);
+            console.error('Error fetching fleet units:', err);
             setError('Failed to load fleet data. Please try again.');
         } finally {
-            setIsLoadingBrigades(false);
+            setIsLoadingFleet(false);
         }
     };
 
-    // Fetch platoons when brigade is selected
-    const fetchPlatoons = async (brigadeId) => {
-        setIsLoadingPlatoons(true);
-        setPlatoons([]); // Clear previous platoons
+    // Fetch sub-units when fleet unit is selected
+    const fetchSubUnits = async (fleetUnitId) => {
+        setIsLoadingSubUnits(true);
+        setSubUnits([]); // Clear previous sub-units
         try {
-            const response = await api.get(`/onboarding/recruitment/brigades/${brigadeId}/platoons/`);
-            setPlatoons(response.data);
+            const response = await api.get(`/onboarding/recruitment/brigades/${fleetUnitId}/platoons/`);
+            setSubUnits(response.data);
         } catch (err) {
-            console.error('Error fetching platoons:', err);
-            setError('Failed to load squadron data. Please try again.');
+            console.error('Error fetching sub-units:', err);
+            setError('Failed to load unit data. Please try again.');
         } finally {
-            setIsLoadingPlatoons(false);
+            setIsLoadingSubUnits(false);
         }
     };
 
@@ -121,32 +121,32 @@ const ApplicationForm = () => {
 
     // Auto-skip to warrant path for aviation units
     useEffect(() => {
-        if (currentStep === 4 && formData.selectedBrigade) {
-            const selectedBrigadeData = brigades.find(b => b.id === formData.selectedBrigade);
-            if (selectedBrigadeData?.is_aviation_only) {
+        if (currentStep === 4 && formData.selectedFleetUnit) {
+            const selectedUnit = fleetUnits.find(u => u.id === formData.selectedFleetUnit);
+            if (selectedUnit?.is_aviation_only) {
                 setFormData(prev => ({ ...prev, selectedPath: 'warrant' }));
             }
         }
-    }, [currentStep, formData.selectedBrigade, brigades]);
+    }, [currentStep, formData.selectedFleetUnit, fleetUnits]);
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleBrigadeSelect = async (brigadeId) => {
+    const handleFleetUnitSelect = async (unitId) => {
         setFormData(prev => ({
             ...prev,
-            selectedBrigade: brigadeId,
-            selectedPlatoon: null, // Reset platoon when brigade changes
+            selectedFleetUnit: unitId,
+            selectedSubUnit: null, // Reset sub-unit when fleet unit changes
             selectedMOS: [] // Reset MOS selection
         }));
 
-        // Fetch platoons for selected brigade
-        await fetchPlatoons(brigadeId);
+        // Fetch sub-units for selected fleet unit
+        await fetchSubUnits(unitId);
     };
 
-    const handlePlatoonSelect = (platoonId) => {
-        setFormData(prev => ({ ...prev, selectedPlatoon: platoonId }));
+    const handleSubUnitSelect = (subUnitId) => {
+        setFormData(prev => ({ ...prev, selectedSubUnit: subUnitId }));
     };
 
     const handlePathSelect = (path) => {
@@ -165,14 +165,14 @@ const ApplicationForm = () => {
     const validateStep = () => {
         switch (currentStep) {
             case 2:
-                if (!formData.selectedBrigade) {
-                    setError('Please select a fleet division to continue');
+                if (!formData.selectedFleetUnit) {
+                    setError('Please select a fleet unit to continue');
                     return false;
                 }
                 break;
             case 3:
-                if (!formData.selectedPlatoon) {
-                    setError('Please select a squadron assignment');
+                if (!formData.selectedSubUnit) {
+                    setError('Please select a unit assignment');
                     return false;
                 }
                 break;
@@ -214,10 +214,10 @@ const ApplicationForm = () => {
     const handleNext = () => {
         if (!validateStep()) return;
 
-        const selectedBrigadeData = brigades.find(b => b.id === formData.selectedBrigade);
+        const selectedUnit = fleetUnits.find(u => u.id === formData.selectedFleetUnit);
 
         // Skip career path for aviation
-        if (currentStep === 3 && selectedBrigadeData?.is_aviation_only) {
+        if (currentStep === 3 && selectedUnit?.is_aviation_only) {
             setCurrentStep(5);
         } else if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
@@ -225,10 +225,10 @@ const ApplicationForm = () => {
     };
 
     const handlePrevious = () => {
-        const selectedBrigadeData = brigades.find(b => b.id === formData.selectedBrigade);
+        const selectedUnit = fleetUnits.find(u => u.id === formData.selectedFleetUnit);
 
         // Skip career path when going back from aviation
-        if (currentStep === 5 && selectedBrigadeData?.is_aviation_only) {
+        if (currentStep === 5 && selectedUnit?.is_aviation_only) {
             setCurrentStep(3);
         } else if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
@@ -277,8 +277,8 @@ const ApplicationForm = () => {
                 discord_id: formData.discordId,
                 username: formData.discordId.split('#')[0] || formData.discordId,
                 email: formData.email,
-                preferred_brigade: formData.selectedBrigade,
-                preferred_platoon: formData.selectedPlatoon,
+                preferred_brigade: formData.selectedFleetUnit,
+                preferred_platoon: formData.selectedSubUnit,
                 motivation: formData.divisionMotivation,
                 experience: formData.milsimExperience,
                 referrer: formData.referrer || null,
@@ -316,12 +316,12 @@ const ApplicationForm = () => {
         }
     };
 
-    const getSelectedBrigadeData = () => {
-        return brigades.find(b => b.id === formData.selectedBrigade);
+    const getSelectedFleetUnitData = () => {
+        return fleetUnits.find(u => u.id === formData.selectedFleetUnit);
     };
 
-    const getSelectedPlatoonData = () => {
-        return platoons.find(p => p.id === formData.selectedPlatoon);
+    const getSelectedSubUnitData = () => {
+        return subUnits.find(u => u.id === formData.selectedSubUnit);
     };
 
     const getSelectedMOSData = (priority) => {
@@ -343,25 +343,25 @@ const ApplicationForm = () => {
             case 1:
                 return <WelcomeStep />;
             case 2:
-                return <BrigadeSelectionStep
-                    brigades={brigades}
-                    selectedBrigade={formData.selectedBrigade}
-                    onSelect={handleBrigadeSelect}
-                    isLoading={isLoadingBrigades}
+                return <FleetSelectionStep
+                    fleetUnits={fleetUnits}
+                    selectedUnit={formData.selectedFleetUnit}
+                    onSelect={handleFleetUnitSelect}
+                    isLoading={isLoadingFleet}
                 />;
             case 3:
-                return <PlatoonSelectionStep
-                    platoons={platoons}
-                    selectedPlatoon={formData.selectedPlatoon}
-                    selectedBrigade={getSelectedBrigadeData()}
-                    onSelect={handlePlatoonSelect}
-                    isLoading={isLoadingPlatoons}
+                return <UnitSelectionStep
+                    subUnits={subUnits}
+                    selectedSubUnit={formData.selectedSubUnit}
+                    selectedFleetUnit={getSelectedFleetUnitData()}
+                    onSelect={handleSubUnitSelect}
+                    isLoading={isLoadingSubUnits}
                 />;
             case 4:
                 return <CareerPathStep
                     selectedPath={formData.selectedPath}
-                    selectedPlatoon={getSelectedPlatoonData()}
-                    selectedBrigade={getSelectedBrigadeData()}
+                    selectedSubUnit={getSelectedSubUnitData()}
+                    selectedFleetUnit={getSelectedFleetUnitData()}
                     onSelect={handlePathSelect}
                 />;
             case 5:
@@ -369,7 +369,7 @@ const ApplicationForm = () => {
                     mosList={mosList}
                     selectedMOS={formData.selectedMOS}
                     selectedPath={formData.selectedPath}
-                    selectedBrigade={getSelectedBrigadeData()}
+                    selectedFleetUnit={getSelectedFleetUnitData()}
                     onSelect={handleMOSSelect}
                     isLoading={isLoadingMOS}
                 />;
@@ -392,8 +392,8 @@ const ApplicationForm = () => {
             case 9:
                 return <SuccessStep
                     formData={formData}
-                    selectedBrigade={getSelectedBrigadeData()}
-                    selectedPlatoon={getSelectedPlatoonData()}
+                    selectedFleetUnit={getSelectedFleetUnitData()}
+                    selectedSubUnit={getSelectedSubUnitData()}
                     selectedMOS={[
                         getSelectedMOSData(1),
                         getSelectedMOSData(2),
@@ -463,7 +463,7 @@ const ApplicationForm = () => {
                     <button
                         className="nav-btn next"
                         onClick={handleNext}
-                        disabled={isLoading || (currentStep === 3 && isLoadingPlatoons) || (currentStep === 5 && isLoadingMOS)}
+                        disabled={isLoading || (currentStep === 3 && isLoadingSubUnits) || (currentStep === 5 && isLoadingMOS)}
                     >
                         {currentStep === 1 ? 'Begin Application' : 'Next'}
                         <ChevronRight size={20} />
@@ -531,26 +531,49 @@ const WelcomeStep = () => (
     </div>
 );
 
-const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }) => {
-    const getUnitIcon = (brigade) => {
-        if (brigade.name.includes('Aviation') || brigade.name.includes('Fighter')) {
+const FleetSelectionStep = ({ fleetUnits, selectedUnit, onSelect, isLoading }) => {
+    const getUnitIcon = (unit) => {
+        // Navy units
+        if (unit.branch_type === 'navy' || unit.name.includes('Squadron')) {
+            return <Anchor size={24} />;
+        }
+        // Aviation units
+        else if (unit.branch_type === 'navy_aviation' || unit.name.includes('Aviation')) {
             return <Plane size={24} />;
-        } else if (brigade.name.includes('Capital') || brigade.name.includes('Heavy')) {
-            return <Ship size={24} />;
-        } else if (brigade.name.includes('Support') || brigade.name.includes('Logistics')) {
+        }
+        // Marine units
+        else if (unit.branch_type === 'marines' || unit.name.includes('Marine')) {
+            return <Shield size={24} />;
+        }
+        // Army units
+        else if (unit.branch_type === 'army' || unit.name.includes('Company')) {
+            return <Target size={24} />;
+        }
+        // Support/Logistics
+        else if (unit.name.includes('Support') || unit.name.includes('Logistics')) {
             return <Truck size={24} />;
-        } else if (brigade.name.includes('Recon') || brigade.name.includes('Scout')) {
-            return <Activity size={24} />;
-        } else {
+        }
+        // Default
+        else {
             return <Rocket size={24} />;
         }
     };
 
-    const getUnitIconClass = (brigade) => {
-        if (brigade.name.includes('Aviation') || brigade.name.includes('Fighter')) return 'aviation-icon';
-        if (brigade.name.includes('Capital') || brigade.name.includes('Heavy')) return 'armor-icon';
-        if (brigade.name.includes('Support') || brigade.name.includes('Logistics')) return 'arty-icon';
+    const getUnitIconClass = (unit) => {
+        if (unit.branch_type === 'navy' || unit.branch_type === 'navy_aviation') return 'aviation-icon';
+        if (unit.branch_type === 'marines') return 'infantry-icon';
+        if (unit.branch_type === 'army') return 'armor-icon';
+        if (unit.name.includes('Support') || unit.name.includes('Logistics')) return 'arty-icon';
         return 'infantry-icon';
+    };
+
+    const getUnitTypeLabel = (unit) => {
+        if (unit.branch_type === 'navy' || unit.branch_type === 'navy_aviation') {
+            return 'SQUADRON';
+        } else if (unit.branch_type === 'marines' || unit.branch_type === 'army') {
+            return 'COMPANY';
+        }
+        return unit.unit_type?.toUpperCase() || 'UNIT';
     };
 
     if (isLoading) {
@@ -562,49 +585,49 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
         );
     }
 
-    const openBrigades = brigades.filter(b => b.recruitment_status === 'open' || b.recruitment_status === 'limited');
+    const openUnits = fleetUnits.filter(u => u.recruitment_status === 'open' || u.recruitment_status === 'limited');
 
-    if (openBrigades.length === 0) {
+    if (openUnits.length === 0) {
         return (
             <div className="no-brigades-message">
                 <AlertCircle size={48} />
-                <h3>No Fleets Currently Recruiting</h3>
-                <p>All fleet divisions are currently at operational capacity. Please check back later or contact a recruitment officer on Discord for more information.</p>
+                <h3>No Units Currently Recruiting</h3>
+                <p>All fleet units are currently at operational capacity. Please check back later or contact a recruitment officer on Discord for more information.</p>
             </div>
         );
     }
 
     return (
         <div className="brigade-selection">
-            <h2>Select Your Fleet Division</h2>
-            <p className="step-description">Choose which specialized fleet you'd like to join within the 5th Expeditionary Group</p>
+            <h2>Select Your Fleet Branch</h2>
+            <p className="step-description">Choose which branch you'd like to join within the 5th Expeditionary Group</p>
 
             <div className="unit-cards">
-                {brigades.map(brigade => {
-                    const isOpen = brigade.recruitment_status === 'open' || brigade.recruitment_status === 'limited';
+                {fleetUnits.map(unit => {
+                    const isOpen = unit.recruitment_status === 'open' || unit.recruitment_status === 'limited';
 
                     return (
                         <div
-                            key={brigade.id}
-                            className={`unit-card ${selectedBrigade === brigade.id ? 'selected' : ''} ${!isOpen ? 'disabled' : ''}`}
-                            onClick={() => isOpen && onSelect(brigade.id)}
+                            key={unit.id}
+                            className={`unit-card ${selectedUnit === unit.id ? 'selected' : ''} ${!isOpen ? 'disabled' : ''}`}
+                            onClick={() => isOpen && onSelect(unit.id)}
                         >
                             <div className="unit-header">
-                                <div className={`unit-icon ${getUnitIconClass(brigade)}`}>
-                                    {getUnitIcon(brigade)}
+                                <div className={`unit-icon ${getUnitIconClass(unit)}`}>
+                                    {getUnitIcon(unit)}
                                 </div>
                                 <div className="unit-info">
-                                    <h3>{brigade.name}</h3>
-                                    {brigade.motto && <p>"{brigade.motto}"</p>}
+                                    <h3>{unit.name}</h3>
+                                    {unit.motto && <p>"{unit.motto}"</p>}
                                 </div>
                             </div>
                             <div className="unit-details">
-                                <p><strong>{brigade.unit_type}</strong></p>
-                                {brigade.description && (
-                                    <p className="unit-description">{brigade.description}</p>
+                                <p><strong>{getUnitTypeLabel(unit)} - {unit.branch_name || 'Fleet'}</strong></p>
+                                {unit.description && (
+                                    <p className="unit-description">{unit.description}</p>
                                 )}
 
-                                {brigade.is_aviation_only && (
+                                {unit.is_aviation_only && (
                                     <p className="warrant-notice">
                                         ⚠️ FLIGHT CERTIFIED ONLY - Requires pilot qualifications
                                     </p>
@@ -613,18 +636,18 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
                                 <div className="unit-stats">
                                     <div className="stat-item">
                                         <div>STATUS</div>
-                                        <div className={`stat-value ${brigade.recruitment_status}`}>
-                                            {brigade.recruitment_status.toUpperCase()}
+                                        <div className={`stat-value ${unit.recruitment_status}`}>
+                                            {unit.recruitment_status.toUpperCase()}
                                         </div>
                                     </div>
                                     <div className="stat-item">
                                         <div>BERTHS OPEN</div>
-                                        <div className="stat-value">{brigade.available_slots || 0}</div>
+                                        <div className="stat-value">{unit.available_slots || 0}</div>
                                     </div>
                                 </div>
 
-                                {brigade.recruitment_notes && (
-                                    <p className="recruitment-notes">{brigade.recruitment_notes}</p>
+                                {unit.recruitment_notes && (
+                                    <p className="recruitment-notes">{unit.recruitment_notes}</p>
                                 )}
 
                                 {!isOpen && (
@@ -641,19 +664,28 @@ const BrigadeSelectionStep = ({ brigades, selectedBrigade, onSelect, isLoading }
     );
 };
 
-const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSelect, isLoading }) => {
+const UnitSelectionStep = ({ subUnits, selectedSubUnit, selectedFleetUnit, onSelect, isLoading }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
                 <Loader className="spinning" size={40} />
-                <p>LOADING SQUADRON MANIFEST...</p>
+                <p>LOADING UNIT MANIFEST...</p>
             </div>
         );
     }
 
-    const groupedPlatoons = platoons.reduce((acc, platoon) => {
-        const battalion = platoon.battalion || 'Unassigned';
-        const company = platoon.company || 'Unassigned';
+    // Determine the unit type label based on the fleet unit's branch
+    const getSubUnitLabel = () => {
+        if (selectedFleetUnit?.branch_type === 'navy' || selectedFleetUnit?.branch_type === 'navy_aviation') {
+            return 'Division';
+        } else {
+            return 'Platoon';
+        }
+    };
+
+    const groupedUnits = subUnits.reduce((acc, unit) => {
+        const battalion = unit.battalion || 'Fleet Reserve';
+        const company = unit.company || selectedFleetUnit?.name || 'Unassigned';
 
         if (!acc[battalion]) {
             acc[battalion] = {};
@@ -662,55 +694,55 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
             acc[battalion][company] = [];
         }
 
-        acc[battalion][company].push(platoon);
+        acc[battalion][company].push(unit);
         return acc;
     }, {});
 
     return (
         <div className="platoon-selection">
-            <h2>Select Your Squadron</h2>
+            <h2>Select Your {getSubUnitLabel()}</h2>
             <div className="selection-summary">
-                <h4>Selected Fleet Division:</h4>
-                <p>{selectedBrigade?.name}</p>
+                <h4>Selected Unit:</h4>
+                <p>{selectedFleetUnit?.name}</p>
             </div>
-            <p className="step-description">Choose an available squadron assignment</p>
+            <p className="step-description">Choose an available {getSubUnitLabel().toLowerCase()} assignment</p>
 
             <div className="platoon-grid">
-                {Object.entries(groupedPlatoons).map(([battalion, companies]) => (
+                {Object.entries(groupedUnits).map(([battalion, companies]) => (
                     <div key={battalion}>
                         <div className="battalion-header">{battalion}</div>
-                        {Object.entries(companies).map(([company, companyPlatoons]) => (
+                        {Object.entries(companies).map(([company, units]) => (
                             <div key={company}>
                                 <div className="company-header">{company}</div>
-                                {companyPlatoons.map((platoon) => (
+                                {units.map((unit) => (
                                     <div
-                                        key={platoon.id}
-                                        className={`platoon-card ${platoon.available_slots === 0 ? 'full' : ''} ${selectedPlatoon === platoon.id ? 'selected' : ''}`}
-                                        onClick={() => platoon.available_slots > 0 && platoon.is_accepting_applications && onSelect(platoon.id)}
+                                        key={unit.id}
+                                        className={`platoon-card ${unit.available_slots === 0 ? 'full' : ''} ${selectedSubUnit === unit.id ? 'selected' : ''}`}
+                                        onClick={() => unit.available_slots > 0 && unit.is_accepting_applications && onSelect(unit.id)}
                                     >
                                         <div className="platoon-header">
-                                            <span className="platoon-designation">{platoon.designation}</span>
-                                            <span className="platoon-type">{platoon.unit_type}</span>
+                                            <span className="platoon-designation">{unit.designation}</span>
+                                            <span className="platoon-type">{unit.unit_type}</span>
                                         </div>
                                         <div className="platoon-info">
                                             <span className="platoon-strength">
-                                                Crew: {platoon.current_strength}/{platoon.max_strength}
+                                                Crew: {unit.current_strength}/{unit.max_strength}
                                             </span>
                                             <span className={`platoon-slots ${
-                                                platoon.available_slots === 0 ? 'slots-full' :
-                                                    platoon.available_slots <= 3 ? 'slots-limited' :
+                                                unit.available_slots === 0 ? 'slots-full' :
+                                                    unit.available_slots <= 3 ? 'slots-limited' :
                                                         'slots-available'
                                             }`}>
-                                                {platoon.available_slots === 0 ? 'FULL' : `${platoon.available_slots} berths`}
+                                                {unit.available_slots === 0 ? 'FULL' : `${unit.available_slots} berths`}
                                             </span>
                                         </div>
                                         <div className="platoon-details">
-                                            CMDR: {platoon.leader || 'Vacant'}
-                                            {platoon.career_tracks_available && platoon.career_tracks_available.length > 0 && (
-                                                <span> • Tracks: {platoon.career_tracks_available.join(', ')}</span>
+                                            CMDR: {unit.leader || 'Vacant'}
+                                            {unit.career_tracks_available && unit.career_tracks_available.length > 0 && (
+                                                <span> • Tracks: {unit.career_tracks_available.join(', ')}</span>
                                             )}
                                         </div>
-                                        {!platoon.is_accepting_applications && (
+                                        {!unit.is_accepting_applications && (
                                             <div className="platoon-closed">RECRUITMENT SUSPENDED</div>
                                         )}
                                     </div>
@@ -724,15 +756,15 @@ const PlatoonSelectionStep = ({ platoons, selectedPlatoon, selectedBrigade, onSe
     );
 };
 
-const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSelect }) => {
-    const availableTracks = selectedPlatoon?.career_tracks_available || ['enlisted', 'warrant', 'officer'];
+const CareerPathStep = ({ selectedPath, selectedSubUnit, selectedFleetUnit, onSelect }) => {
+    const availableTracks = selectedSubUnit?.career_tracks_available || ['enlisted', 'warrant', 'officer'];
 
     return (
         <div className="career-selection">
             <h2>Choose Your Career Path</h2>
             <div className="selection-summary">
                 <h4>Your Assignment:</h4>
-                <p>{selectedPlatoon?.designation} - {selectedBrigade?.name}</p>
+                <p>{selectedSubUnit?.designation} - {selectedFleetUnit?.name}</p>
             </div>
 
             <div className="career-paths">
@@ -834,7 +866,7 @@ const CareerPathStep = ({ selectedPath, selectedPlatoon, selectedBrigade, onSele
     );
 };
 
-const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedBrigade, onSelect, isLoading }) => {
+const MOSSelectionStep = ({ mosList, selectedMOS, selectedPath, selectedFleetUnit, onSelect, isLoading }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
@@ -1050,9 +1082,9 @@ const ExperienceStep = ({ formData, selectedPath, onChange }) => (
         </div>
 
         <div className="form-group">
-            <label>Why this fleet?</label>
+            <label>Why this unit?</label>
             <textarea
-                placeholder="Why do you want to join this specific fleet division?"
+                placeholder="Why do you want to join this specific unit?"
                 value={formData.unitMotivation}
                 onChange={(e) => onChange('unitMotivation', e.target.value)}
             />
@@ -1169,9 +1201,16 @@ const AgreementStep = ({ formData, onChange }) => (
     </div>
 );
 
-const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }) => {
+const SuccessStep = ({ formData, selectedFleetUnit, selectedSubUnit, selectedMOS }) => {
     const navigate = useNavigate();
     const applicationReference = localStorage.getItem('applicationReference') || `5EXG-2954-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    const getUnitTypeLabel = () => {
+        if (selectedFleetUnit?.branch_type === 'navy' || selectedFleetUnit?.branch_type === 'navy_aviation') {
+            return 'Division';
+        }
+        return 'Platoon';
+    };
 
     return (
         <div className="success-container">
@@ -1186,7 +1225,7 @@ const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }
                     <h3>Your Assignment Request</h3>
                     <div className="assignment-details">
                         <p className="assignment-text">
-                            {selectedPlatoon?.designation} - {selectedBrigade?.name} ({formData.selectedPath?.toUpperCase()} track)
+                            {selectedSubUnit?.designation} {getUnitTypeLabel()} - {selectedFleetUnit?.name} ({formData.selectedPath?.toUpperCase()} track)
                         </p>
                     </div>
                 </div>
@@ -1211,9 +1250,9 @@ const SuccessStep = ({ formData, selectedBrigade, selectedPlatoon, selectedMOS }
                         <li>Check Discord for recruitment officer contact (24-48 hours)</li>
                         <li>Complete your screening interview</li>
                         <li>Receive specialization confirmation</li>
-                        <li>Report for Basic Flight Training</li>
+                        <li>Report for Basic Fleet Training</li>
                         <li>Complete advanced specialization training</li>
-                        <li>Join your assigned squadron</li>
+                        <li>Join your assigned {getUnitTypeLabel().toLowerCase()}</li>
                     </ol>
                 </div>
 
