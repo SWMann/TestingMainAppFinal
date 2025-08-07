@@ -236,7 +236,17 @@ const ApplicationForm = () => {
                 }
             });
             console.log('MOS options response:', response.data);
-            setMosList(response.data);
+
+            // Extract the mos_options array from the response
+            if (response.data && response.data.mos_options) {
+                setMosList(response.data.mos_options);
+            } else if (Array.isArray(response.data)) {
+                // Fallback if the API returns just an array
+                setMosList(response.data);
+            } else {
+                console.error('Unexpected MOS options format:', response.data);
+                setMosList([]);
+            }
         } catch (err) {
             console.error('Error fetching MOS options:', err);
             // Don't show error, just set empty list
