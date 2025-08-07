@@ -27,8 +27,8 @@ const ApplicationForm = () => {
     // Application data
     const [applicationId, setApplicationId] = useState(null);
     const [recruitmentData, setRecruitmentData] = useState(null);
-    const [brigades, setBrigades] = useState([]);
-    const [platoons, setPlatoons] = useState([]);
+    const [primaryUnits, setPrimaryUnits] = useState([]);
+    const [secondaryUnits, setSecondaryUnits] = useState([]);
     const [mosList, setMosList] = useState([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
@@ -89,6 +89,13 @@ const ApplicationForm = () => {
         }
     }, [formData, applicationId, currentStep]);
 
+    // Load MOS options when career track changes
+    useEffect(() => {
+        if (formData.branch && formData.career_track && currentStep === 7) {
+            fetchMOSOptions();
+        }
+    }, [formData.career_track, formData.branch, currentStep]);
+
     const initializeApplication = async () => {
         setIsLoading(true);
         try {
@@ -126,11 +133,17 @@ const ApplicationForm = () => {
 
                 // Resume from last step
                 setCurrentStep(app.progress.current_step);
-            }
 
-            // Load brigades
-            const brigadesResponse = await api.get('/onboarding/recruitment/brigades/');
-            setBrigades(brigadesResponse.data);
+                // If branch is already selected, load units for that branch
+                if (app.branch) {
+                    await fetchPrimaryUnits(app.branch);
+
+                    // If primary unit is selected, load secondary units
+                    if (app.primary_unit) {
+                        await fetchSecondaryUnits(app.branch, app.primary_unit);
+                    }
+                }
+            }
 
         } catch (err) {
             console.error('Error initializing application:', err);
@@ -154,14 +167,46 @@ const ApplicationForm = () => {
         }
     };
 
-    const fetchPlatoons = async (brigadeId) => {
+    const fetchPrimaryUnits = async (branchId) => {
         setIsLoadingData(true);
+        setPrimaryUnits([]); // Clear existing units
         try {
-            const response = await api.get(`/onboarding/recruitment/brigades/${brigadeId}/platoons/`);
-            setPlatoons(response.data);
+            const response = await api.get('/onboarding/applications/get-units/', {
+                params: {
+                    branch_id: branchId,
+                    unit_type: 'primary'
+                }
+            });
+            setPrimaryUnits(response.data);
+            return response.data;
         } catch (err) {
-            console.error('Error fetching platoons:', err);
+            console.error('Error fetching primary units:', err);
             setError('Failed to load unit data.');
+            setPrimaryUnits([]);
+            return [];
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
+    const fetchSecondaryUnits = async (branchId, parentUnitId) => {
+        setIsLoadingData(true);
+        setSecondaryUnits([]); // Clear existing units
+        try {
+            const response = await api.get('/onboarding/applications/get-units/', {
+                params: {
+                    branch_id: branchId,
+                    unit_type: 'secondary',
+                    parent_unit_id: parentUnitId
+                }
+            });
+            setSecondaryUnits(response.data);
+            return response.data;
+        } catch (err) {
+            console.error('Error fetching secondary units:', err);
+            setError('Failed to load unit data.');
+            setSecondaryUnits([]);
+            return [];
         } finally {
             setIsLoadingData(false);
         }
@@ -182,7 +227,8 @@ const ApplicationForm = () => {
             setMosList(response.data);
         } catch (err) {
             console.error('Error fetching MOS options:', err);
-            setError('Failed to load specialization options.');
+            // Don't show error, just set empty list
+            setMosList([]);
         } finally {
             setIsLoadingData(false);
         }
@@ -200,6 +246,13 @@ const ApplicationForm = () => {
             secondary_unit: null,
             primary_mos: null
         }));
+
+        // Clear previous selections
+        setPrimaryUnits([]);
+        setSecondaryUnits([]);
+
+        // Fetch primary units for this branch
+        await fetchPrimaryUnits(branchId);
     };
 
     const handlePrimaryUnitSelect = async (unitId) => {
@@ -208,7 +261,9 @@ const ApplicationForm = () => {
             primary_unit: unitId,
             secondary_unit: null
         }));
-        await fetchPlatoons(unitId);
+
+        // Fetch secondary units for this primary unit
+        await fetchSecondaryUnits(formData.branch, unitId);
     };
 
     const handleSecondaryUnitSelect = (unitId) => {
@@ -221,7 +276,7 @@ const ApplicationForm = () => {
             career_track: track,
             primary_mos: null
         }));
-        await fetchMOSOptions();
+        // MOS will be fetched by useEffect
     };
 
     const handleMOSSelect = (mosId) => {
@@ -239,7 +294,11 @@ const ApplicationForm = () => {
             }));
         } catch (err) {
             console.error('Error accepting waiver:', err);
-            setError('Failed to accept waiver.');
+            // Just add to local state even if API fails
+            setFormData(prev => ({
+                ...prev,
+                accepted_waivers: [...prev.accepted_waivers, waiverId]
+            }));
         }
     };
 
@@ -342,17 +401,6 @@ const ApplicationForm = () => {
 
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
-
-            // Load data for specific steps
-            if (currentStep === 3 && formData.branch) {
-                // Load units for selected branch
-                const selectedBrigades = brigades.filter(b =>
-                    b.branch_type === getBranchType(formData.branch)
-                );
-                if (selectedBrigades.length === 0) {
-                    await fetchBrigadesForBranch(formData.branch);
-                }
-            }
         }
     };
 
@@ -392,6 +440,10 @@ const ApplicationForm = () => {
         }
     };
 
+    // Get branch type from abbreviation
+    // UEEN = United Empire of Earth Navy
+    // UEEA = United Empire of Earth Army
+    // UEEM = United Empire of Earth Marines
     const getBranchType = (branchId) => {
         const branch = recruitmentData?.branches?.find(b => b.id === branchId);
         return branch?.abbreviation?.toLowerCase() || 'navy';
@@ -400,9 +452,9 @@ const ApplicationForm = () => {
     const getUnitTypeLabel = (isPrimary = true) => {
         const branchType = getBranchType(formData.branch);
         if (isPrimary) {
-            return branchType === 'navy' ? 'Squadron' : 'Company';
+            return branchType === 'ueen' ? 'Squadron' : 'Company';
         } else {
-            return branchType === 'navy' ? 'Division' : 'Platoon';
+            return branchType === 'ueen' ? 'Division' : 'Platoon';
         }
     };
 
@@ -426,9 +478,7 @@ const ApplicationForm = () => {
                 />;
             case 4:
                 return <PrimaryUnitStep
-                    brigades={brigades.filter(b =>
-                        !formData.branch || b.branch_type === getBranchType(formData.branch)
-                    )}
+                    units={primaryUnits}
                     selectedUnit={formData.primary_unit}
                     onSelect={handlePrimaryUnitSelect}
                     unitType={getUnitTypeLabel(true)}
@@ -436,11 +486,12 @@ const ApplicationForm = () => {
                 />;
             case 5:
                 return <SecondaryUnitStep
-                    platoons={platoons}
+                    units={secondaryUnits}
                     selectedUnit={formData.secondary_unit}
                     onSelect={handleSecondaryUnitSelect}
                     unitType={getUnitTypeLabel(false)}
                     isLoading={isLoadingData}
+                    primaryUnit={primaryUnits.find(u => u.id === formData.primary_unit)}
                 />;
             case 6:
                 return <CareerTrackStep
@@ -507,12 +558,12 @@ const ApplicationForm = () => {
                 <div className="step-indicator">
                     PHASE {currentStep} OF {totalSteps}
                     {isSaving && (
-                        <span className="save-indicator">
+                        <span className="save-indicator" style={{ marginLeft: '1rem', fontSize: '0.875rem' }}>
                             <Save size={14} /> Saving...
                         </span>
                     )}
-                    {lastSaved && (
-                        <span className="last-saved">
+                    {lastSaved && !isSaving && (
+                        <span className="last-saved" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             Last saved: {lastSaved.toLocaleTimeString()}
                         </span>
                     )}
@@ -579,7 +630,6 @@ const ApplicationForm = () => {
 };
 
 // Step Components
-
 const WelcomeStep = () => (
     <div className="welcome-section">
         <h2>ENLISTMENT PORTAL</h2>
@@ -710,10 +760,10 @@ const BranchSelectionStep = ({ branches, selectedBranch, onSelect }) => (
                 >
                     <div className="unit-header">
                         <div className={`unit-icon ${branch.abbreviation?.toLowerCase()}-icon`}>
-                            {branch.abbreviation === 'USN' && <Anchor size={24} />}
-                            {branch.abbreviation === 'USMC' && <Shield size={24} />}
-                            {branch.abbreviation === 'USA' && <Target size={24} />}
-                            {!['USN', 'USMC', 'USA'].includes(branch.abbreviation) && <Star size={24} />}
+                            {branch.abbreviation === 'UEEN' && <Anchor size={24} />}
+                            {branch.abbreviation === 'UEEM' && <Shield size={24} />}
+                            {branch.abbreviation === 'UEEA' && <Target size={24} />}
+                            {!['UEEN', 'UEEM', 'UEEA'].includes(branch.abbreviation) && <Star size={24} />}
                         </div>
                         <div className="unit-info">
                             <h3>{branch.name}</h3>
@@ -729,7 +779,7 @@ const BranchSelectionStep = ({ branches, selectedBranch, onSelect }) => (
     </div>
 );
 
-const PrimaryUnitStep = ({ brigades, selectedUnit, onSelect, unitType, isLoading }) => {
+const PrimaryUnitStep = ({ units, selectedUnit, onSelect, unitType, isLoading }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
@@ -739,8 +789,8 @@ const PrimaryUnitStep = ({ brigades, selectedUnit, onSelect, unitType, isLoading
         );
     }
 
-    const openBrigades = brigades.filter(b =>
-        b.recruitment_status === 'open' || b.recruitment_status === 'limited'
+    const openUnits = units.filter(u =>
+        u.recruitment_status === 'open' || u.recruitment_status === 'limited'
     );
 
     return (
@@ -748,39 +798,39 @@ const PrimaryUnitStep = ({ brigades, selectedUnit, onSelect, unitType, isLoading
             <h2>SELECT {unitType.toUpperCase()}</h2>
             <p className="step-description">Choose your primary operational {unitType.toLowerCase()}</p>
 
-            {openBrigades.length > 0 ? (
+            {openUnits.length > 0 ? (
                 <div className="unit-cards">
-                    {openBrigades.map(brigade => (
+                    {openUnits.map(unit => (
                         <div
-                            key={brigade.id}
-                            className={`unit-card ${selectedUnit === brigade.id ? 'selected' : ''}`}
-                            onClick={() => onSelect(brigade.id)}
+                            key={unit.id}
+                            className={`unit-card ${selectedUnit === unit.id ? 'selected' : ''}`}
+                            onClick={() => onSelect(unit.id)}
                         >
                             <div className="unit-header">
                                 <div className="unit-icon">
                                     <Globe size={24} />
                                 </div>
                                 <div className="unit-info">
-                                    <h3>{brigade.name}</h3>
-                                    {brigade.motto && <p>"{brigade.motto}"</p>}
+                                    <h3>{unit.name}</h3>
+                                    {unit.motto && <p>"{unit.motto}"</p>}
                                 </div>
                             </div>
                             <div className="unit-details">
-                                <p className="unit-description">{brigade.description}</p>
+                                <p className="unit-description">{unit.description}</p>
                                 <div className="unit-stats">
                                     <div className="stat-item">
                                         <div>STATUS</div>
-                                        <div className={`stat-value ${brigade.recruitment_status}`}>
-                                            {brigade.recruitment_status.toUpperCase()}
+                                        <div className={`stat-value ${unit.recruitment_status}`}>
+                                            {unit.recruitment_status?.toUpperCase() || 'OPEN'}
                                         </div>
                                     </div>
                                     <div className="stat-item">
                                         <div>SLOTS</div>
-                                        <div className="stat-value">{brigade.available_slots}</div>
+                                        <div className="stat-value">{unit.available_slots || 0}</div>
                                     </div>
                                 </div>
-                                {brigade.recruitment_notes && (
-                                    <p className="recruitment-notes">{brigade.recruitment_notes}</p>
+                                {unit.recruitment_notes && (
+                                    <p className="recruitment-notes">{unit.recruitment_notes}</p>
                                 )}
                             </div>
                         </div>
@@ -790,14 +840,14 @@ const PrimaryUnitStep = ({ brigades, selectedUnit, onSelect, unitType, isLoading
                 <div className="no-brigades-message">
                     <AlertCircle size={48} />
                     <h3>No {unitType}s Currently Recruiting</h3>
-                    <p>All {unitType.toLowerCase()}s are at operational capacity. Please check back later.</p>
+                    <p>All {unitType.toLowerCase()}s are at operational capacity. Please check back later or contact recruitment.</p>
                 </div>
             )}
         </div>
     );
 };
 
-const SecondaryUnitStep = ({ platoons, selectedUnit, onSelect, unitType, isLoading }) => {
+const SecondaryUnitStep = ({ units, selectedUnit, onSelect, unitType, isLoading, primaryUnit }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
@@ -807,44 +857,47 @@ const SecondaryUnitStep = ({ platoons, selectedUnit, onSelect, unitType, isLoadi
         );
     }
 
-    const availablePlatoons = platoons.filter(p =>
-        p.available_slots > 0 && p.is_accepting_applications
+    // Note: The API should already filter these, but double-check
+    const availableUnits = units.filter(u =>
+        (u.available_slots > 0 || u.recruitment_status === 'open')
     );
 
     return (
         <div className="platoon-selection">
             <h2>SELECT {unitType.toUpperCase()}</h2>
-            <p className="step-description">Choose your {unitType.toLowerCase()} assignment</p>
+            <p className="step-description">Choose your {unitType.toLowerCase()} assignment within {primaryUnit?.name || 'your unit'}</p>
 
             <div className="platoon-grid">
-                {availablePlatoons.map(platoon => (
+                {availableUnits.map(unit => (
                     <div
-                        key={platoon.id}
-                        className={`platoon-card ${selectedUnit === platoon.id ? 'selected' : ''}`}
-                        onClick={() => onSelect(platoon.id)}
+                        key={unit.id}
+                        className={`platoon-card ${selectedUnit === unit.id ? 'selected' : ''}`}
+                        onClick={() => onSelect(unit.id)}
                     >
                         <div className="platoon-header">
-                            <span className="platoon-designation">{platoon.designation}</span>
-                            <span className="platoon-type">{platoon.unit_type}</span>
+                            <span className="platoon-designation">{unit.name || unit.designation}</span>
+                            {unit.unit_type && <span className="platoon-type">{unit.unit_type}</span>}
                         </div>
                         <div className="platoon-info">
-                            <span className="platoon-strength">
-                                Strength: {platoon.current_strength}/{platoon.max_strength}
-                            </span>
+                            {unit.current_strength !== undefined && unit.max_strength !== undefined && (
+                                <span className="platoon-strength">
+                                    Strength: {unit.current_strength}/{unit.max_strength}
+                                </span>
+                            )}
                             <span className="platoon-slots slots-available">
-                                {platoon.available_slots} slots available
+                                {unit.available_slots || 0} slots available
                             </span>
                         </div>
-                        {platoon.leader && (
+                        {unit.leader && (
                             <div className="platoon-details">
-                                Leader: {platoon.leader}
+                                Leader: {unit.leader}
                             </div>
                         )}
                     </div>
                 ))}
             </div>
 
-            {availablePlatoons.length === 0 && (
+            {availableUnits.length === 0 && (
                 <div className="no-brigades-message">
                     <AlertCircle size={48} />
                     <h3>No {unitType}s Available</h3>
@@ -1066,8 +1119,14 @@ const WaiversStep = ({ waivers, acceptedWaivers, onAccept }) => {
                     <h4>{waiver.title} *</h4>
                     <p>{waiver.description}</p>
                     {waiver.content && (
-                        <div className="waiver-content">
-                            <pre>{waiver.content}</pre>
+                        <div className="waiver-content" style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '1rem',
+                            marginTop: '0.5rem',
+                            fontSize: '0.875rem',
+                            whiteSpace: 'pre-wrap'
+                        }}>
+                            {waiver.content}
                         </div>
                     )}
                     <div className="checkbox-group">

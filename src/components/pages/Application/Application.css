@@ -508,7 +508,20 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
+.ueen-icon {
+    background: linear-gradient(135deg, var(--rsi-blue) 0%, var(--rsi-blue-dark) 100%);
+    color: var(--text-primary);
+}
 
+.ueem-icon {
+    background: linear-gradient(135deg, var(--rsi-red) 0%, rgba(255, 51, 51, 0.5) 100%);
+    color: var(--text-primary);
+}
+
+.ueea-icon {
+    background: linear-gradient(135deg, var(--success-color) 0%, rgba(0, 255, 136, 0.5) 100%);
+    color: var(--text-primary);
+}
 .selection-summary p {
     color: var(--text-primary);
     font-size: 1rem;
