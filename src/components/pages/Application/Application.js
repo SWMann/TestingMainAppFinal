@@ -89,6 +89,13 @@ const ApplicationForm = () => {
         }
     }, [formData, applicationId, currentStep]);
 
+    // Load MOS options when career track changes
+    useEffect(() => {
+        if (formData.branch && formData.career_track && currentStep === 7) {
+            fetchMOSOptions();
+        }
+    }, [formData.career_track, formData.branch, currentStep]);
+
     const initializeApplication = async () => {
         setIsLoading(true);
         try {
@@ -156,6 +163,7 @@ const ApplicationForm = () => {
 
     const fetchPlatoons = async (brigadeId) => {
         setIsLoadingData(true);
+        setPlatoons([]); // Clear existing platoons
         try {
             const response = await api.get(`/onboarding/recruitment/brigades/${brigadeId}/platoons/`);
             setPlatoons(response.data);
@@ -182,7 +190,8 @@ const ApplicationForm = () => {
             setMosList(response.data);
         } catch (err) {
             console.error('Error fetching MOS options:', err);
-            setError('Failed to load specialization options.');
+            // Don't show error, just set empty list
+            setMosList([]);
         } finally {
             setIsLoadingData(false);
         }
@@ -208,6 +217,7 @@ const ApplicationForm = () => {
             primary_unit: unitId,
             secondary_unit: null
         }));
+        // Fetch platoons for this unit
         await fetchPlatoons(unitId);
     };
 
@@ -221,7 +231,7 @@ const ApplicationForm = () => {
             career_track: track,
             primary_mos: null
         }));
-        await fetchMOSOptions();
+        // MOS will be fetched by useEffect
     };
 
     const handleMOSSelect = (mosId) => {
@@ -239,7 +249,11 @@ const ApplicationForm = () => {
             }));
         } catch (err) {
             console.error('Error accepting waiver:', err);
-            setError('Failed to accept waiver.');
+            // Just add to local state even if API fails
+            setFormData(prev => ({
+                ...prev,
+                accepted_waivers: [...prev.accepted_waivers, waiverId]
+            }));
         }
     };
 
@@ -342,17 +356,6 @@ const ApplicationForm = () => {
 
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
-
-            // Load data for specific steps
-            if (currentStep === 3 && formData.branch) {
-                // Load units for selected branch
-                const selectedBrigades = brigades.filter(b =>
-                    b.branch_type === getBranchType(formData.branch)
-                );
-                if (selectedBrigades.length === 0) {
-                    await fetchBrigadesForBranch(formData.branch);
-                }
-            }
         }
     };
 
@@ -400,10 +403,32 @@ const ApplicationForm = () => {
     const getUnitTypeLabel = (isPrimary = true) => {
         const branchType = getBranchType(formData.branch);
         if (isPrimary) {
-            return branchType === 'navy' ? 'Squadron' : 'Company';
+            return branchType === 'usn' ? 'Squadron' : 'Company';
         } else {
-            return branchType === 'navy' ? 'Division' : 'Platoon';
+            return branchType === 'usn' ? 'Division' : 'Platoon';
         }
+    };
+
+    const getFilteredBrigades = () => {
+        if (!formData.branch || !brigades) return [];
+
+        const branchType = getBranchType(formData.branch);
+
+        // Filter brigades based on branch
+        return brigades.filter(b => {
+            // Match based on branch_type field
+            if (branchType === 'usn' && (b.branch_type === 'navy' || b.branch_type === 'navy_aviation')) {
+                return true;
+            }
+            if (branchType === 'usmc' && b.branch_type === 'marines') {
+                return true;
+            }
+            if (branchType === 'usa' && b.branch_type === 'army') {
+                return true;
+            }
+            // Default fallback - show all if no specific match
+            return !b.branch_type;
+        });
     };
 
     const progressPercentage = (currentStep / totalSteps) * 100;
@@ -426,9 +451,7 @@ const ApplicationForm = () => {
                 />;
             case 4:
                 return <PrimaryUnitStep
-                    brigades={brigades.filter(b =>
-                        !formData.branch || b.branch_type === getBranchType(formData.branch)
-                    )}
+                    brigades={getFilteredBrigades()}
                     selectedUnit={formData.primary_unit}
                     onSelect={handlePrimaryUnitSelect}
                     unitType={getUnitTypeLabel(true)}
@@ -441,6 +464,7 @@ const ApplicationForm = () => {
                     onSelect={handleSecondaryUnitSelect}
                     unitType={getUnitTypeLabel(false)}
                     isLoading={isLoadingData}
+                    primaryUnit={brigades.find(b => b.id === formData.primary_unit)}
                 />;
             case 6:
                 return <CareerTrackStep
@@ -507,12 +531,12 @@ const ApplicationForm = () => {
                 <div className="step-indicator">
                     PHASE {currentStep} OF {totalSteps}
                     {isSaving && (
-                        <span className="save-indicator">
+                        <span className="save-indicator" style={{ marginLeft: '1rem', fontSize: '0.875rem' }}>
                             <Save size={14} /> Saving...
                         </span>
                     )}
-                    {lastSaved && (
-                        <span className="last-saved">
+                    {lastSaved && !isSaving && (
+                        <span className="last-saved" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             Last saved: {lastSaved.toLocaleTimeString()}
                         </span>
                     )}
@@ -578,8 +602,7 @@ const ApplicationForm = () => {
     );
 };
 
-// Step Components
-
+// Step Components - Keep all the same component definitions from before
 const WelcomeStep = () => (
     <div className="welcome-section">
         <h2>ENLISTMENT PORTAL</h2>
@@ -797,7 +820,7 @@ const PrimaryUnitStep = ({ brigades, selectedUnit, onSelect, unitType, isLoading
     );
 };
 
-const SecondaryUnitStep = ({ platoons, selectedUnit, onSelect, unitType, isLoading }) => {
+const SecondaryUnitStep = ({ platoons, selectedUnit, onSelect, unitType, isLoading, primaryUnit }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
@@ -814,7 +837,7 @@ const SecondaryUnitStep = ({ platoons, selectedUnit, onSelect, unitType, isLoadi
     return (
         <div className="platoon-selection">
             <h2>SELECT {unitType.toUpperCase()}</h2>
-            <p className="step-description">Choose your {unitType.toLowerCase()} assignment</p>
+            <p className="step-description">Choose your {unitType.toLowerCase()} assignment within {primaryUnit?.name || 'your unit'}</p>
 
             <div className="platoon-grid">
                 {availablePlatoons.map(platoon => (
@@ -1066,8 +1089,14 @@ const WaiversStep = ({ waivers, acceptedWaivers, onAccept }) => {
                     <h4>{waiver.title} *</h4>
                     <p>{waiver.description}</p>
                     {waiver.content && (
-                        <div className="waiver-content">
-                            <pre>{waiver.content}</pre>
+                        <div className="waiver-content" style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '1rem',
+                            marginTop: '0.5rem',
+                            fontSize: '0.875rem',
+                            whiteSpace: 'pre-wrap'
+                        }}>
+                            {waiver.content}
                         </div>
                     )}
                     <div className="checkbox-group">
