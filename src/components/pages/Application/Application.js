@@ -1,4 +1,91 @@
-// src/components/pages/Application/Application.js
+const MOSSelectionStep = ({ mosList, selectedMOS, onSelect, isLoading }) => {
+    if (isLoading) {
+        return (
+            <div className="loading-container">
+                <Loader className="spinning" size={40} />
+                <p>LOADING AVAILABLE POSITIONS...</p>
+            </div>
+        );
+    }
+
+    // Sort by available slots if not already sorted
+    const sortedMosList = [...mosList].sort((a, b) => (b.available_slots || 0) - (a.available_slots || 0));
+
+    return (
+        <div className="mos-selection">
+            <h2>SELECT MILITARY OCCUPATIONAL SPECIALTY</h2>
+            <p className="step-description">Choose from available positions in your selected unit</p>
+
+            {sortedMosList.length > 0 ? (
+                <div className="mos-grid">
+                    {sortedMosList.map(mos => {
+                        // Use mos_id if available, otherwise fall back to id
+                        const mosId = mos.mos_id || mos.id;
+
+                        return (
+                            <div
+                                key={mos.id}
+                                className={`mos-card ${selectedMOS === mosId ? 'selected' : ''}`}
+                                onClick={() => onSelect(mosId)}
+                            >
+                                <div className="mos-header">
+                                    <div className="mos-icon">
+                                        <Briefcase size={20} />
+                                    </div>
+                                    <div className="mos-info">
+                                        <h4>{mos.code}</h4>
+                                        <p>{mos.title}</p>
+                                    </div>
+                                </div>
+                                {mos.description && (
+                                    <p className="mos-description">{mos.description}</p>
+                                )}
+                                <div className="mos-details">
+                                    <div className="mos-stat">
+                                        <span className="stat-label">Open Slots:</span>
+                                        <span className="stat-value" style={{
+                                            color: mos.available_slots > 3 ? 'var(--success-color)' :
+                                                mos.available_slots > 0 ? 'var(--warning-color)' :
+                                                    'var(--error-color)'
+                                        }}>
+                                            {mos.available_slots || 0}
+                                        </span>
+                                    </div>
+                                    <div className="mos-stat">
+                                        <span className="stat-label">Training:</span>
+                                        <span className="stat-value">{mos.ait_weeks || 'TBD'} weeks</span>
+                                    </div>
+                                </div>
+                                {mos.roles && mos.roles.length > 0 && (
+                                    <div className="mos-positions">
+                                        <span className="positions-label">Available roles:</span>
+                                        <div className="roles-list">
+                                            {mos.roles.map((role, idx) => (
+                                                <div key={idx} className="role-item">{role}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {mos.available_slots === 1 && (
+                                    <div className="limited-availability">
+                                        <AlertCircle size={14} />
+                                        <span>Only 1 slot remaining</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="no-brigades-message">
+                    <AlertCircle size={48} />
+                    <h3>No Positions Available</h3>
+                    <p>There are currently no open positions for your selected career track in this unit. Please try selecting a different unit or career track.</p>
+                </div>
+            )}
+        </div>
+    );
+};// src/components/pages/Application/Application.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -290,7 +377,9 @@ const ApplicationForm = () => {
                 primary_unit: formData.primary_unit,
                 secondary_unit: formData.secondary_unit,
                 career_track: formData.career_track,
-                primary_mos: formData.primary_mos,
+                primary_mos: formData.primary_mos && formData.primary_mos.startsWith('role_')
+                    ? formData.primary_mos.substring(5)
+                    : formData.primary_mos,
 
                 // Experience fields
                 previous_experience: formData.previous_experience,
@@ -310,6 +399,7 @@ const ApplicationForm = () => {
             };
 
             console.log('Creating application with data:', createData);
+            console.log('Primary MOS before:', formData.primary_mos, 'after:', createData.primary_mos);
             const createResponse = await api.post('/onboarding/applications/', createData);
 
             if (createResponse.data && createResponse.data.id) {
@@ -333,12 +423,7 @@ const ApplicationForm = () => {
                     const errors = [];
                     Object.entries(err.response.data).forEach(([field, messages]) => {
                         if (Array.isArray(messages)) {
-                            // Make field names more user-friendly
-                            const friendlyField = field
-                                .replace('_', ' ')
-                                .replace('discord username', 'Discord username')
-                                .replace('primary mos', 'MOS selection');
-                            errors.push(`${friendlyField}: ${messages.join(', ')}`);
+                            errors.push(`${field}: ${messages.join(', ')}`);
                         }
                     });
                     if (errors.length > 0) {
@@ -480,9 +565,16 @@ const ApplicationForm = () => {
             // Extract the mos_options array from the response
             if (response.data && response.data.mos_options) {
                 setMosList(response.data.mos_options);
+                // Log the first MOS to see the structure
+                if (response.data.mos_options.length > 0) {
+                    console.log('First MOS structure:', response.data.mos_options[0]);
+                }
             } else if (Array.isArray(response.data)) {
                 // Fallback if the API returns just an array
                 setMosList(response.data);
+                if (response.data.length > 0) {
+                    console.log('First MOS structure:', response.data[0]);
+                }
             } else {
                 console.error('Unexpected MOS options format:', response.data);
                 setMosList([]);
@@ -542,6 +634,7 @@ const ApplicationForm = () => {
     };
 
     const handleMOSSelect = (mosId) => {
+        console.log('MOS selected:', mosId);
         setFormData(prev => ({ ...prev, primary_mos: mosId }));
     };
 
@@ -597,10 +690,8 @@ const ApplicationForm = () => {
                 break;
 
             case 7: // MOS Selection
-                if (!formData.primary_mos) {
-                    setError('Please select a Military Occupational Specialty (MOS)');
-                    return false;
-                }
+                // MOS is optional if no options are available
+                // Let the API handle validation for required MOS
                 break;
 
             case 8: // Experience
@@ -1311,195 +1402,218 @@ const MOSSelectionStep = ({ mosList, selectedMOS, onSelect, isLoading }) => {
     // Sort by available slots if not already sorted
     const sortedMosList = [...mosList].sort((a, b) => (b.available_slots || 0) - (a.available_slots || 0));
 
+    // Debug: Log MOS structure
+    if (sortedMosList.length > 0) {
+        console.log('MOS list structure:', sortedMosList[0]);
+    }
+
     return (
         <div className="mos-selection">
             <h2>SELECT MILITARY OCCUPATIONAL SPECIALTY</h2>
             <p className="step-description">Choose from available positions in your selected unit</p>
 
             {sortedMosList.length > 0 ? (
+                <>
+                {selectedMOS && (
+                    <div style={{
+                        textAlign: 'center',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        marginBottom: '1rem'
+                    }}>
+                        Selected MOS ID: {selectedMOS}
+                    </div>
+                )}
                 <div className="mos-grid">
-                    {sortedMosList.map(mos => (
-                        <div
-                            key={mos.id}
-                            className={`mos-card ${selectedMOS === mos.id ? 'selected' : ''}`}
-                            onClick={() => onSelect(mos.id)}
-                        >
-                            <div className="mos-header">
-                                <div className="mos-icon">
-                                    <Briefcase size={20} />
-                                </div>
-                                <div className="mos-info">
-                                    <h4>{mos.code}</h4>
-                                    <p>{mos.title}</p>
-                                </div>
-                            </div>
-                            {mos.description && (
-                                <p className="mos-description">{mos.description}</p>
-                            )}
-                            <div className="mos-details">
-                                <div className="mos-stat">
-                                    <span className="stat-label">Open Slots:</span>
-                                    <span className="stat-value" style={{
-                                        color: mos.available_slots > 3 ? 'var(--success-color)' :
-                                            mos.available_slots > 0 ? 'var(--warning-color)' :
-                                                'var(--error-color)'
-                                    }}>
-                                        {mos.available_slots || 0}
-                                    </span>
-                                </div>
-                                <div className="mos-stat">
-                                    <span className="stat-label">Training:</span>
-                                    <span className="stat-value">{mos.ait_weeks || 'TBD'} weeks</span>
-                                </div>
-                            </div>
-                            {mos.roles && mos.roles.length > 0 && (
-                                <div className="mos-positions">
-                                    <span className="positions-label">Available roles:</span>
-                                    <div className="roles-list">
-                                        {mos.roles.map((role, idx) => (
-                                            <div key={idx} className="role-item">{role}</div>
-                                        ))}
+                    {sortedMosList.map(mos => {
+                        // Extract the actual MOS ID - it might be in different fields
+                        const mosId = mos.mos_id || mos.id;
+                        const isSelected = selectedMOS === mosId ||
+                            (mosId && mosId.startsWith('role_') && selectedMOS === mosId.substring(5));
+
+                        return (
+                            <div
+                                key={mos.id}
+                                className={`mos-card ${isSelected ? 'selected' : ''}`}
+                                onClick={() => onSelect(mosId)}
+                            >
+                                <div className="mos-header">
+                                    <div className="mos-icon">
+                                        <Briefcase size={20} />
+                                    </div>
+                                    <div className="mos-info">
+                                        <h4>{mos.code}</h4>
+                                        <p>{mos.title}</p>
                                     </div>
                                 </div>
-                            )}
-                            {mos.available_slots === 1 && (
-                                <div className="limited-availability">
-                                    <AlertCircle size={14} />
-                                    <span>Only 1 slot remaining</span>
+                                {mos.description && (
+                                    <p className="mos-description">{mos.description}</p>
+                                )}
+                                <div className="mos-details">
+                                    <div className="mos-stat">
+                                        <span className="stat-label">Open Slots:</span>
+                                        <span className="stat-value" style={{
+                                            color: mos.available_slots > 3 ? 'var(--success-color)' :
+                                                mos.available_slots > 0 ? 'var(--warning-color)' :
+                                                    'var(--error-color)'
+                                        }}>
+                                            {mos.available_slots || 0}
+                                        </span>
+                                    </div>
+                                    <div className="mos-stat">
+                                        <span className="stat-label">Training:</span>
+                                        <span className="stat-value">{mos.ait_weeks || 'TBD'} weeks</span>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                                {mos.roles && mos.roles.length > 0 && (
+                                    <div className="mos-positions">
+                                        <span className="positions-label">Available roles:</span>
+                                        <div className="roles-list">
+                                            {mos.roles.map((role, idx) => (
+                                                <div key={idx} className="role-item">{role}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {mos.available_slots === 1 && (
+                                    <div className="limited-availability">
+                                        <AlertCircle size={14} />
+                                        <span>Only 1 slot remaining</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-            ) : (
+                ) : (
                 <div className="no-brigades-message">
                     <AlertCircle size={48} />
                     <h3>No Positions Available</h3>
                     <p>There are currently no open positions for your selected career track in this unit. Please try selecting a different unit or career track.</p>
                 </div>
-            )}
-        </div>
-    );
-};
+                )}
+                </div>
+            );
+            };
 
-const ExperienceStep = ({ formData, onChange }) => (
-    <div className="experience-info">
-        <h2>SERVICE BACKGROUND</h2>
-        <p className="step-description">Provide information about your experience and motivation</p>
+            const ExperienceStep = ({ formData, onChange }) => (
+            <div className="experience-info">
+                <h2>SERVICE BACKGROUND</h2>
+                <p className="step-description">Provide information about your experience and motivation</p>
 
-        <div className="form-group">
-            <label>Previous Military Simulation Experience *</label>
-            <textarea
-                placeholder="Describe any previous experience in military simulation games, organized units, or similar activities. Include specific games, units, ranks achieved, and time served... (minimum 50 characters)"
-                value={formData.previous_experience}
-                onChange={(e) => onChange('previous_experience', e.target.value)}
-                rows={6}
-            />
-            <small>Character count: {formData.previous_experience.length}/50 minimum</small>
-        </div>
+                <div className="form-group">
+                    <label>Previous Military Simulation Experience *</label>
+                    <textarea
+                        placeholder="Describe any previous experience in military simulation games, organized units, or similar activities. Include specific games, units, ranks achieved, and time served... (minimum 50 characters)"
+                        value={formData.previous_experience}
+                        onChange={(e) => onChange('previous_experience', e.target.value)}
+                        rows={6}
+                    />
+                    <small>Character count: {formData.previous_experience.length}/50 minimum</small>
+                </div>
 
-        <div className="form-group">
-            <label>Reason for Joining the 5th Expeditionary Group *</label>
-            <textarea
-                placeholder="Explain why you want to join our unit specifically. What attracted you to the 5th EXG? What are your goals within our organization?... (minimum 50 characters)"
-                value={formData.reason_for_joining}
-                onChange={(e) => onChange('reason_for_joining', e.target.value)}
-                rows={6}
-            />
-            <small>Character count: {formData.reason_for_joining.length}/50 minimum</small>
-        </div>
-    </div>
-);
-
-const RoleSpecificStep = ({ formData, careerTrack, onChange }) => (
-    <div className="role-specific-info">
-        <h2>OPERATIONAL REQUIREMENTS</h2>
-        <p className="step-description">Provide role-specific information and availability</p>
-
-        <div className="form-group">
-            <label>Weekly Availability (Hours) *</label>
-            <select
-                value={formData.weekly_availability_hours || ''}
-                onChange={(e) => onChange('weekly_availability_hours', parseInt(e.target.value))}
-            >
-                <option value="">Select hours per week...</option>
-                <option value="5">5-10 hours</option>
-                <option value="10">10-15 hours</option>
-                <option value="15">15-20 hours</option>
-                <option value="20">20-30 hours</option>
-                <option value="30">30+ hours</option>
-            </select>
-        </div>
-
-        <div className="form-group">
-            <label>
-                <input
-                    type="checkbox"
-                    checked={formData.can_attend_mandatory_events}
-                    onChange={(e) => onChange('can_attend_mandatory_events', e.target.checked)}
-                />
-                I can attend mandatory unit operations (minimum 2 per month)
-            </label>
-        </div>
-
-        {careerTrack === 'officer' && (
-            <div className="form-group">
-                <label>Leadership Experience *</label>
-                <textarea
-                    placeholder="Describe your leadership experience in gaming communities, real life, or military service..."
-                    value={formData.leadership_experience}
-                    onChange={(e) => onChange('leadership_experience', e.target.value)}
-                    rows={4}
-                />
+                <div className="form-group">
+                    <label>Reason for Joining the 5th Expeditionary Group *</label>
+                    <textarea
+                        placeholder="Explain why you want to join our unit specifically. What attracted you to the 5th EXG? What are your goals within our organization?... (minimum 50 characters)"
+                        value={formData.reason_for_joining}
+                        onChange={(e) => onChange('reason_for_joining', e.target.value)}
+                        rows={6}
+                    />
+                    <small>Character count: {formData.reason_for_joining.length}/50 minimum</small>
+                </div>
             </div>
-        )}
+            );
 
-        {careerTrack === 'warrant' && (
-            <div className="form-group">
-                <label>Technical/Flight Experience *</label>
-                <textarea
-                    placeholder="Describe your flight experience in Star Citizen or other simulation games. Include hours flown and aircraft types..."
-                    value={formData.technical_experience}
-                    onChange={(e) => onChange('technical_experience', e.target.value)}
-                    rows={4}
-                />
+            const RoleSpecificStep = ({ formData, careerTrack, onChange }) => (
+            <div className="role-specific-info">
+                <h2>OPERATIONAL REQUIREMENTS</h2>
+                <p className="step-description">Provide role-specific information and availability</p>
+
+                <div className="form-group">
+                    <label>Weekly Availability (Hours) *</label>
+                    <select
+                        value={formData.weekly_availability_hours || ''}
+                        onChange={(e) => onChange('weekly_availability_hours', parseInt(e.target.value))}
+                    >
+                        <option value="">Select hours per week...</option>
+                        <option value="5">5-10 hours</option>
+                        <option value="10">10-15 hours</option>
+                        <option value="15">15-20 hours</option>
+                        <option value="20">20-30 hours</option>
+                        <option value="30">30+ hours</option>
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={formData.can_attend_mandatory_events}
+                            onChange={(e) => onChange('can_attend_mandatory_events', e.target.checked)}
+                        />
+                        I can attend mandatory unit operations (minimum 2 per month)
+                    </label>
+                </div>
+
+                {careerTrack === 'officer' && (
+                    <div className="form-group">
+                        <label>Leadership Experience *</label>
+                        <textarea
+                            placeholder="Describe your leadership experience in gaming communities, real life, or military service..."
+                            value={formData.leadership_experience}
+                            onChange={(e) => onChange('leadership_experience', e.target.value)}
+                            rows={4}
+                        />
+                    </div>
+                )}
+
+                {careerTrack === 'warrant' && (
+                    <div className="form-group">
+                        <label>Technical/Flight Experience *</label>
+                        <textarea
+                            placeholder="Describe your flight experience in Star Citizen or other simulation games. Include hours flown and aircraft types..."
+                            value={formData.technical_experience}
+                            onChange={(e) => onChange('technical_experience', e.target.value)}
+                            rows={4}
+                        />
+                    </div>
+                )}
+
+                <div className="info-card requirements">
+                    <h4><AlertCircle size={16} /> Operational Commitments</h4>
+                    <ul>
+                        <li>Minimum 2 operations per month</li>
+                        <li>Weekly training participation encouraged</li>
+                        <li>Discord voice communications required</li>
+                        <li>Adherence to chain of command</li>
+                        <li>Professional conduct at all times</li>
+                    </ul>
+                </div>
             </div>
-        )}
+            );
 
-        <div className="info-card requirements">
-            <h4><AlertCircle size={16} /> Operational Commitments</h4>
-            <ul>
-                <li>Minimum 2 operations per month</li>
-                <li>Weekly training participation encouraged</li>
-                <li>Discord voice communications required</li>
-                <li>Adherence to chain of command</li>
-                <li>Professional conduct at all times</li>
-            </ul>
-        </div>
-    </div>
-);
+            const WaiversStep = ({ waivers, acceptedWaivers, onAccept, formData, recruitmentData }) => {
+            const requiredWaivers = waivers.filter(w => w.is_required);
+            const optionalWaivers = waivers.filter(w => !w.is_required);
 
-const WaiversStep = ({ waivers, acceptedWaivers, onAccept, formData, recruitmentData }) => {
-    const requiredWaivers = waivers.filter(w => w.is_required);
-    const optionalWaivers = waivers.filter(w => !w.is_required);
+            // Get labels for display
+            const getBranchName = (branchId) => {
+            const branch = recruitmentData?.branches?.find(b => b.id === branchId);
+            return branch?.name || 'Unknown Branch';
+        };
 
-    // Get labels for display
-    const getBranchName = (branchId) => {
-        const branch = recruitmentData?.branches?.find(b => b.id === branchId);
-        return branch?.name || 'Unknown Branch';
-    };
+            const getCareerTrackLabel = (track) => {
+            const trackData = recruitmentData?.career_tracks?.find(t => t.value === track);
+            return trackData?.label || track;
+        };
 
-    const getCareerTrackLabel = (track) => {
-        const trackData = recruitmentData?.career_tracks?.find(t => t.value === track);
-        return trackData?.label || track;
-    };
-
-    return (
-        <div className="agreement-section">
+            return (
+            <div className="agreement-section">
             <h2>ACKNOWLEDGMENTS & WAIVERS</h2>
             <p className="step-description">Review and accept the following acknowledgments</p>
 
-            {/* Summary of Application */}
+        {/* Summary of Application */}
             <div className="info-card" style={{ marginBottom: '2rem' }}>
                 <h4><FileText size={16} /> Application Summary</h4>
                 <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.875rem' }}>
