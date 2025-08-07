@@ -7,7 +7,8 @@ import {
     Search, Filter, FileText, Star, Shield, CheckCircle,
     XCircle, AlertCircle, Activity, TrendingUp, Award,
     MessageSquare, UserPlus, Navigation, Globe, Send,
-    Mail, BellRing, ClipboardCheck, Bot, Heart
+    Mail, BellRing, ClipboardCheck, Bot, Heart,
+    Eye, Save, Hash, MapPin, Briefcase
 } from 'lucide-react';
 import './RecruiterDashboard.css';
 import api from '../../../services/api';
@@ -17,39 +18,6 @@ import MentorAssignmentModal from '../../modals/MentorAssignmentModal';
 import OnboardingGuideModal from '../../modals/OnboardingGuideModal';
 import BulkActionsModal from '../../modals/BulkActionsModal';
 
-// Discord DM template messages
-const DISCORD_TEMPLATES = {
-    applicationReceived: (username) =>
-        `Hey ${username}! 👋 We've received your application to join our organization. A recruiter will review it shortly. If you have any questions, feel free to ask!`,
-
-    interviewScheduled: (username, date) =>
-        `Hi ${username}! Your interview has been scheduled for ${date}. Please make sure you're available on Discord at that time. Looking forward to speaking with you! 🎮`,
-
-    applicationApproved: (username) =>
-        `🎉 Congratulations ${username}! Your application has been APPROVED! Welcome to the team! Next steps:\n1. Attend Basic Introduction Training (BIT)\n2. Choose your branch\n3. Get your unit assignment\n\nI'll be here to guide you through the process!`,
-
-    applicationRejected: (username) =>
-        `Hi ${username}, thank you for your interest in joining us. Unfortunately, we're unable to approve your application at this time. You're welcome to reapply in 30 days. Best of luck in the verse! o7`,
-
-    mentorAssigned: (recruitName, mentorName) =>
-        `Hey ${recruitName}! You've been assigned ${mentorName} as your mentor. They'll help you get settled in and answer any questions. They should be reaching out soon!`,
-
-    trainingReminder: (username, eventName, date) =>
-        `Reminder ${username}: ${eventName} is scheduled for ${date}. Don't miss it! This is required for your progression. 📅`,
-
-    checkIn: (username) =>
-        `Hey ${username}! Just checking in on your onboarding progress. How's everything going? Need any help or have questions? 🤔`,
-
-    documentRequest: (username, docType) =>
-        `Hi ${username}! We need you to submit your ${docType}. Please upload it to the portal or send it here when you get a chance. Thanks!`,
-
-    welcomeToBranch: (username, branch) =>
-        `Welcome to ${branch}, ${username}! 🚀 You're now officially part of our ${branch} division. Your commanding officer will reach out with your first assignment soon.`,
-
-    bitCompletion: (username) =>
-        `Great job completing Basic Introduction Training, ${username}! ✅ You can now apply to your preferred branch. Check the portal for available positions!`
-};
-
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
     const { user: currentUser } = useSelector(state => state.auth);
@@ -57,15 +25,13 @@ const RecruiterDashboard = () => {
     // State management
     const [applications, setApplications] = useState([]);
     const [statistics, setStatistics] = useState({
-        pending: 0,
-        interviewing: 0,
+        draft: 0,
+        submitted: 0,
+        under_review: 0,
         approved: 0,
         rejected: 0,
-        activeRecruits: 0,
-        completionRate: 0,
-        awaitingBIT: 0,
-        awaitingBranch: 0,
-        needsMentor: 0
+        onboarding: 0,
+        completed: 0
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -74,8 +40,8 @@ const RecruiterDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterBranch, setFilterBranch] = useState('all');
-    const [filterOnboardingStage, setFilterOnboardingStage] = useState('all');
-    const [sortBy, setSortBy] = useState('submission_date');
+    const [filterProgress, setFilterProgress] = useState('all');
+    const [sortBy, setSortBy] = useState('created_at');
 
     // Selected items for bulk actions
     const [selectedApplications, setSelectedApplications] = useState([]);
@@ -88,13 +54,10 @@ const RecruiterDashboard = () => {
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState(null);
 
-    // Available branches and units
-    const [branches, setBranches] = useState([]);
-    const [units, setUnits] = useState([]);
-
-    // Discord message preview
+    // Discord message handling
     const [showDiscordPreview, setShowDiscordPreview] = useState(false);
     const [discordMessage, setDiscordMessage] = useState('');
+    const [discordRecipient, setDiscordRecipient] = useState(null);
 
     // Fetch dashboard data
     const fetchDashboardData = useCallback(async () => {
@@ -112,11 +75,7 @@ const RecruiterDashboard = () => {
             }
 
             if (filterBranch !== 'all') {
-                params.preferred_branch = filterBranch;
-            }
-
-            if (filterOnboardingStage !== 'all') {
-                params.onboarding_status = filterOnboardingStage;
+                params.branch = filterBranch;
             }
 
             // Fetch applications
@@ -124,170 +83,139 @@ const RecruiterDashboard = () => {
             const fetchedApplications = response.data.results || response.data;
             setApplications(fetchedApplications);
 
-            // Calculate enhanced statistics
+            // Calculate statistics
             calculateStatistics(fetchedApplications);
 
         } catch (err) {
-            console.error('Error fetching dashboard data:', err);
-            setError('Failed to load applications. Please try again.');
+            console.error('Error fetching applications:', err);
+            setError('Failed to load recruitment data. Please try again.');
         } finally {
             setIsLoading(false);
         }
-    }, [filterStatus, filterBranch, filterOnboardingStage, sortBy]);
+    }, [filterStatus, filterBranch, sortBy]);
 
     // Calculate statistics from applications
     const calculateStatistics = (apps) => {
         const stats = {
-            pending: apps.filter(app => app.status === 'Pending').length,
-            interviewing: apps.filter(app => app.status === 'Interviewing').length,
-            approved: apps.filter(app => app.status === 'Approved').length,
-            rejected: apps.filter(app => app.status === 'Rejected').length,
-            activeRecruits: apps.filter(app =>
-                app.status === 'Approved' && !app.onboarding_complete
+            draft: apps.filter(app => app.status === 'draft').length,
+            submitted: apps.filter(app => app.status === 'submitted').length,
+            under_review: apps.filter(app => app.status === 'under_review').length,
+            approved: apps.filter(app => app.status === 'approved').length,
+            rejected: apps.filter(app => app.status === 'rejected').length,
+            onboarding: apps.filter(app =>
+                app.status === 'approved' && app.progress?.completion_percentage < 100
             ).length,
-            awaitingBIT: apps.filter(app =>
-                app.status === 'Approved' &&
-                app.onboarding_status === 'Approved' &&
-                !app.bit_completion_date
-            ).length,
-            awaitingBranch: apps.filter(app =>
-                app.status === 'Approved' &&
-                app.bit_completion_date &&
-                !app.branch_id
-            ).length,
-            needsMentor: apps.filter(app =>
-                app.status === 'Approved' &&
-                !app.mentor_id &&
-                app.onboarding_status !== 'Active'
-            ).length,
-            completionRate: 0
+            completed: apps.filter(app =>
+                app.status === 'approved' && app.progress?.completion_percentage === 100
+            ).length
         };
-
-        // Calculate completion rate
-        const totalProcessed = stats.approved + stats.rejected;
-        if (totalProcessed > 0) {
-            stats.completionRate = Math.round((stats.approved / totalProcessed) * 100);
-        }
-
         setStatistics(stats);
     };
 
-    // Fetch filter options
-    const fetchFilterOptions = useCallback(async () => {
-        try {
-            // Fetch branches
-            const branchesResponse = await api.get('/units/branches/');
-            setBranches(branchesResponse.data.results || branchesResponse.data);
-
-            // Fetch units
-            const unitsResponse = await api.get('/units/');
-            setUnits(unitsResponse.data.results || unitsResponse.data);
-        } catch (err) {
-            console.error('Error fetching filter options:', err);
-        }
-    }, []);
-
-    // Load data when component mounts or filters change
     useEffect(() => {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
-    // Load filter options once on mount
-    useEffect(() => {
-        fetchFilterOptions();
-    }, [fetchFilterOptions]);
+    // Discord message templates
+    const DISCORD_MESSAGES = {
+        applicationReceived: (app) =>
+            `Greetings ${app.discord_username},\n\n` +
+            `This is an automated confirmation that your application to join the 5th Expeditionary Group has been received and logged in our recruitment system.\n\n` +
+            `Application Reference: ${app.application_number}\n` +
+            `Status: Under Review\n\n` +
+            `A recruitment officer will review your application within 24-48 hours. You will receive further communication regarding the next steps in the recruitment process.\n\n` +
+            `If you have any questions, please contact a recruitment officer in the Discord server.\n\n` +
+            `Welcome aboard, recruit.\n\n` +
+            `5th Expeditionary Group\n` +
+            `Recruitment Division`,
 
-    // Discord DM handler
-    const sendDiscordDM = (discordId, message) => {
-        // Copy message to clipboard
-        navigator.clipboard.writeText(message);
+        interviewScheduled: (app) =>
+            `Recruit ${app.discord_username},\n\n` +
+            `Your recruitment interview has been scheduled.\n\n` +
+            `Date/Time: ${app.interview_date ? new Date(app.interview_date).toLocaleString() : 'TBD'}\n` +
+            `Location: Discord Voice Channel - Recruitment Interview Room\n` +
+            `Duration: Approximately 30 minutes\n\n` +
+            `Please ensure you are available at the scheduled time with a working microphone. The interview will cover your application, experience, and expectations for service within the 5th EXG.\n\n` +
+            `If you cannot attend at the scheduled time, please notify a recruitment officer immediately.\n\n` +
+            `5th Expeditionary Group\n` +
+            `Recruitment Division`,
 
-        // Open Discord in browser/app (you could also use Discord's URL scheme)
-        window.open(`https://discord.com/users/${discordId}`, '_blank');
+        applicationApproved: (app) =>
+            `Congratulations ${app.discord_username}!\n\n` +
+            `Your application to the 5th Expeditionary Group has been APPROVED.\n\n` +
+            `You are now officially a recruit of the 5th EXG. Your next steps:\n\n` +
+            `1. Access your recruit profile on our website\n` +
+            `2. Complete Basic Introduction Training (BIT)\n` +
+            `3. Receive your branch assignment\n` +
+            `4. Complete Advanced Individual Training (AIT)\n` +
+            `5. Receive your unit assignment\n\n` +
+            `Your onboarding officer will contact you shortly with specific instructions.\n\n` +
+            `Welcome to the 5th Expeditionary Group. We look forward to your service.\n\n` +
+            `"Beyond the Stars"\n\n` +
+            `5th Expeditionary Group\n` +
+            `Personnel Command`,
 
-        // Show notification
-        alert('Message copied to clipboard! Discord opened in new tab.');
+        applicationRejected: (app) =>
+            `${app.discord_username},\n\n` +
+            `After careful review, we regret to inform you that your application to the 5th Expeditionary Group has not been approved at this time.\n\n` +
+            `This decision may be due to various factors including current recruitment capacity, qualification requirements, or operational needs.\n\n` +
+            `You may reapply after 30 days if you wish to be reconsidered. We encourage you to gain additional experience and familiarize yourself with our unit structure and requirements before reapplying.\n\n` +
+            `Thank you for your interest in the 5th Expeditionary Group.\n\n` +
+            `5th Expeditionary Group\n` +
+            `Recruitment Division`
     };
 
-    // Show Discord message preview
-    const previewDiscordMessage = (template, app) => {
-        let message = '';
-
-        switch(template) {
-            case 'applicationReceived':
-                message = DISCORD_TEMPLATES.applicationReceived(app.username);
-                break;
-            case 'interviewScheduled':
-                message = DISCORD_TEMPLATES.interviewScheduled(
-                    app.username,
-                    app.interview_date ? new Date(app.interview_date).toLocaleString() : 'TBD'
-                );
-                break;
-            case 'applicationApproved':
-                message = DISCORD_TEMPLATES.applicationApproved(app.username);
-                break;
-            case 'applicationRejected':
-                message = DISCORD_TEMPLATES.applicationRejected(app.username);
-                break;
-            case 'checkIn':
-                message = DISCORD_TEMPLATES.checkIn(app.username);
-                break;
-            case 'bitReminder':
-                message = DISCORD_TEMPLATES.trainingReminder(app.username, 'Basic Introduction Training', 'this Saturday at 20:00 UTC');
-                break;
-            default:
-                message = `Hi ${app.username}!`;
-        }
-
+    // Send Discord DM
+    const sendDiscordMessage = async (application, messageType) => {
+        const message = DISCORD_MESSAGES[messageType](application);
         setDiscordMessage(message);
+        setDiscordRecipient(application);
         setShowDiscordPreview(true);
+    };
+
+    const copyDiscordMessage = () => {
+        navigator.clipboard.writeText(discordMessage);
+        alert('Message copied to clipboard!');
     };
 
     // Handle application actions
     const handleApplicationAction = async (applicationId, action, data = {}) => {
         try {
-            const endpoint = `/onboarding/applications/${applicationId}/`;
+            let endpoint = '';
+            let method = 'POST';
             let payload = {};
-            let app = applications.find(a => a.id === applicationId);
 
             switch (action) {
+                case 'review':
+                    navigate(`/recruitment/application/${applicationId}`);
+                    return;
+
                 case 'approve':
-                    payload = {
-                        status: 'Approved',
-                        reviewer_notes: data.notes,
-                        review_date: new Date().toISOString(),
-                        reviewer: currentUser.id
-                    };
-                    // Queue Discord notification
-                    if (app) {
-                        previewDiscordMessage('applicationApproved', app);
-                    }
+                    endpoint = `/onboarding/applications/${applicationId}/approve/`;
+                    payload = { notes: data.notes };
                     break;
 
                 case 'reject':
-                    payload = {
-                        status: 'Rejected',
-                        reviewer_notes: data.notes,
-                        review_date: new Date().toISOString(),
-                        reviewer: currentUser.id
-                    };
-                    // Queue Discord notification
-                    if (app) {
-                        previewDiscordMessage('applicationRejected', app);
-                    }
+                    endpoint = `/onboarding/applications/${applicationId}/reject/`;
+                    payload = { notes: data.notes };
                     break;
 
                 case 'schedule_interview':
+                    endpoint = `/onboarding/applications/${applicationId}/schedule-interview/`;
                     payload = {
-                        status: 'Interviewing',
-                        interview_date: data.interviewDate,
-                        reviewer_notes: data.notes
+                        scheduled_at: data.scheduled_at,
+                        interviewer: data.interviewer,
+                        interview_type: data.interview_type || 'initial',
+                        notes: data.notes
                     };
-                    // Queue Discord notification
-                    if (app) {
-                        app.interview_date = data.interviewDate;
-                        previewDiscordMessage('interviewScheduled', app);
-                    }
+                    break;
+
+                case 'add_comment':
+                    endpoint = `/onboarding/applications/${applicationId}/add-comment/`;
+                    payload = {
+                        comment: data.comment,
+                        is_visible_to_applicant: data.is_visible || false
+                    };
                     break;
 
                 default:
@@ -295,41 +223,31 @@ const RecruiterDashboard = () => {
                     return;
             }
 
-            await api.patch(endpoint, payload);
+            const response = await api.post(endpoint, payload);
 
             // Refresh data
             await fetchDashboardData();
+
+            // Send Discord notification if appropriate
+            const app = applications.find(a => a.id === applicationId);
+            if (app) {
+                if (action === 'approve') {
+                    sendDiscordMessage(app, 'applicationApproved');
+                } else if (action === 'reject') {
+                    sendDiscordMessage(app, 'applicationRejected');
+                } else if (action === 'schedule_interview') {
+                    app.interview_date = data.scheduled_at;
+                    sendDiscordMessage(app, 'interviewScheduled');
+                }
+            }
 
             // Close modals
             setShowReviewModal(false);
             setShowInterviewModal(false);
 
-            console.log(`Successfully ${action} application`);
-
         } catch (err) {
             console.error(`Error performing ${action}:`, err);
             alert(`Failed to ${action} application. Please try again.`);
-        }
-    };
-
-    // Handle bulk actions
-    const handleBulkAction = async (action, data) => {
-        try {
-            const promises = selectedApplications.map(appId =>
-                handleApplicationAction(appId, action, data)
-            );
-
-            await Promise.all(promises);
-
-            // Clear selection
-            setSelectedApplications([]);
-            setShowBulkModal(false);
-
-            console.log(`Successfully performed bulk ${action}`);
-
-        } catch (err) {
-            console.error('Error performing bulk action:', err);
-            alert('Some bulk actions failed. Please check the applications.');
         }
     };
 
@@ -344,42 +262,17 @@ const RecruiterDashboard = () => {
         setShowInterviewModal(true);
     };
 
-    const openMentorAssignment = (application) => {
-        setSelectedApplication(application);
-        setShowMentorModal(true);
-    };
-
-    const openOnboardingGuide = (application) => {
-        setSelectedApplication(application);
-        setShowGuideModal(true);
-    };
-
-    // Selection handlers
-    const toggleApplicationSelection = (applicationId) => {
-        setSelectedApplications(prev =>
-            prev.includes(applicationId)
-                ? prev.filter(id => id !== applicationId)
-                : [...prev, applicationId]
-        );
-    };
-
-    const selectAllApplications = () => {
-        if (selectedApplications.length === filteredApplications.length) {
-            setSelectedApplications([]);
-        } else {
-            setSelectedApplications(filteredApplications.map(app => app.id));
-        }
-    };
-
-    // Filter applications based on search term
+    // Filter applications
     const filteredApplications = applications.filter(app => {
         if (!searchTerm) return true;
 
         const searchLower = searchTerm.toLowerCase();
         return (
-            app.username?.toLowerCase().includes(searchLower) ||
-            app.discord_id?.includes(searchTerm) ||
-            app.email?.toLowerCase().includes(searchLower)
+            app.discord_username?.toLowerCase().includes(searchLower) ||
+            app.first_name?.toLowerCase().includes(searchLower) ||
+            app.last_name?.toLowerCase().includes(searchLower) ||
+            app.email?.toLowerCase().includes(searchLower) ||
+            app.application_number?.includes(searchTerm)
         );
     });
 
@@ -405,26 +298,32 @@ const RecruiterDashboard = () => {
         return formatDate(dateString);
     };
 
-    const getStatusColor = (status) => {
-        const colors = {
-            'Pending': 'status-pending',
-            'Interviewing': 'status-interviewing',
-            'Approved': 'status-approved',
-            'Rejected': 'status-rejected'
+    const getStatusBadge = (status) => {
+        const statusMap = {
+            'draft': { label: 'DRAFT', class: 'status-draft' },
+            'submitted': { label: 'SUBMITTED', class: 'status-pending' },
+            'under_review': { label: 'UNDER REVIEW', class: 'status-interviewing' },
+            'approved': { label: 'APPROVED', class: 'status-approved' },
+            'rejected': { label: 'REJECTED', class: 'status-rejected' }
         };
-        return colors[status] || 'status-default';
+        return statusMap[status] || { label: status.toUpperCase(), class: 'status-default' };
     };
 
-    const getOnboardingStageLabel = (app) => {
-        if (app.status !== 'Approved') return null;
+    const getProgressIndicator = (progress) => {
+        if (!progress) return null;
+        const percentage = progress.completion_percentage || 0;
 
-        if (app.onboarding_status === 'Active') return 'Active Member';
-        if (!app.bit_completion_date) return 'Awaiting BIT';
-        if (!app.branch_id) return 'Needs Branch';
-        if (!app.unit_id) return 'Needs Unit';
-        if (!app.mentor_id) return 'Needs Mentor';
-
-        return 'In Progress';
+        return (
+            <div className="progress-indicator">
+                <div className="progress-bar-small">
+                    <div
+                        className="progress-fill-small"
+                        style={{ width: `${percentage}%` }}
+                    />
+                </div>
+                <span className="progress-text">{percentage}%</span>
+            </div>
+        );
     };
 
     // Render loading state
@@ -437,20 +336,6 @@ const RecruiterDashboard = () => {
         );
     }
 
-    // Render error state
-    if (error) {
-        return (
-            <div className="dashboard-error">
-                <AlertCircle size={48} />
-                <h2>ERROR LOADING DASHBOARD</h2>
-                <p>{error}</p>
-                <button onClick={fetchDashboardData} className="action-button">
-                    RETRY
-                </button>
-            </div>
-        );
-    }
-
     // Main render
     return (
         <div className="recruiter-dashboard">
@@ -459,15 +344,12 @@ const RecruiterDashboard = () => {
                 <div className="header-content">
                     <div className="header-title">
                         <Shield size={32} />
-                        <h1>RECRUITMENT COMMAND CENTER</h1>
+                        <h1>RECRUITMENT COMMAND</h1>
                     </div>
                     <div className="header-actions">
-                        <button
-                            className="action-button primary"
-                            onClick={() => setShowGuideModal(true)}
-                        >
+                        <button className="action-button primary">
                             <Navigation size={18} />
-                            ONBOARDING GUIDE
+                            ONBOARDING PROTOCOLS
                         </button>
                         {selectedApplications.length > 0 && (
                             <button
@@ -475,22 +357,32 @@ const RecruiterDashboard = () => {
                                 onClick={() => setShowBulkModal(true)}
                             >
                                 <Users size={18} />
-                                BULK ACTIONS ({selectedApplications.length})
+                                BULK OPERATIONS ({selectedApplications.length})
                             </button>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Statistics Cards */}
+            {/* Statistics */}
             <div className="dashboard-stats">
+                <div className="stat-card">
+                    <div className="stat-icon">
+                        <FileText size={24} />
+                    </div>
+                    <div className="stat-content">
+                        <div className="stat-value">{statistics.draft}</div>
+                        <div className="stat-label">In Progress</div>
+                    </div>
+                </div>
+
                 <div className="stat-card pending">
                     <div className="stat-icon">
                         <Clock size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{statistics.pending}</div>
-                        <div className="stat-label">Pending Review</div>
+                        <div className="stat-value">{statistics.submitted}</div>
+                        <div className="stat-label">Awaiting Review</div>
                     </div>
                 </div>
 
@@ -499,8 +391,8 @@ const RecruiterDashboard = () => {
                         <MessageSquare size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{statistics.interviewing}</div>
-                        <div className="stat-label">In Interview</div>
+                        <div className="stat-value">{statistics.under_review}</div>
+                        <div className="stat-label">Under Review</div>
                     </div>
                 </div>
 
@@ -519,40 +411,30 @@ const RecruiterDashboard = () => {
                         <Activity size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{statistics.activeRecruits}</div>
-                        <div className="stat-label">Active Recruits</div>
+                        <div className="stat-value">{statistics.onboarding}</div>
+                        <div className="stat-label">Onboarding</div>
                     </div>
                 </div>
 
-                <div className="stat-card">
+                <div className="stat-card completion">
                     <div className="stat-icon">
-                        <BellRing size={24} />
+                        <Award size={24} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{statistics.awaitingBIT}</div>
-                        <div className="stat-label">Awaiting BIT</div>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon">
-                        <UserPlus size={24} />
-                    </div>
-                    <div className="stat-content">
-                        <div className="stat-value">{statistics.needsMentor}</div>
-                        <div className="stat-label">Need Mentor</div>
+                        <div className="stat-value">{statistics.completed}</div>
+                        <div className="stat-label">Completed</div>
                     </div>
                 </div>
             </div>
 
-            {/* Filters and Search */}
+            {/* Filters */}
             <div className="dashboard-controls">
                 <div className="search-section">
                     <div className="search-input">
                         <Search size={20} />
                         <input
                             type="text"
-                            placeholder="Search by username, Discord ID, or email..."
+                            placeholder="Search by name, Discord ID, email, or application number..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -568,41 +450,11 @@ const RecruiterDashboard = () => {
                             className="filter-select"
                         >
                             <option value="all">All Status</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Interviewing">Interviewing</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Rejected">Rejected</option>
-                        </select>
-                    </div>
-
-                    <div className="filter-group">
-                        <Globe size={18} />
-                        <select
-                            value={filterBranch}
-                            onChange={(e) => setFilterBranch(e.target.value)}
-                            className="filter-select"
-                        >
-                            <option value="all">All Branches</option>
-                            {branches.map(branch => (
-                                <option key={branch.id} value={branch.id}>
-                                    {branch.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="filter-group">
-                        <ClipboardCheck size={18} />
-                        <select
-                            value={filterOnboardingStage}
-                            onChange={(e) => setFilterOnboardingStage(e.target.value)}
-                            className="filter-select"
-                        >
-                            <option value="all">All Stages</option>
-                            <option value="Applied">Applied</option>
-                            <option value="BIT Completed">BIT Completed</option>
-                            <option value="Branch Applied">Branch Applied</option>
-                            <option value="Active">Active Member</option>
+                            <option value="draft">Draft</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="under_review">Under Review</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
                         </select>
                     </div>
 
@@ -613,9 +465,9 @@ const RecruiterDashboard = () => {
                             onChange={(e) => setSortBy(e.target.value)}
                             className="filter-select"
                         >
-                            <option value="submission_date">Submission Date</option>
-                            <option value="interview_date">Interview Date</option>
-                            <option value="review_date">Review Date</option>
+                            <option value="created_at">Created Date</option>
+                            <option value="submitted_at">Submission Date</option>
+                            <option value="updated_at">Last Updated</option>
                         </select>
                     </div>
                 </div>
@@ -625,17 +477,6 @@ const RecruiterDashboard = () => {
             <div className="applications-section">
                 <div className="section-header">
                     <h2>RECRUITMENT APPLICATIONS</h2>
-                    {filteredApplications.length > 0 && (
-                        <div className="section-actions">
-                            <input
-                                type="checkbox"
-                                checked={selectedApplications.length === filteredApplications.length}
-                                onChange={selectAllApplications}
-                                className="select-all-checkbox"
-                            />
-                            <span className="select-all-label">Select All</span>
-                        </div>
-                    )}
                 </div>
 
                 <div className="applications-table">
@@ -643,87 +484,64 @@ const RecruiterDashboard = () => {
                         <table>
                             <thead>
                             <tr>
-                                <th className="checkbox-column"></th>
-                                <th>PILOT</th>
+                                <th>APPLICATION</th>
+                                <th>RECRUIT</th>
                                 <th>STATUS</th>
-                                <th>STAGE</th>
-                                <th>BRANCH</th>
+                                <th>PROGRESS</th>
+                                <th>UNIT PREFERENCE</th>
                                 <th>SUBMITTED</th>
-                                <th>DISCORD ACTIONS</th>
-                                <th>ADMIN ACTIONS</th>
+                                <th>ACTIONS</th>
                             </tr>
                             </thead>
                             <tbody>
                             {filteredApplications.map(app => (
-                                <tr key={app.id} className={selectedApplications.includes(app.id) ? 'selected' : ''}>
-                                    <td className="checkbox-column">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedApplications.includes(app.id)}
-                                            onChange={() => toggleApplicationSelection(app.id)}
-                                        />
+                                <tr key={app.id}>
+                                    <td>
+                                        <div className="app-number">
+                                            <Hash size={14} />
+                                            {app.application_number || 'DRAFT'}
+                                        </div>
                                     </td>
                                     <td className="pilot-cell">
                                         <div className="pilot-info">
                                             <div className="pilot-details">
-                                                <div className="pilot-name">{app.username}</div>
-                                                <div className="pilot-discord">{app.discord_id}</div>
+                                                <div className="pilot-name">
+                                                    {app.first_name && app.last_name
+                                                        ? `${app.first_name} ${app.last_name}`
+                                                        : app.discord_username}
+                                                </div>
+                                                <div className="pilot-discord">
+                                                    {app.email || 'No email'}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span className={`status-badge ${getStatusColor(app.status)}`}>
-                                            {app.status}
-                                        </span>
+                                            <span className={`status-badge ${getStatusBadge(app.status).class}`}>
+                                                {getStatusBadge(app.status).label}
+                                            </span>
                                     </td>
                                     <td>
-                                        {getOnboardingStageLabel(app) && (
-                                            <span className="stage-label">
-                                                {getOnboardingStageLabel(app)}
-                                            </span>
-                                        )}
+                                        {app.progress && getProgressIndicator(app.progress)}
                                     </td>
-                                    <td>{app.preferred_branch_name || 'None'}</td>
-                                    <td className="date-cell">
-                                        <div className="date-info">
-                                            <div>{formatDate(app.submission_date)}</div>
-                                            <div className="time-ago">{getTimeAgo(app.submission_date)}</div>
+                                    <td>
+                                        <div className="unit-preference">
+                                            {app.branch_details?.name && (
+                                                <div>{app.branch_details.name}</div>
+                                            )}
+                                            {app.primary_unit_details?.name && (
+                                                <div className="unit-sub">
+                                                    {app.primary_unit_details.name}
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
-                                    <td className="discord-actions-cell">
-                                        <div className="action-buttons">
-                                            {app.status === 'Pending' && (
-                                                <button
-                                                    className="action-btn discord"
-                                                    onClick={() => previewDiscordMessage('applicationReceived', app)}
-                                                    title="Send Welcome DM"
-                                                >
-                                                    <MessageCircle size={16} />
-                                                </button>
-                                            )}
-                                            {app.status === 'Approved' && !app.bit_completion_date && (
-                                                <button
-                                                    className="action-btn discord"
-                                                    onClick={() => previewDiscordMessage('bitReminder', app)}
-                                                    title="Send BIT Reminder"
-                                                >
-                                                    <BellRing size={16} />
-                                                </button>
-                                            )}
-                                            <button
-                                                className="action-btn discord"
-                                                onClick={() => previewDiscordMessage('checkIn', app)}
-                                                title="Send Check-in Message"
-                                            >
-                                                <Heart size={16} />
-                                            </button>
-                                            <button
-                                                className="action-btn discord"
-                                                onClick={() => sendDiscordDM(app.discord_id, '')}
-                                                title="Open Discord DM"
-                                            >
-                                                <Send size={16} />
-                                            </button>
+                                    <td className="date-cell">
+                                        <div className="date-info">
+                                            <div>{formatDate(app.submitted_at || app.created_at)}</div>
+                                            <div className="time-ago">
+                                                {getTimeAgo(app.submitted_at || app.created_at)}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="actions-cell">
@@ -733,51 +551,33 @@ const RecruiterDashboard = () => {
                                                 onClick={() => openApplicationReview(app)}
                                                 title="Review Application"
                                             >
-                                                <FileText size={16} />
+                                                <Eye size={16} />
                                             </button>
-                                            {app.status === 'Pending' && (
+                                            {app.status === 'submitted' && (
                                                 <>
+                                                    <button
+                                                        className="action-btn approve"
+                                                        onClick={() => handleApplicationAction(app.id, 'approve', { notes: 'Quick approval' })}
+                                                        title="Approve"
+                                                    >
+                                                        <CheckCircle size={16} />
+                                                    </button>
                                                     <button
                                                         className="action-btn interview"
                                                         onClick={() => openInterviewScheduler(app)}
                                                         title="Schedule Interview"
                                                     >
-                                                        <MessageSquare size={16} />
-                                                    </button>
-                                                    <button
-                                                        className="action-btn approve"
-                                                        onClick={() => handleApplicationAction(app.id, 'approve', { notes: 'Quick approval' })}
-                                                        title="Quick Approve"
-                                                    >
-                                                        <CheckCircle size={16} />
-                                                    </button>
-                                                    <button
-                                                        className="action-btn reject"
-                                                        onClick={() => handleApplicationAction(app.id, 'reject', { notes: 'Quick rejection' })}
-                                                        title="Quick Reject"
-                                                    >
-                                                        <XCircle size={16} />
+                                                        <Calendar size={16} />
                                                     </button>
                                                 </>
                                             )}
-                                            {app.status === 'Approved' && (
-                                                <>
-                                                    <button
-                                                        className="action-btn mentor"
-                                                        onClick={() => openMentorAssignment(app)}
-                                                        title="Assign Mentor"
-                                                    >
-                                                        <UserPlus size={16} />
-                                                    </button>
-                                                    <button
-                                                        className="action-btn guide"
-                                                        onClick={() => openOnboardingGuide(app)}
-                                                        title="Onboarding Guide"
-                                                    >
-                                                        <Navigation size={16} />
-                                                    </button>
-                                                </>
-                                            )}
+                                            <button
+                                                className="action-btn discord"
+                                                onClick={() => sendDiscordMessage(app, 'applicationReceived')}
+                                                title="Send Discord Message"
+                                            >
+                                                <Send size={16} />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -788,43 +588,41 @@ const RecruiterDashboard = () => {
                         <div className="no-applications">
                             <Users size={48} />
                             <h3>No Applications Found</h3>
-                            <p>{searchTerm || filterStatus !== 'all' || filterBranch !== 'all'
-                                ? 'Try adjusting your filters or search criteria'
-                                : 'No applications have been submitted yet'}</p>
+                            <p>Adjust your filters or wait for new applications</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Discord Message Preview Modal */}
+            {/* Discord Message Preview */}
             {showDiscordPreview && (
                 <div className="modal-overlay" onClick={() => setShowDiscordPreview(false)}>
                     <div className="modal-content discord-preview" onClick={e => e.stopPropagation()}>
-                        <h3>Discord Message Preview</h3>
+                        <div className="modal-header">
+                            <h3>
+                                <MessageCircle size={20} />
+                                DISCORD MESSAGE TEMPLATE
+                            </h3>
+                        </div>
+                        <div className="discord-recipient">
+                            To: {discordRecipient?.discord_username}
+                        </div>
                         <div className="discord-message-box">
                             <pre>{discordMessage}</pre>
                         </div>
                         <div className="modal-actions">
                             <button
                                 className="action-button primary"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(discordMessage);
-                                    setShowDiscordPreview(false);
-                                    alert('Message copied to clipboard!');
-                                }}
+                                onClick={copyDiscordMessage}
                             >
                                 <Bot size={18} />
-                                Copy Message
+                                COPY TO CLIPBOARD
                             </button>
                             <button
                                 className="action-button"
-                                onClick={() => {
-                                    sendDiscordDM(selectedApplication?.discord_id, discordMessage);
-                                    setShowDiscordPreview(false);
-                                }}
+                                onClick={() => setShowDiscordPreview(false)}
                             >
-                                <Send size={18} />
-                                Open Discord & Copy
+                                CLOSE
                             </button>
                         </div>
                     </div>
@@ -852,41 +650,10 @@ const RecruiterDashboard = () => {
                     }}
                     onSchedule={(date, data) =>
                         handleApplicationAction(selectedApplication.id, 'schedule_interview', {
-                            interviewDate: date,
+                            scheduled_at: date,
                             ...data
                         })
                     }
-                />
-            )}
-
-            {showMentorModal && selectedApplication && (
-                <MentorAssignmentModal
-                    recruit={selectedApplication}
-                    onClose={() => {
-                        setShowMentorModal(false);
-                        setSelectedApplication(null);
-                    }}
-                    onAssign={fetchDashboardData}
-                />
-            )}
-
-            {showGuideModal && (
-                <OnboardingGuideModal
-                    application={selectedApplication}
-                    onClose={() => {
-                        setShowGuideModal(false);
-                        setSelectedApplication(null);
-                    }}
-                />
-            )}
-
-            {showBulkModal && (
-                <BulkActionsModal
-                    selectedCount={selectedApplications.length}
-                    onClose={() => {
-                        setShowBulkModal(false);
-                    }}
-                    onAction={handleBulkAction}
                 />
             )}
         </div>
