@@ -106,46 +106,122 @@ const ApplicationForm = () => {
             const recruitData = await api.get('/onboarding/applications/recruitment-data/');
             setRecruitmentData(recruitData.data);
 
-            // Get or create current draft application
-            const appResponse = await api.get('/onboarding/applications/current/');
-            const app = appResponse.data;
+            // Try to check for existing application by discord ID
+            if (currentUser?.discord_id) {
+                try {
+                    // Use the simpler endpoint that might work better
+                    const draftsResponse = await api.get('/onboarding/applications/my-drafts/');
+                    console.log('My drafts response:', draftsResponse.data);
 
-            setApplicationId(app.id);
+                    if (draftsResponse.data && draftsResponse.data.length > 0) {
+                        // Get the most recent draft
+                        const app = draftsResponse.data[0];
+                        console.log('Found existing draft application:', app);
 
-            // Restore saved progress if exists
-            if (app.progress?.current_step > 1) {
-                setFormData({
-                    first_name: app.first_name || '',
-                    last_name: app.last_name || '',
-                    email: app.email || currentUser.email || '',
-                    timezone: app.timezone || '',
-                    country: app.country || '',
-                    branch: app.branch || null,
-                    primary_unit: app.primary_unit || null,
-                    secondary_unit: app.secondary_unit || null,
-                    career_track: app.career_track || null,
-                    primary_mos: app.primary_mos || null,
-                    previous_experience: app.previous_experience || '',
-                    reason_for_joining: app.reason_for_joining || '',
-                    weekly_availability_hours: app.weekly_availability_hours || null,
-                    can_attend_mandatory_events: app.can_attend_mandatory_events !== false,
-                    leadership_experience: app.leadership_experience || '',
-                    technical_experience: app.technical_experience || '',
-                    accepted_waivers: app.waivers?.map(w => w.waiver_type) || []
-                });
+                        setApplicationId(app.id);
 
-                // Resume from last step
-                setCurrentStep(app.progress.current_step);
+                        // Restore saved progress if exists
+                        if (app.current_step > 1) {
+                            setFormData({
+                                first_name: app.first_name || '',
+                                last_name: app.last_name || '',
+                                email: app.email || currentUser.email || '',
+                                timezone: app.timezone || '',
+                                country: app.country || '',
+                                branch: app.branch || null,
+                                primary_unit: app.primary_unit || null,
+                                secondary_unit: app.secondary_unit || null,
+                                career_track: app.career_track || null,
+                                primary_mos: app.primary_mos || null,
+                                previous_experience: app.previous_experience || '',
+                                reason_for_joining: app.reason_for_joining || '',
+                                weekly_availability_hours: app.weekly_availability_hours || null,
+                                can_attend_mandatory_events: app.can_attend_mandatory_events !== false,
+                                leadership_experience: app.leadership_experience || '',
+                                technical_experience: app.technical_experience || '',
+                                accepted_waivers: app.waivers?.map(w => w.waiver_type || w.id) || []
+                            });
 
-                // If branch is already selected, load units for that branch
-                if (app.branch) {
-                    await fetchPrimaryUnits(app.branch);
+                            // Resume from last step
+                            setCurrentStep(app.current_step);
 
-                    // If primary unit is selected, load secondary units
-                    if (app.primary_unit) {
-                        await fetchSecondaryUnits(app.branch, app.primary_unit);
+                            // If branch is already selected, load units for that branch
+                            if (app.branch) {
+                                await fetchPrimaryUnits(app.branch);
+
+                                // If primary unit is selected, load secondary units
+                                if (app.primary_unit) {
+                                    await fetchSecondaryUnits(app.branch, app.primary_unit);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    // Try the status endpoint as a fallback
+                    try {
+                        const statusResponse = await api.get(`/onboarding/applications/status/${currentUser.discord_id}/`);
+                        console.log('Application status check:', statusResponse.data);
+
+                        // If we have a draft application, try to load it
+                        if (statusResponse.data.status === 'draft' && statusResponse.data.application_id) {
+                            try {
+                                const appResponse = await api.get(`/onboarding/applications/${statusResponse.data.application_id}/`);
+                                const app = appResponse.data;
+                                console.log('Found existing draft application:', app);
+
+                                setApplicationId(app.id);
+
+                                // Restore saved progress if exists
+                                if (app.current_step > 1) {
+                                    setFormData({
+                                        first_name: app.first_name || '',
+                                        last_name: app.last_name || '',
+                                        email: app.email || currentUser.email || '',
+                                        timezone: app.timezone || '',
+                                        country: app.country || '',
+                                        branch: app.branch || null,
+                                        primary_unit: app.primary_unit || null,
+                                        secondary_unit: app.secondary_unit || null,
+                                        career_track: app.career_track || null,
+                                        primary_mos: app.primary_mos || null,
+                                        previous_experience: app.previous_experience || '',
+                                        reason_for_joining: app.reason_for_joining || '',
+                                        weekly_availability_hours: app.weekly_availability_hours || null,
+                                        can_attend_mandatory_events: app.can_attend_mandatory_events !== false,
+                                        leadership_experience: app.leadership_experience || '',
+                                        technical_experience: app.technical_experience || '',
+                                        accepted_waivers: app.waivers?.map(w => w.waiver_type || w.id) || []
+                                    });
+
+                                    // Resume from last step
+                                    setCurrentStep(app.current_step);
+
+                                    // If branch is already selected, load units for that branch
+                                    if (app.branch) {
+                                        await fetchPrimaryUnits(app.branch);
+
+                                        // If primary unit is selected, load secondary units
+                                        if (app.primary_unit) {
+                                            await fetchSecondaryUnits(app.branch, app.primary_unit);
+                                        }
+                                    }
+                                }
+                            } catch (err) {
+                                console.log('Could not load draft application details:', err);
+                            }
+                        }
+                    } catch (err) {
+                        // No existing application found - this is fine
+                        console.log('No existing application found for user');
                     }
                 }
+            } else {
+                console.warn('User does not have discord_id set');
+            }
+
+            // If we don't have an application ID at this point, we'll create one when user starts filling the form
+            if (!applicationId) {
+                console.log('Ready to create new application when user begins');
             }
 
         } catch (err) {
