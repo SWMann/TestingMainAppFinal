@@ -74,20 +74,31 @@ const ApplicationForm = () => {
         }
     }, [currentUser, navigate]);
 
+    // Set user email when currentUser is available
+    useEffect(() => {
+        if (currentUser?.email && !formData.email) {
+            setFormData(prev => ({ ...prev, email: currentUser.email }));
+        }
+    }, [currentUser]);
+
     // Initialize application
     useEffect(() => {
-        initializeApplication();
-    }, []);
+        if (currentUser) {
+            console.log('Current user available, initializing application...', currentUser);
+            initializeApplication();
+        }
+    }, [currentUser]);
 
     // Auto-save on form changes (debounced)
     useEffect(() => {
-        if (applicationId && currentStep >= 2) {
+        // Only auto-save if we have an application ID and have made changes
+        if (applicationId && currentStep >= 2 && !isLoading && !isSaving) {
             const saveTimer = setTimeout(() => {
                 autoSaveProgress();
             }, 2000);
             return () => clearTimeout(saveTimer);
         }
-    }, [formData, applicationId, currentStep]);
+    }, [formData, currentStep, applicationId, isLoading, isSaving]);
 
     // Load MOS options when career track changes
     useEffect(() => {
@@ -120,8 +131,9 @@ const ApplicationForm = () => {
 
                         setApplicationId(app.id);
 
-                        // Restore saved progress if exists
-                        if (app.current_step > 1) {
+                        // Restore saved progress if exists - handle different data structures
+                        const step = app.current_step || app.progress?.current_step || 1;
+                        if (step > 1) {
                             setFormData({
                                 first_name: app.first_name || '',
                                 last_name: app.last_name || '',
@@ -143,7 +155,7 @@ const ApplicationForm = () => {
                             });
 
                             // Resume from last step
-                            setCurrentStep(app.current_step);
+                            setCurrentStep(step);
 
                             // If branch is already selected, load units for that branch
                             if (app.branch) {
@@ -157,6 +169,7 @@ const ApplicationForm = () => {
                         }
                     }
                 } catch (err) {
+                    console.log('My-drafts endpoint failed, trying status endpoint:', err.message);
                     // Try the status endpoint as a fallback
                     try {
                         const statusResponse = await api.get(`/onboarding/applications/status/${currentUser.discord_id}/`);
@@ -172,7 +185,8 @@ const ApplicationForm = () => {
                                 setApplicationId(app.id);
 
                                 // Restore saved progress if exists
-                                if (app.current_step > 1) {
+                                const step = app.current_step || app.progress?.current_step || 1;
+                                if (step > 1) {
                                     setFormData({
                                         first_name: app.first_name || '',
                                         last_name: app.last_name || '',
@@ -194,7 +208,7 @@ const ApplicationForm = () => {
                                     });
 
                                     // Resume from last step
-                                    setCurrentStep(app.current_step);
+                                    setCurrentStep(step);
 
                                     // If branch is already selected, load units for that branch
                                     if (app.branch) {
@@ -232,15 +246,95 @@ const ApplicationForm = () => {
         }
     };
 
+    const createApplication = async () => {
+        console.log('Creating new application...');
+        try {
+            const createData = {
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                email: formData.email || currentUser?.email,
+                timezone: formData.timezone,
+                country: formData.country,
+                current_step: 2,
+                status: 'draft'
+            };
+
+            console.log('Creating application with data:', createData);
+            const createResponse = await api.post('/onboarding/applications/', createData);
+
+            if (createResponse.data && createResponse.data.id) {
+                setApplicationId(createResponse.data.id);
+                console.log('Application created with ID:', createResponse.data.id);
+                setLastSaved(new Date());
+                return createResponse.data.id;
+            } else {
+                console.error('Failed to create application - no ID returned');
+                setError('Failed to create application. Please try again.');
+                return null;
+            }
+        } catch (err) {
+            console.error('Error creating application:', err);
+            if (err.response) {
+                console.error('Error response:', err.response.data);
+            }
+            setError('Failed to create application. Please try again.');
+            return null;
+        }
+    };
+
     const autoSaveProgress = async () => {
-        if (!applicationId || isSaving) return;
+        if (isSaving || !applicationId) return applicationId;
 
         setIsSaving(true);
         try {
-            await api.post(`/onboarding/applications/${applicationId}/save-progress/`, formData);
+            // Save progress to existing application
+            const saveData = {
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                email: formData.email || currentUser?.email,
+                timezone: formData.timezone,
+                country: formData.country,
+                branch: formData.branch,
+                primary_unit: formData.primary_unit,
+                secondary_unit: formData.secondary_unit,
+                career_track: formData.career_track,
+                primary_mos: formData.primary_mos,
+                previous_experience: formData.previous_experience,
+                reason_for_joining: formData.reason_for_joining,
+                weekly_availability_hours: formData.weekly_availability_hours,
+                can_attend_mandatory_events: formData.can_attend_mandatory_events,
+                leadership_experience: formData.leadership_experience,
+                technical_experience: formData.technical_experience,
+                current_step: currentStep
+            };
+
+            // Try PATCH first, then POST if that fails
+            try {
+                await api.patch(`/onboarding/applications/${applicationId}/save-progress/`, saveData);
+            } catch (patchErr) {
+                if (patchErr.response?.status === 405) {
+                    // Method not allowed, try POST
+                    await api.post(`/onboarding/applications/${applicationId}/save-progress/`, saveData);
+                } else {
+                    throw patchErr;
+                }
+            }
+
             setLastSaved(new Date());
+            return applicationId;
         } catch (err) {
             console.error('Auto-save failed:', err);
+            if (err.response) {
+                console.error('Error response:', err.response.data);
+                console.error('Error status:', err.response.status);
+            }
+
+            // If it's a 404, the application might not exist
+            if (err.response?.status === 404) {
+                console.log('Application not found during save');
+                // Don't clear the ID here, as it might cause issues
+            }
+            return applicationId;
         } finally {
             setIsSaving(false);
         }
@@ -382,21 +476,22 @@ const ApplicationForm = () => {
     };
 
     const acceptWaiver = async (waiverId) => {
-        try {
-            await api.post(`/onboarding/applications/${applicationId}/accept-waiver/`, {
-                waiver_type_id: waiverId
-            });
-            setFormData(prev => ({
-                ...prev,
-                accepted_waivers: [...prev.accepted_waivers, waiverId]
-            }));
-        } catch (err) {
-            console.error('Error accepting waiver:', err);
-            // Just add to local state even if API fails
-            setFormData(prev => ({
-                ...prev,
-                accepted_waivers: [...prev.accepted_waivers, waiverId]
-            }));
+        // Just add to local state - we'll save when we have an application ID
+        setFormData(prev => ({
+            ...prev,
+            accepted_waivers: [...prev.accepted_waivers, waiverId]
+        }));
+
+        // If we have an application ID, also save to backend
+        if (applicationId) {
+            try {
+                await api.post(`/onboarding/applications/${applicationId}/accept-waiver/`, {
+                    waiver_type_id: waiverId
+                });
+            } catch (err) {
+                console.error('Error accepting waiver on backend:', err);
+                // Keep the local state update even if backend fails
+            }
         }
     };
 
@@ -494,8 +589,24 @@ const ApplicationForm = () => {
     const handleNext = async () => {
         if (!validateStep()) return;
 
-        // Save progress before moving to next step
-        await autoSaveProgress();
+        // If we're moving from step 2 (Basic Info) and don't have an application ID yet, create one now
+        if (currentStep === 2 && !applicationId) {
+            setIsLoading(true);
+            try {
+                const newAppId = await createApplication();
+                if (!newAppId) {
+                    return; // Don't proceed if creation failed
+                }
+            } catch (err) {
+                console.error('Error in handleNext:', err);
+                return;
+            } finally {
+                setIsLoading(false);
+            }
+        } else if (applicationId && currentStep >= 2) {
+            // Save progress before moving to next step if we have an application ID
+            await autoSaveProgress();
+        }
 
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
@@ -515,21 +626,65 @@ const ApplicationForm = () => {
         setError(null);
 
         try {
-            // Submit the application
-            const response = await api.post(`/onboarding/applications/${applicationId}/submit/`, {
+            // Ensure we have an application ID
+            let currentAppId = applicationId;
+
+            if (!currentAppId) {
+                console.log('No application ID at submission, creating one now...');
+                currentAppId = await createApplication();
+                if (!currentAppId) {
+                    throw new Error('Failed to create application for submission');
+                }
+            } else {
+                // Save any last-minute changes
+                console.log('Saving final changes before submission...');
+                await autoSaveProgress();
+            }
+
+            // Now submit the application
+            console.log('Submitting application with ID:', currentAppId);
+
+            const submitData = {
                 confirm_submission: true,
-                accept_all_waivers: true
-            });
+                accept_all_waivers: true,
+                accepted_waivers: formData.accepted_waivers
+            };
+
+            console.log('Submit data:', submitData);
+
+            const response = await api.post(`/onboarding/applications/${currentAppId}/submit/`, submitData);
+
+            console.log('Application submitted successfully:', response.data);
 
             // Success! Redirect to profile
             navigate(`/profile/${currentUser.id}`);
 
         } catch (err) {
-            console.error('Error submitting application:', err);
+            console.error('Error in submission process:', err);
+            if (err.response) {
+                console.error('Error response:', err.response.data);
+                console.error('Error status:', err.response.status);
+            }
+
             if (err.response?.data?.error) {
                 setError(err.response.data.error);
             } else if (err.response?.data?.errors) {
-                setError(err.response.data.errors.join(', '));
+                const errors = err.response.data.errors;
+                if (typeof errors === 'object' && !Array.isArray(errors)) {
+                    // If errors is an object with field-specific errors
+                    const errorMessages = Object.entries(errors).map(([field, msgs]) =>
+                        `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
+                    );
+                    setError(errorMessages.join('; '));
+                } else if (Array.isArray(errors)) {
+                    setError(errors.join(', '));
+                } else {
+                    setError('Failed to submit application. Please check all required fields.');
+                }
+            } else if (err.response?.data?.detail) {
+                setError(err.response.data.detail);
+            } else if (err.message) {
+                setError(err.message);
             } else {
                 setError('Failed to submit application. Please try again.');
             }
@@ -539,9 +694,6 @@ const ApplicationForm = () => {
     };
 
     // Get branch type from abbreviation
-    // UEEN = United Empire of Earth Navy
-    // UEEA = United Empire of Earth Army
-    // UEEM = United Empire of Earth Marines
     const getBranchType = (branchId) => {
         const branch = recruitmentData?.branches?.find(b => b.id === branchId);
         return branch?.abbreviation?.toLowerCase() || 'navy';
@@ -656,13 +808,23 @@ const ApplicationForm = () => {
                 <div className="step-indicator">
                     PHASE {currentStep} OF {totalSteps}
                     {isSaving && (
-                        <span className="save-indicator" style={{ marginLeft: '1rem', fontSize: '0.875rem' }}>
+                        <span className="save-indicator" style={{ marginLeft: '1rem', fontSize: '0.875rem', color: 'var(--rsi-cyan)' }}>
                             <Save size={14} /> Saving...
                         </span>
                     )}
                     {lastSaved && !isSaving && (
                         <span className="last-saved" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             Last saved: {lastSaved.toLocaleTimeString()}
+                        </span>
+                    )}
+                    {applicationId && (
+                        <span className="app-id" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--success-color)' }}>
+                            ✓ Application ID: {applicationId.substring(0, 8)}...
+                        </span>
+                    )}
+                    {!applicationId && currentStep > 1 && (
+                        <span className="no-app-id" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--warning-color)' }}>
+                            ⚠ No application created yet
                         </span>
                     )}
                 </div>
@@ -673,6 +835,29 @@ const ApplicationForm = () => {
                 <div className="error-message">
                     <AlertCircle size={20} />
                     <span>{error}</span>
+                </div>
+            )}
+
+            {/* Debug: Manual Create Button */}
+            {!applicationId && currentStep === 2 && (
+                <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+                    <button
+                        className="nav-btn next"
+                        onClick={async () => {
+                            setIsLoading(true);
+                            try {
+                                await createApplication();
+                            } catch (err) {
+                                console.error('Manual create failed:', err);
+                            } finally {
+                                setIsLoading(false);
+                            }
+                        }}
+                        disabled={isLoading}
+                        style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+                    >
+                        {isLoading ? 'Creating...' : 'Debug: Create Application Now'}
+                    </button>
                 </div>
             )}
 
@@ -698,16 +883,25 @@ const ApplicationForm = () => {
                     <button
                         className="nav-btn next"
                         onClick={handleNext}
-                        disabled={isLoading || isLoadingData}
+                        disabled={isLoading || isLoadingData || isSaving}
                     >
-                        {currentStep === 1 ? 'Begin Enlistment' : 'Continue'}
-                        <ChevronRight size={20} />
+                        {isLoading ? (
+                            <>
+                                <Loader className="spinning" size={20} />
+                                Processing...
+                            </>
+                        ) : (
+                            <>
+                                {currentStep === 1 ? 'Begin Enlistment' : 'Continue'}
+                                <ChevronRight size={20} />
+                            </>
+                        )}
                     </button>
                 ) : (
                     <button
                         className="nav-btn submit"
                         onClick={handleSubmit}
-                        disabled={isLoading}
+                        disabled={isLoading || isSaving}
                     >
                         {isLoading ? (
                             <>
@@ -783,6 +977,7 @@ const BasicInfoStep = ({ formData, onChange, currentUser }) => (
                     value={formData.first_name}
                     onChange={(e) => onChange('first_name', e.target.value)}
                     placeholder="Enter first name"
+                    required
                 />
             </div>
             <div className="form-group">
@@ -792,6 +987,7 @@ const BasicInfoStep = ({ formData, onChange, currentUser }) => (
                     value={formData.last_name}
                     onChange={(e) => onChange('last_name', e.target.value)}
                     placeholder="Enter last name"
+                    required
                 />
             </div>
         </div>
@@ -803,6 +999,7 @@ const BasicInfoStep = ({ formData, onChange, currentUser }) => (
                 value={formData.email}
                 onChange={(e) => onChange('email', e.target.value)}
                 placeholder="your@email.com"
+                required
             />
             <small>Used for important unit communications</small>
         </div>
@@ -813,6 +1010,7 @@ const BasicInfoStep = ({ formData, onChange, currentUser }) => (
                 <select
                     value={formData.timezone}
                     onChange={(e) => onChange('timezone', e.target.value)}
+                    required
                 >
                     <option value="">Select timezone...</option>
                     <option value="America/Los_Angeles">Pacific (PST/PDT)</option>
@@ -832,6 +1030,7 @@ const BasicInfoStep = ({ formData, onChange, currentUser }) => (
                     value={formData.country}
                     onChange={(e) => onChange('country', e.target.value)}
                     placeholder="Your country"
+                    required
                 />
             </div>
         </div>
@@ -1242,13 +1441,7 @@ const WaiversStep = ({ waivers, acceptedWaivers, onAccept }) => {
                     <h4>{waiver.title} *</h4>
                     <p>{waiver.description}</p>
                     {waiver.content && (
-                        <div className="waiver-content" style={{
-                            background: 'rgba(0,0,0,0.3)',
-                            padding: '1rem',
-                            marginTop: '0.5rem',
-                            fontSize: '0.875rem',
-                            whiteSpace: 'pre-wrap'
-                        }}>
+                        <div className="waiver-content">
                             {waiver.content}
                         </div>
                     )}
