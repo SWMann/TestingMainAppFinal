@@ -32,6 +32,9 @@ const ApplicationForm = () => {
     const [mosList, setMosList] = useState([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
+    // Note: We collect all form data locally and only create the application
+    // at submission time since the API requires fields from multiple steps
+
     // Form data matching API structure
     const [formData, setFormData] = useState({
         // Basic Info (Step 2)
@@ -64,6 +67,15 @@ const ApplicationForm = () => {
         accepted_waivers: []
     });
 
+    /**
+     * Application Form Component
+     *
+     * This form collects all application data locally across 10 steps,
+     * then creates and submits the application to the server only when
+     * all required fields are complete. This approach is necessary because
+     * the API requires fields from multiple steps to create an application.
+     */
+
     const totalSteps = 10;
 
     // Check if user is logged in
@@ -89,10 +101,10 @@ const ApplicationForm = () => {
         }
     }, [currentUser]);
 
-    // Auto-save on form changes (debounced)
+    // Auto-save on form changes (debounced) - only if we have an application
     useEffect(() => {
-        // Only auto-save if we have an application ID and have made changes
-        if (applicationId && currentStep >= 2 && !isLoading && !isSaving) {
+        // Only auto-save if we have an application ID
+        if (applicationId && !isLoading && !isSaving) {
             const saveTimer = setTimeout(() => {
                 autoSaveProgress();
             }, 2000);
@@ -247,15 +259,53 @@ const ApplicationForm = () => {
     };
 
     const createApplication = async () => {
-        console.log('Creating new application...');
+        console.log('Creating new application with all form data...');
+
+        // Validate we have all required fields
+        if (!formData.first_name || !formData.last_name || !formData.email) {
+            throw new Error('Basic information is incomplete');
+        }
+        if (!formData.branch || !formData.career_track) {
+            throw new Error('Branch and career track must be selected');
+        }
+        if (!formData.previous_experience || !formData.reason_for_joining) {
+            throw new Error('Experience information is required');
+        }
+        if (!currentUser?.username) {
+            throw new Error('Discord username is required');
+        }
+
         try {
             const createData = {
+                // Basic fields
                 first_name: formData.first_name,
                 last_name: formData.last_name,
                 email: formData.email || currentUser?.email,
+                discord_username: currentUser.username,
                 timezone: formData.timezone,
                 country: formData.country,
-                current_step: 2,
+
+                // Selection fields
+                branch: formData.branch,
+                primary_unit: formData.primary_unit,
+                secondary_unit: formData.secondary_unit,
+                career_track: formData.career_track,
+                primary_mos: formData.primary_mos,
+
+                // Experience fields
+                previous_experience: formData.previous_experience,
+                reason_for_joining: formData.reason_for_joining,
+
+                // Availability fields
+                weekly_availability_hours: formData.weekly_availability_hours,
+                can_attend_mandatory_events: formData.can_attend_mandatory_events,
+
+                // Role-specific fields
+                leadership_experience: formData.leadership_experience || '',
+                technical_experience: formData.technical_experience || '',
+
+                // Status fields
+                current_step: currentStep,
                 status: 'draft'
             };
 
@@ -276,6 +326,26 @@ const ApplicationForm = () => {
             console.error('Error creating application:', err);
             if (err.response) {
                 console.error('Error response:', err.response.data);
+                console.error('Error status:', err.response.status);
+
+                // Show specific field errors from server
+                if (err.response.data) {
+                    const errors = [];
+                    Object.entries(err.response.data).forEach(([field, messages]) => {
+                        if (Array.isArray(messages)) {
+                            // Make field names more user-friendly
+                            const friendlyField = field
+                                .replace('_', ' ')
+                                .replace('discord username', 'Discord username')
+                                .replace('primary mos', 'MOS selection');
+                            errors.push(`${friendlyField}: ${messages.join(', ')}`);
+                        }
+                    });
+                    if (errors.length > 0) {
+                        setError('Please fix the following: ' + errors.join('; '));
+                        return null;
+                    }
+                }
             }
             setError('Failed to create application. Please try again.');
             return null;
@@ -475,24 +545,12 @@ const ApplicationForm = () => {
         setFormData(prev => ({ ...prev, primary_mos: mosId }));
     };
 
-    const acceptWaiver = async (waiverId) => {
-        // Just add to local state - we'll save when we have an application ID
+    const acceptWaiver = (waiverId) => {
+        // Just add to local state - we'll save these when creating the application
         setFormData(prev => ({
             ...prev,
             accepted_waivers: [...prev.accepted_waivers, waiverId]
         }));
-
-        // If we have an application ID, also save to backend
-        if (applicationId) {
-            try {
-                await api.post(`/onboarding/applications/${applicationId}/accept-waiver/`, {
-                    waiver_type_id: waiverId
-                });
-            } catch (err) {
-                console.error('Error accepting waiver on backend:', err);
-                // Keep the local state update even if backend fails
-            }
-        }
     };
 
     const validateStep = () => {
@@ -589,31 +647,20 @@ const ApplicationForm = () => {
     const handleNext = async () => {
         if (!validateStep()) return;
 
-        // If we're moving from step 2 (Basic Info) and don't have an application ID yet, create one now
-        if (currentStep === 2 && !applicationId) {
-            setIsLoading(true);
-            try {
-                const newAppId = await createApplication();
-                if (!newAppId) {
-                    return; // Don't proceed if creation failed
-                }
-            } catch (err) {
-                console.error('Error in handleNext:', err);
-                return;
-            } finally {
-                setIsLoading(false);
-            }
-        } else if (applicationId && currentStep >= 2) {
-            // Save progress before moving to next step if we have an application ID
-            await autoSaveProgress();
-        }
+        // Clear any previous errors
+        setError(null);
 
+        // Don't create application early since API requires fields from later steps
+        // Just save locally and move to next step
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
         }
     };
 
     const handlePrevious = () => {
+        // Clear any errors when going back
+        setError(null);
+
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
         }
@@ -630,10 +677,24 @@ const ApplicationForm = () => {
             let currentAppId = applicationId;
 
             if (!currentAppId) {
-                console.log('No application ID at submission, creating one now...');
+                console.log('Creating application with complete form data...');
                 currentAppId = await createApplication();
                 if (!currentAppId) {
                     throw new Error('Failed to create application for submission');
+                }
+
+                // If we have waivers to accept, do it now
+                if (formData.accepted_waivers.length > 0) {
+                    console.log('Accepting waivers for new application...');
+                    for (const waiverId of formData.accepted_waivers) {
+                        try {
+                            await api.post(`/onboarding/applications/${currentAppId}/accept-waiver/`, {
+                                waiver_type_id: waiverId
+                            });
+                        } catch (err) {
+                            console.error('Failed to accept waiver:', waiverId, err);
+                        }
+                    }
                 }
             } else {
                 // Save any last-minute changes
@@ -646,8 +707,7 @@ const ApplicationForm = () => {
 
             const submitData = {
                 confirm_submission: true,
-                accept_all_waivers: true,
-                accepted_waivers: formData.accepted_waivers
+                accept_all_waivers: true
             };
 
             console.log('Submit data:', submitData);
@@ -772,18 +832,36 @@ const ApplicationForm = () => {
                     waivers={recruitmentData?.waivers || []}
                     acceptedWaivers={formData.accepted_waivers}
                     onAccept={acceptWaiver}
+                    formData={formData}
+                    recruitmentData={recruitmentData}
                 />;
             default:
                 return null;
         }
     };
 
+    // Display loading during initialization
     if (isLoading && currentStep === 1) {
         return (
             <div className="application-container">
                 <div className="loading-container">
                     <Loader className="spinning" size={40} />
                     <p>INITIALIZING RECRUITMENT INTERFACE...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Display full-screen loading during submission
+    if (isLoading && currentStep === totalSteps && !applicationId) {
+        return (
+            <div className="application-container">
+                <div className="loading-container">
+                    <Loader className="spinning" size={40} />
+                    <p>CREATING APPLICATION...</p>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                        Please wait while we process your information
+                    </p>
                 </div>
             </div>
         );
@@ -822,9 +900,14 @@ const ApplicationForm = () => {
                             ✓ Application ID: {applicationId.substring(0, 8)}...
                         </span>
                     )}
-                    {!applicationId && currentStep > 1 && (
-                        <span className="no-app-id" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--warning-color)' }}>
-                            ⚠ No application created yet
+                    {!applicationId && currentStep > 1 && currentStep < totalSteps && (
+                        <span className="local-save" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            ℹ Data saved locally
+                        </span>
+                    )}
+                    {!applicationId && currentStep === totalSteps && (
+                        <span className="no-app-id" style={{ marginLeft: '1rem', fontSize: '0.75rem', color: 'var(--info-color)' }}>
+                            ℹ Application will be created on submission
                         </span>
                     )}
                 </div>
@@ -835,29 +918,6 @@ const ApplicationForm = () => {
                 <div className="error-message">
                     <AlertCircle size={20} />
                     <span>{error}</span>
-                </div>
-            )}
-
-            {/* Debug: Manual Create Button */}
-            {!applicationId && currentStep === 2 && (
-                <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-                    <button
-                        className="nav-btn next"
-                        onClick={async () => {
-                            setIsLoading(true);
-                            try {
-                                await createApplication();
-                            } catch (err) {
-                                console.error('Manual create failed:', err);
-                            } finally {
-                                setIsLoading(false);
-                            }
-                        }}
-                        disabled={isLoading}
-                        style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-                    >
-                        {isLoading ? 'Creating...' : 'Debug: Create Application Now'}
-                    </button>
                 </div>
             )}
 
@@ -883,30 +943,21 @@ const ApplicationForm = () => {
                     <button
                         className="nav-btn next"
                         onClick={handleNext}
-                        disabled={isLoading || isLoadingData || isSaving}
+                        disabled={isLoading || isLoadingData}
                     >
-                        {isLoading ? (
-                            <>
-                                <Loader className="spinning" size={20} />
-                                Processing...
-                            </>
-                        ) : (
-                            <>
-                                {currentStep === 1 ? 'Begin Enlistment' : 'Continue'}
-                                <ChevronRight size={20} />
-                            </>
-                        )}
+                        {currentStep === 1 ? 'Begin Enlistment' : 'Continue'}
+                        <ChevronRight size={20} />
                     </button>
                 ) : (
                     <button
                         className="nav-btn submit"
                         onClick={handleSubmit}
-                        disabled={isLoading || isSaving}
+                        disabled={isLoading}
                     >
                         {isLoading ? (
                             <>
                                 <Loader className="spinning" size={20} />
-                                Transmitting...
+                                {applicationId ? 'Submitting...' : 'Creating Application...'}
                             </>
                         ) : (
                             <>
@@ -958,7 +1009,8 @@ const WelcomeStep = () => (
 
         <div className="feature-card highlight">
             <h3><Compass size={20} /> APPLICATION PROCESS</h3>
-            <p>This application consists of 10 phases. All information is saved automatically as you progress.
+            <p>This application consists of 10 phases. Your information is saved locally as you progress through each step.
+                Your application will be created and submitted to our servers when you complete all steps and click submit.
                 Upon completion, you will receive confirmation via Discord and gain access to your recruit profile.</p>
         </div>
     </div>
@@ -1427,14 +1479,36 @@ const RoleSpecificStep = ({ formData, careerTrack, onChange }) => (
     </div>
 );
 
-const WaiversStep = ({ waivers, acceptedWaivers, onAccept }) => {
+const WaiversStep = ({ waivers, acceptedWaivers, onAccept, formData, recruitmentData }) => {
     const requiredWaivers = waivers.filter(w => w.is_required);
     const optionalWaivers = waivers.filter(w => !w.is_required);
+
+    // Get labels for display
+    const getBranchName = (branchId) => {
+        const branch = recruitmentData?.branches?.find(b => b.id === branchId);
+        return branch?.name || 'Unknown Branch';
+    };
+
+    const getCareerTrackLabel = (track) => {
+        const trackData = recruitmentData?.career_tracks?.find(t => t.value === track);
+        return trackData?.label || track;
+    };
 
     return (
         <div className="agreement-section">
             <h2>ACKNOWLEDGMENTS & WAIVERS</h2>
             <p className="step-description">Review and accept the following acknowledgments</p>
+
+            {/* Summary of Application */}
+            <div className="info-card" style={{ marginBottom: '2rem' }}>
+                <h4><FileText size={16} /> Application Summary</h4>
+                <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.875rem' }}>
+                    <div><strong>Name:</strong> {formData.first_name} {formData.last_name}</div>
+                    <div><strong>Branch:</strong> {formData.branch ? getBranchName(formData.branch) : 'Not selected'}</div>
+                    <div><strong>Career Track:</strong> {formData.career_track ? getCareerTrackLabel(formData.career_track) : 'Not selected'}</div>
+                    <div><strong>Weekly Availability:</strong> {formData.weekly_availability_hours || 0} hours</div>
+                </div>
+            </div>
 
             {requiredWaivers.map(waiver => (
                 <div key={waiver.id} className="agreement-item">
@@ -1485,6 +1559,9 @@ const WaiversStep = ({ waivers, acceptedWaivers, onAccept }) => {
             <div className="info-card highlight">
                 <h4><FileText size={16} /> Final Step</h4>
                 <p>By submitting this application, you confirm that all information provided is accurate and that you understand the commitments required for service in the 5th Expeditionary Group.</p>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--rsi-blue)' }}>
+                    <strong>Note:</strong> Your application will be created and submitted when you click the Submit button below.
+                </p>
             </div>
         </div>
     );
