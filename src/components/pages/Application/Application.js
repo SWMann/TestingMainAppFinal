@@ -91,10 +91,13 @@ const ApplicationForm = () => {
 
     // Load MOS options when career track changes
     useEffect(() => {
-        if (formData.branch && formData.career_track && currentStep === 7) {
+        if (formData.branch && formData.career_track && formData.primary_unit && currentStep === 7) {
             fetchMOSOptions();
+        } else if (currentStep === 7) {
+            // Clear MOS list if we don't have prerequisites
+            setMosList([]);
         }
-    }, [formData.career_track, formData.branch, currentStep]);
+    }, [formData.career_track, formData.branch, formData.primary_unit, currentStep]);
 
     const initializeApplication = async () => {
         setIsLoading(true);
@@ -168,6 +171,7 @@ const ApplicationForm = () => {
     };
 
     const fetchPrimaryUnits = async (branchId) => {
+        console.log('Fetching primary units for branch:', branchId);
         setIsLoadingData(true);
         setPrimaryUnits([]); // Clear existing units
         try {
@@ -177,6 +181,7 @@ const ApplicationForm = () => {
                     unit_type: 'primary'
                 }
             });
+            console.log('Primary units response:', response.data);
             setPrimaryUnits(response.data);
             return response.data;
         } catch (err) {
@@ -213,7 +218,13 @@ const ApplicationForm = () => {
     };
 
     const fetchMOSOptions = async () => {
-        if (!formData.branch || !formData.career_track) return;
+        if (!formData.branch || !formData.career_track || !formData.primary_unit) return;
+
+        console.log('Fetching MOS options:', {
+            branch_id: formData.branch,
+            career_track: formData.career_track,
+            unit_id: formData.primary_unit
+        });
 
         setIsLoadingData(true);
         try {
@@ -221,9 +232,10 @@ const ApplicationForm = () => {
                 params: {
                     branch_id: formData.branch,
                     career_track: formData.career_track,
-                    unit_id: formData.primary_unit
+                    unit_id: formData.primary_unit  // Pass the primary unit to get slots
                 }
             });
+            console.log('MOS options response:', response.data);
             setMosList(response.data);
         } catch (err) {
             console.error('Error fetching MOS options:', err);
@@ -347,7 +359,7 @@ const ApplicationForm = () => {
 
             case 7: // MOS Selection
                 if (!formData.primary_mos) {
-                    setError('Please select a primary specialization');
+                    setError('Please select a Military Occupational Specialty (MOS)');
                     return false;
                 }
                 break;
@@ -954,54 +966,79 @@ const MOSSelectionStep = ({ mosList, selectedMOS, onSelect, isLoading }) => {
         return (
             <div className="loading-container">
                 <Loader className="spinning" size={40} />
-                <p>LOADING SPECIALIZATIONS...</p>
+                <p>LOADING AVAILABLE POSITIONS...</p>
             </div>
         );
     }
 
+    // Sort by available slots if not already sorted
+    const sortedMosList = [...mosList].sort((a, b) => (b.available_slots || 0) - (a.available_slots || 0));
+
     return (
         <div className="mos-selection">
-            <h2>SELECT PRIMARY SPECIALIZATION</h2>
-            <p className="step-description">Choose your Military Occupational Specialty (MOS)</p>
+            <h2>SELECT MILITARY OCCUPATIONAL SPECIALTY</h2>
+            <p className="step-description">Choose from available positions in your selected unit</p>
 
-            <div className="mos-grid">
-                {mosList.map(mos => (
-                    <div
-                        key={mos.id}
-                        className={`mos-card ${selectedMOS === mos.id ? 'selected' : ''}`}
-                        onClick={() => onSelect(mos.id)}
-                    >
-                        <div className="mos-header">
-                            <div className="mos-icon">
-                                <Briefcase size={20} />
+            {sortedMosList.length > 0 ? (
+                <div className="mos-grid">
+                    {sortedMosList.map(mos => (
+                        <div
+                            key={mos.id}
+                            className={`mos-card ${selectedMOS === mos.id ? 'selected' : ''}`}
+                            onClick={() => onSelect(mos.id)}
+                        >
+                            <div className="mos-header">
+                                <div className="mos-icon">
+                                    <Briefcase size={20} />
+                                </div>
+                                <div className="mos-info">
+                                    <h4>{mos.code}</h4>
+                                    <p>{mos.title}</p>
+                                </div>
                             </div>
-                            <div className="mos-info">
-                                <h4>{mos.code}</h4>
-                                <p>{mos.title}</p>
+                            {mos.description && (
+                                <p className="mos-description">{mos.description}</p>
+                            )}
+                            <div className="mos-details">
+                                <div className="mos-stat">
+                                    <span className="stat-label">Open Slots:</span>
+                                    <span className="stat-value" style={{
+                                        color: mos.available_slots > 3 ? 'var(--success-color)' :
+                                            mos.available_slots > 0 ? 'var(--warning-color)' :
+                                                'var(--error-color)'
+                                    }}>
+                                        {mos.available_slots || 0}
+                                    </span>
+                                </div>
+                                <div className="mos-stat">
+                                    <span className="stat-label">Training:</span>
+                                    <span className="stat-value">{mos.ait_weeks || 'TBD'} weeks</span>
+                                </div>
                             </div>
+                            {mos.roles && mos.roles.length > 0 && (
+                                <div className="mos-positions">
+                                    <span className="positions-label">Available roles:</span>
+                                    <div className="roles-list">
+                                        {mos.roles.map((role, idx) => (
+                                            <div key={idx} className="role-item">{role}</div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {mos.available_slots === 1 && (
+                                <div className="limited-availability">
+                                    <AlertCircle size={14} />
+                                    <span>Only 1 slot remaining</span>
+                                </div>
+                            )}
                         </div>
-                        {mos.description && (
-                            <p className="mos-description">{mos.description}</p>
-                        )}
-                        <div className="mos-details">
-                            <div className="mos-stat">
-                                <span className="stat-label">Training:</span>
-                                <span className="stat-value">{mos.ait_weeks} weeks</span>
-                            </div>
-                            <div className="mos-stat">
-                                <span className="stat-label">Category:</span>
-                                <span className="stat-value">{mos.category}</span>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {mosList.length === 0 && (
+                    ))}
+                </div>
+            ) : (
                 <div className="no-brigades-message">
                     <AlertCircle size={48} />
-                    <h3>No Specializations Available</h3>
-                    <p>No MOS options available for your selected track and unit.</p>
+                    <h3>No Positions Available</h3>
+                    <p>There are currently no open positions for your selected career track in this unit. Please try selecting a different unit or career track.</p>
                 </div>
             )}
         </div>
