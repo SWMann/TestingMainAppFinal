@@ -31,6 +31,7 @@ const ApplicationForm = () => {
     const [secondaryUnits, setSecondaryUnits] = useState([]);
     const [mosList, setMosList] = useState([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
+    const [positionsList, setPositionsList] = useState([]);
 
     // Note: We collect all form data locally and only create the application
     // at submission time since the API requires fields from multiple steps
@@ -52,6 +53,8 @@ const ApplicationForm = () => {
         // Career & MOS (Steps 6-7)
         career_track: null,
         primary_mos: null,
+        selected_recruitment_slot: null,
+
 
         // Experience (Step 8)
         previous_experience: '',
@@ -116,11 +119,50 @@ const ApplicationForm = () => {
     useEffect(() => {
         if (formData.branch && formData.career_track && formData.primary_unit && currentStep === 7) {
             fetchMOSOptions();
+            fetchPositionOptions();
+
         } else if (currentStep === 7) {
             // Clear MOS list if we don't have prerequisites
             setMosList([]);
+            setPositionsList([]);
+
         }
     }, [formData.career_track, formData.branch, formData.primary_unit, currentStep]);
+
+    const fetchPositionOptions = async () => {
+        if (!formData.branch || !formData.career_track || !formData.primary_unit) return;
+
+        console.log('Fetching position options:', {
+            branch_id: formData.branch,
+            career_track: formData.career_track,
+            unit_id: formData.primary_unit
+        });
+
+        setIsLoadingData(true);
+        try {
+            const response = await api.get('/onboarding/applications/get-recruitment-slots/', {
+                params: {
+                    branch_id: formData.branch,
+                    career_track: formData.career_track,
+                    unit_id: formData.primary_unit
+                }
+            });
+            console.log('Position options response:', response.data);
+
+            if (response.data && response.data.recruitment_slots) {
+                setPositionsList(response.data.recruitment_slots);
+            } else {
+                console.error('Unexpected position options format:', response.data);
+                setPositionsList([]);
+            }
+        } catch (err) {
+            console.error('Error fetching position options:', err);
+            setPositionsList([]);
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
 
     const initializeApplication = async () => {
         setIsLoading(true);
@@ -290,9 +332,9 @@ const ApplicationForm = () => {
                 primary_unit: formData.primary_unit,
                 secondary_unit: formData.secondary_unit,
                 career_track: formData.career_track,
-                primary_mos: formData.primary_mos && formData.primary_mos.startsWith('role_')
-                    ? formData.primary_mos.substring(5)
-                    : formData.primary_mos,
+                // Don't send primary_mos if it's a role_ prefixed ID
+                selected_recruitment_slot: formData.selected_recruitment_slot,
+
 
                 // Experience fields
                 previous_experience: formData.previous_experience,
@@ -311,8 +353,14 @@ const ApplicationForm = () => {
                 status: 'draft'
             };
 
+            // If we have a role-based MOS, store it separately
+            if (formData.primary_mos && formData.primary_mos.startsWith('role_')) {
+                createData.role_specific_answers = {
+                    selected_role_id: formData.primary_mos.substring(5)
+                };
+            }
+
             console.log('Creating application with data:', createData);
-            console.log('Primary MOS before:', formData.primary_mos, 'after:', createData.primary_mos);
             const createResponse = await api.post('/onboarding/applications/', createData);
 
             if (createResponse.data && createResponse.data.id) {
@@ -366,7 +414,9 @@ const ApplicationForm = () => {
                 primary_unit: formData.primary_unit,
                 secondary_unit: formData.secondary_unit,
                 career_track: formData.career_track,
-                primary_mos: formData.primary_mos,
+                // Don't send primary_mos if it's a role_ prefixed ID
+                selected_recruitment_slot: formData.selected_recruitment_slot,
+
                 previous_experience: formData.previous_experience,
                 reason_for_joining: formData.reason_for_joining,
                 weekly_availability_hours: formData.weekly_availability_hours,
@@ -375,6 +425,13 @@ const ApplicationForm = () => {
                 technical_experience: formData.technical_experience,
                 current_step: currentStep
             };
+
+            // If we have a role-based MOS, store it separately
+            if (formData.primary_mos && formData.primary_mos.startsWith('role_')) {
+                saveData.role_specific_answers = {
+                    selected_role_id: formData.primary_mos.substring(5)
+                };
+            }
 
             // Try PATCH first, then POST if that fails
             try {
@@ -537,6 +594,11 @@ const ApplicationForm = () => {
         setFormData(prev => ({ ...prev, secondary_unit: unitId }));
     };
 
+    const handlePositionSelect = (slotId) => {
+        console.log('Position selected:', slotId);
+        setFormData(prev => ({ ...prev, selected_recruitment_slot: slotId }));
+    };
+
     const handleCareerTrackSelect = async (track) => {
         setFormData(prev => ({
             ...prev,
@@ -548,6 +610,16 @@ const ApplicationForm = () => {
 
     const handleMOSSelect = (mosId) => {
         console.log('MOS selected:', mosId);
+        console.log('MOS type:', typeof mosId);
+        console.log('Starts with role_?', mosId.startsWith('role_'));
+
+        // Always ensure we store role-based IDs with the prefix
+        if (mosId && !mosId.startsWith('role_') && !mosId.includes('-')) {
+            // If it's just a plain ID without hyphens, it might be a role
+            console.warn('MOS ID might be missing role_ prefix, adding it');
+            mosId = `role_${mosId}`;
+        }
+
         setFormData(prev => ({ ...prev, primary_mos: mosId }));
     };
 
@@ -602,9 +674,11 @@ const ApplicationForm = () => {
                 }
                 break;
 
-            case 7: // MOS Selection
-                // MOS is optional if no options are available
-                // Let the API handle validation for required MOS
+            case 7: // Position Selection
+                if (positionsList.length > 0 && !formData.selected_recruitment_slot) {
+                    setError('Please select a position from the available options');
+                    return false;
+                }
                 break;
 
             case 8: // Experience
@@ -814,12 +888,13 @@ const ApplicationForm = () => {
                     onSelect={handleCareerTrackSelect}
                 />;
             case 7:
-                return <MOSSelectionStep
-                    mosList={mosList}
-                    selectedMOS={formData.primary_mos}
-                    onSelect={handleMOSSelect}
+                return <PositionSelectionStep
+                    positionsList={positionsList}
+                    selectedPosition={formData.selected_recruitment_slot}
+                    onSelect={handlePositionSelect}
                     isLoading={isLoadingData}
                 />;
+
             case 8:
                 return <ExperienceStep
                     formData={formData}
@@ -1302,6 +1377,102 @@ const CareerTrackStep = ({ tracks, selectedTrack, onSelect }) => (
     </div>
 );
 
+const PositionSelectionStep = ({ positionsList, selectedPosition, onSelect, isLoading }) => {
+    if (isLoading) {
+        return (
+            <div className="loading-container">
+                <Loader className="spinning" size={40} />
+                <p>LOADING AVAILABLE POSITIONS...</p>
+            </div>
+        );
+    }
+
+    // Group positions by role category
+    const positionsByCategory = {};
+    positionsList.forEach(position => {
+        const category = position.role.category;
+        if (!positionsByCategory[category]) {
+            positionsByCategory[category] = [];
+        }
+        positionsByCategory[category].push(position);
+    });
+
+    return (
+        <div className="mos-selection">
+            <h2>SELECT POSITION</h2>
+            <p className="step-description">Choose from available positions in your selected unit</p>
+
+            {positionsList.length > 0 ? (
+                <div className="positions-by-category">
+                    {Object.entries(positionsByCategory).map(([category, positions]) => (
+                        <div key={category} className="category-section">
+                            <h3 className="category-header">{category.replace(/_/g, ' ').toUpperCase()}</h3>
+                            <div className="mos-grid">
+                                {positions.map(position => (
+                                    <div
+                                        key={position.id}
+                                        className={`mos-card ${selectedPosition === position.id ? 'selected' : ''}`}
+                                        onClick={() => onSelect(position.id)}
+                                    >
+                                        <div className="mos-header">
+                                            <div className="mos-icon">
+                                                <Briefcase size={20} />
+                                            </div>
+                                            <div className="mos-info">
+                                                <h4>{position.role.name}</h4>
+                                                <p>{position.unit.abbreviation}</p>
+                                            </div>
+                                        </div>
+                                        {position.role.description && (
+                                            <p className="mos-description">{position.role.description}</p>
+                                        )}
+                                        <div className="mos-details">
+                                            <div className="mos-stat">
+                                                <span className="stat-label">Open Slots:</span>
+                                                <span className="stat-value" style={{
+                                                    color: position.available_slots > 3 ? 'var(--success-color)' :
+                                                        position.available_slots > 0 ? 'var(--warning-color)' :
+                                                            'var(--error-color)'
+                                                }}>
+                                                    {position.available_slots}
+                                                </span>
+                                            </div>
+                                            <div className="mos-stat">
+                                                <span className="stat-label">Unit:</span>
+                                                <span className="stat-value">{position.unit.name}</span>
+                                            </div>
+                                        </div>
+
+                                        {position.role.typical_rank && (
+                                            <div className="rank-requirement">
+                                                <span className="stat-label">Typical Rank:</span>
+                                                <span className="stat-value">{position.role.typical_rank}</span>
+                                            </div>
+                                        )}
+
+                                        {position.available_slots === 1 && (
+                                            <div className="limited-availability">
+                                                <AlertCircle size={14} />
+                                                <span>Only 1 slot remaining</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="no-brigades-message">
+                    <AlertCircle size={48} />
+                    <h3>No Positions Available</h3>
+                    <p>There are currently no open positions for your selected career track in this unit. Please try selecting a different unit or career track.</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const MOSSelectionStep = ({ mosList, selectedMOS, onSelect, isLoading }) => {
     if (isLoading) {
         return (
@@ -1323,8 +1494,14 @@ const MOSSelectionStep = ({ mosList, selectedMOS, onSelect, isLoading }) => {
             {sortedMosList.length > 0 ? (
                 <div className="mos-grid">
                     {sortedMosList.map(mos => {
-                        // Use mos_id if available, otherwise fall back to id
-                        const mosId = mos.mos_id || mos.id;
+                        // Ensure we use the correct ID format
+                        let mosId = mos.mos_id || mos.id;
+
+                        // If the ID doesn't start with 'role_' but we know it's a role-based MOS
+                        // (indicated by having mos_id set to a UUID), add the prefix
+                        if (mos.mos_id && !String(mosId).startsWith('role_') && !mos.code.startsWith('MOS')) {
+                            mosId = `role_${mosId}`;
+                        }
 
                         return (
                             <div

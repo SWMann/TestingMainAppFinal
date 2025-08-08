@@ -1529,6 +1529,92 @@
     letter-spacing: 0.1em;
 }
 
+/* Add to Application.css */
+
+/* Position Selection Styles */
+.positions-by-category {
+    margin-top: 2rem;
+}
+
+.category-section {
+    margin-bottom: 3rem;
+}
+
+.category-header {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.25rem;
+    color: var(--rsi-blue);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.rank-requirement {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(66, 200, 244, 0.1);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rank-requirement .stat-label {
+    color: var(--text-muted);
+}
+
+.rank-requirement .stat-value {
+    color: var(--warning-color);
+    font-weight: 600;
+}
+
+/* Update MOS card for position display */
+.mos-card .unit-info {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: rgba(66, 200, 244, 0.05);
+    padding: 0.25rem 0.5rem;
+    border-left: 2px solid var(--rsi-blue);
+}
+
+/* Position type badges */
+.position-badges {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.position-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.5rem;
+    background: rgba(66, 200, 244, 0.1);
+    border: 1px solid rgba(66, 200, 244, 0.3);
+    color: var(--rsi-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.position-badge.command {
+    background: rgba(255, 170, 0, 0.1);
+    border-color: rgba(255, 170, 0, 0.3);
+    color: var(--warning-color);
+}
+
+.position-badge.nco {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: rgba(0, 255, 136, 0.3);
+    color: var(--success-color);
+}
+
+.position-badge.specialist {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #8b5cf6;
+}
+
 .no-brigades-message p {
     color: var(--text-secondary);
     line-height: 1.6;
