@@ -29,12 +29,8 @@ const ApplicationForm = () => {
     const [recruitmentData, setRecruitmentData] = useState(null);
     const [primaryUnits, setPrimaryUnits] = useState([]);
     const [secondaryUnits, setSecondaryUnits] = useState([]);
-    const [mosList, setMosList] = useState([]);
+    const [recruitmentSlots, setRecruitmentSlots] = useState([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
-    const [positionsList, setPositionsList] = useState([]);
-
-    // Note: We collect all form data locally and only create the application
-    // at submission time since the API requires fields from multiple steps
 
     // Form data matching API structure
     const [formData, setFormData] = useState({
@@ -50,11 +46,9 @@ const ApplicationForm = () => {
         primary_unit: null, // Squadron/Company
         secondary_unit: null, // Division/Platoon
 
-        // Career & MOS (Steps 6-7)
+        // Career & Position (Steps 6-7)
         career_track: null,
-        primary_mos: null,
-        selected_recruitment_slot: null,
-
+        selected_recruitment_slot: null, // Changed from primary_mos
 
         // Experience (Step 8)
         previous_experience: '',
@@ -69,15 +63,6 @@ const ApplicationForm = () => {
         // Waivers (Step 10)
         accepted_waivers: []
     });
-
-    /**
-     * Application Form Component
-     *
-     * This form collects all application data locally across 10 steps,
-     * then creates and submits the application to the server only when
-     * all required fields are complete. This approach is necessary because
-     * the API requires fields from multiple steps to create an application.
-     */
 
     const totalSteps = 10;
 
@@ -106,7 +91,6 @@ const ApplicationForm = () => {
 
     // Auto-save on form changes (debounced) - only if we have an application
     useEffect(() => {
-        // Only auto-save if we have an application ID
         if (applicationId && !isLoading && !isSaving) {
             const saveTimer = setTimeout(() => {
                 autoSaveProgress();
@@ -115,24 +99,19 @@ const ApplicationForm = () => {
         }
     }, [formData, currentStep, applicationId, isLoading, isSaving]);
 
-    // Load MOS options when career track changes
+    // Load recruitment slots when career track changes
     useEffect(() => {
         if (formData.branch && formData.career_track && formData.primary_unit && currentStep === 7) {
-            fetchMOSOptions();
-            fetchPositionOptions();
-
+            fetchRecruitmentSlots();
         } else if (currentStep === 7) {
-            // Clear MOS list if we don't have prerequisites
-            setMosList([]);
-            setPositionsList([]);
-
+            setRecruitmentSlots([]);
         }
     }, [formData.career_track, formData.branch, formData.primary_unit, currentStep]);
 
-    const fetchPositionOptions = async () => {
+    const fetchRecruitmentSlots = async () => {
         if (!formData.branch || !formData.career_track || !formData.primary_unit) return;
 
-        console.log('Fetching position options:', {
+        console.log('Fetching recruitment slots:', {
             branch_id: formData.branch,
             career_track: formData.career_track,
             unit_id: formData.primary_unit
@@ -147,22 +126,21 @@ const ApplicationForm = () => {
                     unit_id: formData.primary_unit
                 }
             });
-            console.log('Position options response:', response.data);
+            console.log('Recruitment slots response:', response.data);
 
             if (response.data && response.data.recruitment_slots) {
-                setPositionsList(response.data.recruitment_slots);
+                setRecruitmentSlots(response.data.recruitment_slots);
             } else {
-                console.error('Unexpected position options format:', response.data);
-                setPositionsList([]);
+                console.error('Unexpected recruitment slots format:', response.data);
+                setRecruitmentSlots([]);
             }
         } catch (err) {
-            console.error('Error fetching position options:', err);
-            setPositionsList([]);
+            console.error('Error fetching recruitment slots:', err);
+            setRecruitmentSlots([]);
         } finally {
             setIsLoadingData(false);
         }
     };
-
 
     const initializeApplication = async () => {
         setIsLoading(true);
@@ -174,18 +152,16 @@ const ApplicationForm = () => {
             // Try to check for existing application by discord ID
             if (currentUser?.discord_id) {
                 try {
-                    // Use the simpler endpoint that might work better
                     const draftsResponse = await api.get('/onboarding/applications/my-drafts/');
                     console.log('My drafts response:', draftsResponse.data);
 
                     if (draftsResponse.data && draftsResponse.data.length > 0) {
-                        // Get the most recent draft
                         const app = draftsResponse.data[0];
                         console.log('Found existing draft application:', app);
 
                         setApplicationId(app.id);
 
-                        // Restore saved progress if exists - handle different data structures
+                        // Restore saved progress
                         const step = app.current_step || app.progress?.current_step || 1;
                         if (step > 1) {
                             setFormData({
@@ -198,7 +174,7 @@ const ApplicationForm = () => {
                                 primary_unit: app.primary_unit || null,
                                 secondary_unit: app.secondary_unit || null,
                                 career_track: app.career_track || null,
-                                primary_mos: app.primary_mos || null,
+                                selected_recruitment_slot: app.selected_recruitment_slot || null,
                                 previous_experience: app.previous_experience || '',
                                 reason_for_joining: app.reason_for_joining || '',
                                 weekly_availability_hours: app.weekly_availability_hours || null,
@@ -208,14 +184,12 @@ const ApplicationForm = () => {
                                 accepted_waivers: app.waivers?.map(w => w.waiver_type || w.id) || []
                             });
 
-                            // Resume from last step
                             setCurrentStep(step);
 
                             // If branch is already selected, load units for that branch
                             if (app.branch) {
                                 await fetchPrimaryUnits(app.branch);
 
-                                // If primary unit is selected, load secondary units
                                 if (app.primary_unit) {
                                     await fetchSecondaryUnits(app.branch, app.primary_unit);
                                 }
@@ -223,71 +197,12 @@ const ApplicationForm = () => {
                         }
                     }
                 } catch (err) {
-                    console.log('My-drafts endpoint failed, trying status endpoint:', err.message);
-                    // Try the status endpoint as a fallback
-                    try {
-                        const statusResponse = await api.get(`/onboarding/applications/status/${currentUser.discord_id}/`);
-                        console.log('Application status check:', statusResponse.data);
-
-                        // If we have a draft application, try to load it
-                        if (statusResponse.data.status === 'draft' && statusResponse.data.application_id) {
-                            try {
-                                const appResponse = await api.get(`/onboarding/applications/${statusResponse.data.application_id}/`);
-                                const app = appResponse.data;
-                                console.log('Found existing draft application:', app);
-
-                                setApplicationId(app.id);
-
-                                // Restore saved progress if exists
-                                const step = app.current_step || app.progress?.current_step || 1;
-                                if (step > 1) {
-                                    setFormData({
-                                        first_name: app.first_name || '',
-                                        last_name: app.last_name || '',
-                                        email: app.email || currentUser.email || '',
-                                        timezone: app.timezone || '',
-                                        country: app.country || '',
-                                        branch: app.branch || null,
-                                        primary_unit: app.primary_unit || null,
-                                        secondary_unit: app.secondary_unit || null,
-                                        career_track: app.career_track || null,
-                                        primary_mos: app.primary_mos || null,
-                                        previous_experience: app.previous_experience || '',
-                                        reason_for_joining: app.reason_for_joining || '',
-                                        weekly_availability_hours: app.weekly_availability_hours || null,
-                                        can_attend_mandatory_events: app.can_attend_mandatory_events !== false,
-                                        leadership_experience: app.leadership_experience || '',
-                                        technical_experience: app.technical_experience || '',
-                                        accepted_waivers: app.waivers?.map(w => w.waiver_type || w.id) || []
-                                    });
-
-                                    // Resume from last step
-                                    setCurrentStep(step);
-
-                                    // If branch is already selected, load units for that branch
-                                    if (app.branch) {
-                                        await fetchPrimaryUnits(app.branch);
-
-                                        // If primary unit is selected, load secondary units
-                                        if (app.primary_unit) {
-                                            await fetchSecondaryUnits(app.branch, app.primary_unit);
-                                        }
-                                    }
-                                }
-                            } catch (err) {
-                                console.log('Could not load draft application details:', err);
-                            }
-                        }
-                    } catch (err) {
-                        // No existing application found - this is fine
-                        console.log('No existing application found for user');
-                    }
+                    console.log('No existing application found for user');
                 }
             } else {
                 console.warn('User does not have discord_id set');
             }
 
-            // If we don't have an application ID at this point, we'll create one when user starts filling the form
             if (!applicationId) {
                 console.log('Ready to create new application when user begins');
             }
@@ -332,9 +247,7 @@ const ApplicationForm = () => {
                 primary_unit: formData.primary_unit,
                 secondary_unit: formData.secondary_unit,
                 career_track: formData.career_track,
-                // Don't send primary_mos if it's a role_ prefixed ID
                 selected_recruitment_slot: formData.selected_recruitment_slot,
-
 
                 // Experience fields
                 previous_experience: formData.previous_experience,
@@ -352,13 +265,6 @@ const ApplicationForm = () => {
                 current_step: currentStep,
                 status: 'draft'
             };
-
-            // If we have a role-based MOS, store it separately
-            if (formData.primary_mos && formData.primary_mos.startsWith('role_')) {
-                createData.role_specific_answers = {
-                    selected_role_id: formData.primary_mos.substring(5)
-                };
-            }
 
             console.log('Creating application with data:', createData);
             const createResponse = await api.post('/onboarding/applications/', createData);
@@ -379,7 +285,6 @@ const ApplicationForm = () => {
                 console.error('Error response:', err.response.data);
                 console.error('Error status:', err.response.status);
 
-                // Show specific field errors from server
                 if (err.response.data) {
                     const errors = [];
                     Object.entries(err.response.data).forEach(([field, messages]) => {
@@ -403,7 +308,6 @@ const ApplicationForm = () => {
 
         setIsSaving(true);
         try {
-            // Save progress to existing application
             const saveData = {
                 first_name: formData.first_name,
                 last_name: formData.last_name,
@@ -414,9 +318,7 @@ const ApplicationForm = () => {
                 primary_unit: formData.primary_unit,
                 secondary_unit: formData.secondary_unit,
                 career_track: formData.career_track,
-                // Don't send primary_mos if it's a role_ prefixed ID
                 selected_recruitment_slot: formData.selected_recruitment_slot,
-
                 previous_experience: formData.previous_experience,
                 reason_for_joining: formData.reason_for_joining,
                 weekly_availability_hours: formData.weekly_availability_hours,
@@ -426,19 +328,10 @@ const ApplicationForm = () => {
                 current_step: currentStep
             };
 
-            // If we have a role-based MOS, store it separately
-            if (formData.primary_mos && formData.primary_mos.startsWith('role_')) {
-                saveData.role_specific_answers = {
-                    selected_role_id: formData.primary_mos.substring(5)
-                };
-            }
-
-            // Try PATCH first, then POST if that fails
             try {
                 await api.patch(`/onboarding/applications/${applicationId}/save-progress/`, saveData);
             } catch (patchErr) {
                 if (patchErr.response?.status === 405) {
-                    // Method not allowed, try POST
                     await api.post(`/onboarding/applications/${applicationId}/save-progress/`, saveData);
                 } else {
                     throw patchErr;
@@ -449,15 +342,8 @@ const ApplicationForm = () => {
             return applicationId;
         } catch (err) {
             console.error('Auto-save failed:', err);
-            if (err.response) {
-                console.error('Error response:', err.response.data);
-                console.error('Error status:', err.response.status);
-            }
-
-            // If it's a 404, the application might not exist
             if (err.response?.status === 404) {
                 console.log('Application not found during save');
-                // Don't clear the ID here, as it might cause issues
             }
             return applicationId;
         } finally {
@@ -468,7 +354,7 @@ const ApplicationForm = () => {
     const fetchPrimaryUnits = async (branchId) => {
         console.log('Fetching primary units for branch:', branchId);
         setIsLoadingData(true);
-        setPrimaryUnits([]); // Clear existing units
+        setPrimaryUnits([]);
         try {
             const response = await api.get('/onboarding/applications/get-units/', {
                 params: {
@@ -491,7 +377,7 @@ const ApplicationForm = () => {
 
     const fetchSecondaryUnits = async (branchId, parentUnitId) => {
         setIsLoadingData(true);
-        setSecondaryUnits([]); // Clear existing units
+        setSecondaryUnits([]);
         try {
             const response = await api.get('/onboarding/applications/get-units/', {
                 params: {
@@ -512,52 +398,6 @@ const ApplicationForm = () => {
         }
     };
 
-    const fetchMOSOptions = async () => {
-        if (!formData.branch || !formData.career_track || !formData.primary_unit) return;
-
-        console.log('Fetching MOS options:', {
-            branch_id: formData.branch,
-            career_track: formData.career_track,
-            unit_id: formData.primary_unit
-        });
-
-        setIsLoadingData(true);
-        try {
-            const response = await api.get('/onboarding/applications/get-mos-options/', {
-                params: {
-                    branch_id: formData.branch,
-                    career_track: formData.career_track,
-                    unit_id: formData.primary_unit  // Pass the primary unit to get slots
-                }
-            });
-            console.log('MOS options response:', response.data);
-
-            // Extract the mos_options array from the response
-            if (response.data && response.data.mos_options) {
-                setMosList(response.data.mos_options);
-                // Log the first MOS to see the structure
-                if (response.data.mos_options.length > 0) {
-                    console.log('First MOS structure:', response.data.mos_options[0]);
-                }
-            } else if (Array.isArray(response.data)) {
-                // Fallback if the API returns just an array
-                setMosList(response.data);
-                if (response.data.length > 0) {
-                    console.log('First MOS structure:', response.data[0]);
-                }
-            } else {
-                console.error('Unexpected MOS options format:', response.data);
-                setMosList([]);
-            }
-        } catch (err) {
-            console.error('Error fetching MOS options:', err);
-            // Don't show error, just set empty list
-            setMosList([]);
-        } finally {
-            setIsLoadingData(false);
-        }
-    };
-
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -568,14 +408,12 @@ const ApplicationForm = () => {
             branch: branchId,
             primary_unit: null,
             secondary_unit: null,
-            primary_mos: null
+            selected_recruitment_slot: null
         }));
 
-        // Clear previous selections
         setPrimaryUnits([]);
         setSecondaryUnits([]);
 
-        // Fetch primary units for this branch
         await fetchPrimaryUnits(branchId);
     };
 
@@ -583,48 +421,35 @@ const ApplicationForm = () => {
         setFormData(prev => ({
             ...prev,
             primary_unit: unitId,
-            secondary_unit: null
+            secondary_unit: null,
+            selected_recruitment_slot: null
         }));
 
-        // Fetch secondary units for this primary unit
         await fetchSecondaryUnits(formData.branch, unitId);
     };
 
     const handleSecondaryUnitSelect = (unitId) => {
-        setFormData(prev => ({ ...prev, secondary_unit: unitId }));
-    };
-
-    const handlePositionSelect = (slotId) => {
-        console.log('Position selected:', slotId);
-        setFormData(prev => ({ ...prev, selected_recruitment_slot: slotId }));
+        setFormData(prev => ({
+            ...prev,
+            secondary_unit: unitId,
+            selected_recruitment_slot: null
+        }));
     };
 
     const handleCareerTrackSelect = async (track) => {
         setFormData(prev => ({
             ...prev,
             career_track: track,
-            primary_mos: null
+            selected_recruitment_slot: null
         }));
-        // MOS will be fetched by useEffect
     };
 
-    const handleMOSSelect = (mosId) => {
-        console.log('MOS selected:', mosId);
-        console.log('MOS type:', typeof mosId);
-        console.log('Starts with role_?', mosId.startsWith('role_'));
-
-        // Always ensure we store role-based IDs with the prefix
-        if (mosId && !mosId.startsWith('role_') && !mosId.includes('-')) {
-            // If it's just a plain ID without hyphens, it might be a role
-            console.warn('MOS ID might be missing role_ prefix, adding it');
-            mosId = `role_${mosId}`;
-        }
-
-        setFormData(prev => ({ ...prev, primary_mos: mosId }));
+    const handleRecruitmentSlotSelect = (slotId) => {
+        console.log('Recruitment slot selected:', slotId);
+        setFormData(prev => ({ ...prev, selected_recruitment_slot: slotId }));
     };
 
     const acceptWaiver = (waiverId) => {
-        // Just add to local state - we'll save these when creating the application
         setFormData(prev => ({
             ...prev,
             accepted_waivers: [...prev.accepted_waivers, waiverId]
@@ -675,7 +500,7 @@ const ApplicationForm = () => {
                 break;
 
             case 7: // Position Selection
-                if (positionsList.length > 0 && !formData.selected_recruitment_slot) {
+                if (recruitmentSlots.length > 0 && !formData.selected_recruitment_slot) {
                     setError('Please select a position from the available options');
                     return false;
                 }
@@ -725,18 +550,14 @@ const ApplicationForm = () => {
     const handleNext = async () => {
         if (!validateStep()) return;
 
-        // Clear any previous errors
         setError(null);
 
-        // Don't create application early since API requires fields from later steps
-        // Just save locally and move to next step
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
         }
     };
 
     const handlePrevious = () => {
-        // Clear any errors when going back
         setError(null);
 
         if (currentStep > 1) {
@@ -751,7 +572,6 @@ const ApplicationForm = () => {
         setError(null);
 
         try {
-            // Ensure we have an application ID
             let currentAppId = applicationId;
 
             if (!currentAppId) {
@@ -761,7 +581,7 @@ const ApplicationForm = () => {
                     throw new Error('Failed to create application for submission');
                 }
 
-                // If we have waivers to accept, do it now
+                // Accept waivers for new application
                 if (formData.accepted_waivers.length > 0) {
                     console.log('Accepting waivers for new application...');
                     for (const waiverId of formData.accepted_waivers) {
@@ -775,12 +595,10 @@ const ApplicationForm = () => {
                     }
                 }
             } else {
-                // Save any last-minute changes
                 console.log('Saving final changes before submission...');
                 await autoSaveProgress();
             }
 
-            // Now submit the application
             console.log('Submitting application with ID:', currentAppId);
 
             const submitData = {
@@ -809,7 +627,6 @@ const ApplicationForm = () => {
             } else if (err.response?.data?.errors) {
                 const errors = err.response.data.errors;
                 if (typeof errors === 'object' && !Array.isArray(errors)) {
-                    // If errors is an object with field-specific errors
                     const errorMessages = Object.entries(errors).map(([field, msgs]) =>
                         `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
                     );
@@ -889,12 +706,11 @@ const ApplicationForm = () => {
                 />;
             case 7:
                 return <PositionSelectionStep
-                    positionsList={positionsList}
-                    selectedPosition={formData.selected_recruitment_slot}
-                    onSelect={handlePositionSelect}
+                    recruitmentSlots={recruitmentSlots}
+                    selectedSlot={formData.selected_recruitment_slot}
+                    onSelect={handleRecruitmentSlotSelect}
                     isLoading={isLoadingData}
                 />;
-
             case 8:
                 return <ExperienceStep
                     formData={formData}
@@ -1285,7 +1101,6 @@ const SecondaryUnitStep = ({ units, selectedUnit, onSelect, unitType, isLoading,
         );
     }
 
-    // Note: The API should already filter these, but double-check
     const availableUnits = units.filter(u =>
         (u.available_slots > 0 || u.recruitment_status === 'open')
     );
@@ -1377,7 +1192,7 @@ const CareerTrackStep = ({ tracks, selectedTrack, onSelect }) => (
     </div>
 );
 
-const PositionSelectionStep = ({ positionsList, selectedPosition, onSelect, isLoading }) => {
+const PositionSelectionStep = ({ recruitmentSlots, selectedSlot, onSelect, isLoading }) => {
     if (isLoading) {
         return (
             <div className="loading-container">
@@ -1389,12 +1204,12 @@ const PositionSelectionStep = ({ positionsList, selectedPosition, onSelect, isLo
 
     // Group positions by role category
     const positionsByCategory = {};
-    positionsList.forEach(position => {
-        const category = position.role.category;
+    recruitmentSlots.forEach(slot => {
+        const category = slot.role?.category || 'uncategorized';
         if (!positionsByCategory[category]) {
             positionsByCategory[category] = [];
         }
-        positionsByCategory[category].push(position);
+        positionsByCategory[category].push(slot);
     });
 
     return (
@@ -1402,60 +1217,76 @@ const PositionSelectionStep = ({ positionsList, selectedPosition, onSelect, isLo
             <h2>SELECT POSITION</h2>
             <p className="step-description">Choose from available positions in your selected unit</p>
 
-            {positionsList.length > 0 ? (
+            {recruitmentSlots.length > 0 ? (
                 <div className="positions-by-category">
-                    {Object.entries(positionsByCategory).map(([category, positions]) => (
+                    {Object.entries(positionsByCategory).map(([category, slots]) => (
                         <div key={category} className="category-section">
                             <h3 className="category-header">{category.replace(/_/g, ' ').toUpperCase()}</h3>
                             <div className="mos-grid">
-                                {positions.map(position => (
+                                {slots.map(slot => (
                                     <div
-                                        key={position.id}
-                                        className={`mos-card ${selectedPosition === position.id ? 'selected' : ''}`}
-                                        onClick={() => onSelect(position.id)}
+                                        key={slot.id}
+                                        className={`mos-card ${selectedSlot === slot.id ? 'selected' : ''}`}
+                                        onClick={() => onSelect(slot.id)}
                                     >
                                         <div className="mos-header">
                                             <div className="mos-icon">
                                                 <Briefcase size={20} />
                                             </div>
                                             <div className="mos-info">
-                                                <h4>{position.role.name}</h4>
-                                                <p>{position.unit.abbreviation}</p>
+                                                <h4>{slot.role?.name || slot.display_name}</h4>
+                                                <p>{slot.unit?.abbreviation || ''}</p>
                                             </div>
                                         </div>
-                                        {position.role.description && (
-                                            <p className="mos-description">{position.role.description}</p>
+                                        {slot.role?.description && (
+                                            <p className="mos-description">{slot.role.description}</p>
                                         )}
                                         <div className="mos-details">
                                             <div className="mos-stat">
                                                 <span className="stat-label">Open Slots:</span>
                                                 <span className="stat-value" style={{
-                                                    color: position.available_slots > 3 ? 'var(--success-color)' :
-                                                        position.available_slots > 0 ? 'var(--warning-color)' :
+                                                    color: slot.available_slots > 3 ? 'var(--success-color)' :
+                                                        slot.available_slots > 0 ? 'var(--warning-color)' :
                                                             'var(--error-color)'
                                                 }}>
-                                                    {position.available_slots}
+                                                    {slot.available_slots}
                                                 </span>
                                             </div>
                                             <div className="mos-stat">
                                                 <span className="stat-label">Unit:</span>
-                                                <span className="stat-value">{position.unit.name}</span>
+                                                <span className="stat-value">{slot.unit?.name || ''}</span>
                                             </div>
                                         </div>
 
-                                        {position.role.typical_rank && (
+                                        {slot.role?.typical_rank && (
                                             <div className="rank-requirement">
                                                 <span className="stat-label">Typical Rank:</span>
-                                                <span className="stat-value">{position.role.typical_rank}</span>
+                                                <span className="stat-value">{slot.role.typical_rank}</span>
                                             </div>
                                         )}
 
-                                        {position.available_slots === 1 && (
+                                        {slot.available_slots === 1 && (
                                             <div className="limited-availability">
                                                 <AlertCircle size={14} />
                                                 <span>Only 1 slot remaining</span>
                                             </div>
                                         )}
+
+                                        {/* Position type badges */}
+                                        <div className="position-badges">
+                                            {slot.role?.is_command_role && (
+                                                <span className="position-badge command">COMMAND</span>
+                                            )}
+                                            {slot.role?.is_staff_role && (
+                                                <span className="position-badge staff">STAFF</span>
+                                            )}
+                                            {slot.role?.is_nco_role && (
+                                                <span className="position-badge nco">NCO</span>
+                                            )}
+                                            {slot.role?.is_specialist_role && (
+                                                <span className="position-badge specialist">SPECIALIST</span>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1473,219 +1304,124 @@ const PositionSelectionStep = ({ positionsList, selectedPosition, onSelect, isLo
     );
 };
 
-const MOSSelectionStep = ({ mosList, selectedMOS, onSelect, isLoading }) => {
-    if (isLoading) {
-        return (
-            <div className="loading-container">
-                <Loader className="spinning" size={40} />
-                <p>LOADING AVAILABLE POSITIONS...</p>
-            </div>
-        );
-    }
+const ExperienceStep = ({ formData, onChange }) => (
+    <div className="experience-info">
+        <h2>SERVICE BACKGROUND</h2>
+        <p className="step-description">Provide information about your experience and motivation</p>
 
-    // Sort by available slots if not already sorted
-    const sortedMosList = [...mosList].sort((a, b) => (b.available_slots || 0) - (a.available_slots || 0));
+        <div className="form-group">
+            <label>Previous Military Simulation Experience *</label>
+            <textarea
+                placeholder="Describe any previous experience in military simulation games, organized units, or similar activities. Include specific games, units, ranks achieved, and time served... (minimum 50 characters)"
+                value={formData.previous_experience}
+                onChange={(e) => onChange('previous_experience', e.target.value)}
+                rows={6}
+            />
+            <small>Character count: {formData.previous_experience.length}/50 minimum</small>
+        </div>
+
+        <div className="form-group">
+            <label>Reason for Joining the 5th Expeditionary Group *</label>
+            <textarea
+                placeholder="Explain why you want to join our unit specifically. What attracted you to the 5th EXG? What are your goals within our organization?... (minimum 50 characters)"
+                value={formData.reason_for_joining}
+                onChange={(e) => onChange('reason_for_joining', e.target.value)}
+                rows={6}
+            />
+            <small>Character count: {formData.reason_for_joining.length}/50 minimum</small>
+        </div>
+    </div>
+);
+
+const RoleSpecificStep = ({ formData, careerTrack, onChange }) => (
+    <div className="role-specific-info">
+        <h2>OPERATIONAL REQUIREMENTS</h2>
+        <p className="step-description">Provide role-specific information and availability</p>
+
+        <div className="form-group">
+            <label>Weekly Availability (Hours) *</label>
+            <select
+                value={formData.weekly_availability_hours || ''}
+                onChange={(e) => onChange('weekly_availability_hours', parseInt(e.target.value))}
+            >
+                <option value="">Select hours per week...</option>
+                <option value="5">5-10 hours</option>
+                <option value="10">10-15 hours</option>
+                <option value="15">15-20 hours</option>
+                <option value="20">20-30 hours</option>
+                <option value="30">30+ hours</option>
+            </select>
+        </div>
+
+        <div className="form-group">
+            <label>
+                <input
+                    type="checkbox"
+                    checked={formData.can_attend_mandatory_events}
+                    onChange={(e) => onChange('can_attend_mandatory_events', e.target.checked)}
+                />
+                I can attend mandatory unit operations (minimum 2 per month)
+            </label>
+        </div>
+
+        {careerTrack === 'officer' && (
+            <div className="form-group">
+                <label>Leadership Experience *</label>
+                <textarea
+                    placeholder="Describe your leadership experience in gaming communities, real life, or military service..."
+                    value={formData.leadership_experience}
+                    onChange={(e) => onChange('leadership_experience', e.target.value)}
+                    rows={4}
+                />
+            </div>
+        )}
+
+        {careerTrack === 'warrant' && (
+            <div className="form-group">
+                <label>Technical/Flight Experience *</label>
+                <textarea
+                    placeholder="Describe your flight experience in Star Citizen or other simulation games. Include hours flown and aircraft types..."
+                    value={formData.technical_experience}
+                    onChange={(e) => onChange('technical_experience', e.target.value)}
+                    rows={4}
+                />
+            </div>
+        )}
+
+        <div className="info-card requirements">
+            <h4><AlertCircle size={16} /> Operational Commitments</h4>
+            <ul>
+                <li>Minimum 2 operations per month</li>
+                <li>Weekly training participation encouraged</li>
+                <li>Discord voice communications required</li>
+                <li>Adherence to chain of command</li>
+                <li>Professional conduct at all times</li>
+            </ul>
+        </div>
+    </div>
+);
+
+const WaiversStep = ({ waivers, acceptedWaivers, onAccept, formData, recruitmentData }) => {
+    const requiredWaivers = waivers.filter(w => w.is_required);
+    const optionalWaivers = waivers.filter(w => !w.is_required);
+
+    // Get labels for display
+    const getBranchName = (branchId) => {
+        const branch = recruitmentData?.branches?.find(b => b.id === branchId);
+        return branch?.name || 'Unknown Branch';
+    };
+
+    const getCareerTrackLabel = (track) => {
+        const trackData = recruitmentData?.career_tracks?.find(t => t.value === track);
+        return trackData?.label || track;
+    };
 
     return (
-        <div className="mos-selection">
-            <h2>SELECT MILITARY OCCUPATIONAL SPECIALTY</h2>
-            <p className="step-description">Choose from available positions in your selected unit</p>
-
-            {sortedMosList.length > 0 ? (
-                <div className="mos-grid">
-                    {sortedMosList.map(mos => {
-                        // Ensure we use the correct ID format
-                        let mosId = mos.mos_id || mos.id;
-
-                        // If the ID doesn't start with 'role_' but we know it's a role-based MOS
-                        // (indicated by having mos_id set to a UUID), add the prefix
-                        if (mos.mos_id && !String(mosId).startsWith('role_') && !mos.code.startsWith('MOS')) {
-                            mosId = `role_${mosId}`;
-                        }
-
-                        return (
-                            <div
-                                key={mos.id}
-                                className={`mos-card ${selectedMOS === mosId ? 'selected' : ''}`}
-                                onClick={() => onSelect(mosId)}
-                            >
-                                <div className="mos-header">
-                                    <div className="mos-icon">
-                                        <Briefcase size={20} />
-                                    </div>
-                                    <div className="mos-info">
-                                        <h4>{mos.code}</h4>
-                                        <p>{mos.title}</p>
-                                    </div>
-                                </div>
-                                {mos.description && (
-                                    <p className="mos-description">{mos.description}</p>
-                                )}
-                                <div className="mos-details">
-                                    <div className="mos-stat">
-                                        <span className="stat-label">Open Slots:</span>
-                                        <span className="stat-value" style={{
-                                            color: mos.available_slots > 3 ? 'var(--success-color)' :
-                                                mos.available_slots > 0 ? 'var(--warning-color)' :
-                                                    'var(--error-color)'
-                                        }}>
-                                            {mos.available_slots || 0}
-                                        </span>
-                                    </div>
-                                    <div className="mos-stat">
-                                        <span className="stat-label">Training:</span>
-                                        <span className="stat-value">{mos.ait_weeks || 'TBD'} weeks</span>
-                                    </div>
-                                </div>
-                                {mos.roles && mos.roles.length > 0 && (
-                                    <div className="mos-positions">
-                                        <span className="positions-label">Available roles:</span>
-                                        <div className="roles-list">
-                                            {mos.roles.map((role, idx) => (
-                                                <div key={idx} className="role-item">{role}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {mos.available_slots === 1 && (
-                                    <div className="limited-availability">
-                                        <AlertCircle size={14} />
-                                        <span>Only 1 slot remaining</span>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div className="no-brigades-message">
-                    <AlertCircle size={48} />
-                    <h3>No Positions Available</h3>
-                    <p>There are currently no open positions for your selected career track in this unit. Please try selecting a different unit or career track.</p>
-                </div>
-            )}
-        </div>
-    );
-};
-
-            const ExperienceStep = ({ formData, onChange }) => (
-            <div className="experience-info">
-                <h2>SERVICE BACKGROUND</h2>
-                <p className="step-description">Provide information about your experience and motivation</p>
-
-                <div className="form-group">
-                    <label>Previous Military Simulation Experience *</label>
-                    <textarea
-                        placeholder="Describe any previous experience in military simulation games, organized units, or similar activities. Include specific games, units, ranks achieved, and time served... (minimum 50 characters)"
-                        value={formData.previous_experience}
-                        onChange={(e) => onChange('previous_experience', e.target.value)}
-                        rows={6}
-                    />
-                    <small>Character count: {formData.previous_experience.length}/50 minimum</small>
-                </div>
-
-                <div className="form-group">
-                    <label>Reason for Joining the 5th Expeditionary Group *</label>
-                    <textarea
-                        placeholder="Explain why you want to join our unit specifically. What attracted you to the 5th EXG? What are your goals within our organization?... (minimum 50 characters)"
-                        value={formData.reason_for_joining}
-                        onChange={(e) => onChange('reason_for_joining', e.target.value)}
-                        rows={6}
-                    />
-                    <small>Character count: {formData.reason_for_joining.length}/50 minimum</small>
-                </div>
-            </div>
-            );
-
-            const RoleSpecificStep = ({ formData, careerTrack, onChange }) => (
-            <div className="role-specific-info">
-                <h2>OPERATIONAL REQUIREMENTS</h2>
-                <p className="step-description">Provide role-specific information and availability</p>
-
-                <div className="form-group">
-                    <label>Weekly Availability (Hours) *</label>
-                    <select
-                        value={formData.weekly_availability_hours || ''}
-                        onChange={(e) => onChange('weekly_availability_hours', parseInt(e.target.value))}
-                    >
-                        <option value="">Select hours per week...</option>
-                        <option value="5">5-10 hours</option>
-                        <option value="10">10-15 hours</option>
-                        <option value="15">15-20 hours</option>
-                        <option value="20">20-30 hours</option>
-                        <option value="30">30+ hours</option>
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>
-                        <input
-                            type="checkbox"
-                            checked={formData.can_attend_mandatory_events}
-                            onChange={(e) => onChange('can_attend_mandatory_events', e.target.checked)}
-                        />
-                        I can attend mandatory unit operations (minimum 2 per month)
-                    </label>
-                </div>
-
-                {careerTrack === 'officer' && (
-                    <div className="form-group">
-                        <label>Leadership Experience *</label>
-                        <textarea
-                            placeholder="Describe your leadership experience in gaming communities, real life, or military service..."
-                            value={formData.leadership_experience}
-                            onChange={(e) => onChange('leadership_experience', e.target.value)}
-                            rows={4}
-                        />
-                    </div>
-                )}
-
-                {careerTrack === 'warrant' && (
-                    <div className="form-group">
-                        <label>Technical/Flight Experience *</label>
-                        <textarea
-                            placeholder="Describe your flight experience in Star Citizen or other simulation games. Include hours flown and aircraft types..."
-                            value={formData.technical_experience}
-                            onChange={(e) => onChange('technical_experience', e.target.value)}
-                            rows={4}
-                        />
-                    </div>
-                )}
-
-                <div className="info-card requirements">
-                    <h4><AlertCircle size={16} /> Operational Commitments</h4>
-                    <ul>
-                        <li>Minimum 2 operations per month</li>
-                        <li>Weekly training participation encouraged</li>
-                        <li>Discord voice communications required</li>
-                        <li>Adherence to chain of command</li>
-                        <li>Professional conduct at all times</li>
-                    </ul>
-                </div>
-            </div>
-            );
-
-            const WaiversStep = ({ waivers, acceptedWaivers, onAccept, formData, recruitmentData }) => {
-            const requiredWaivers = waivers.filter(w => w.is_required);
-            const optionalWaivers = waivers.filter(w => !w.is_required);
-
-            // Get labels for display
-            const getBranchName = (branchId) => {
-            const branch = recruitmentData?.branches?.find(b => b.id === branchId);
-            return branch?.name || 'Unknown Branch';
-        };
-
-            const getCareerTrackLabel = (track) => {
-            const trackData = recruitmentData?.career_tracks?.find(t => t.value === track);
-            return trackData?.label || track;
-        };
-
-            return (
-            <div className="agreement-section">
+        <div className="agreement-section">
             <h2>ACKNOWLEDGMENTS & WAIVERS</h2>
             <p className="step-description">Review and accept the following acknowledgments</p>
 
-        {/* Summary of Application */}
+            {/* Summary of Application */}
             <div className="info-card" style={{ marginBottom: '2rem' }}>
                 <h4><FileText size={16} /> Application Summary</h4>
                 <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.875rem' }}>
